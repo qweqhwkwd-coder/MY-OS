@@ -4,7 +4,7 @@
 (полный доступ) — сложная авторизация не нужна.
 """
 
-from datetime import date
+from datetime import date, timedelta
 
 from supabase import Client, create_client
 
@@ -14,8 +14,17 @@ supabase: Client = create_client(
     settings.supabase_url, settings.supabase_service_role_key
 )
 
-# Пять RPG-характеристик
-STATS = ("strength", "endurance", "nutrition", "discipline", "reflection")
+# Восемь RPG-характеристик
+STATS = (
+    "strength",    # Сила — силовые
+    "endurance",   # Выносливость — кардио
+    "nutrition",   # Питание — еда (КБЖУ)
+    "discipline",  # Дисциплина — ритуалы, задачи
+    "reflection",  # Рефлексия — дневник, цели
+    "health",      # Здоровье — вода, сон
+    "finance",     # Финансы — расходы, бюджет
+    "intellect",   # Интеллект — обучение, чтение
+)
 
 
 # --- Пользователь -------------------------------------------------------------
@@ -38,6 +47,33 @@ def ensure_user(telegram_id: int, name: str) -> dict:
     user = created.data[0]
     supabase.table("user_stats").insert({"user_id": user["id"]}).execute()
     return user
+
+
+# --- RPG ----------------------------------------------------------------------
+
+def add_xp(user_id: str, stat: str, amount: int, source: str) -> None:
+    """Начисляет XP в характеристику, логирует событие и пересчитывает уровень."""
+    supabase.table("xp_events").insert(
+        {
+            "user_id": user_id,
+            "source_module": source,
+            "stat_affected": stat,
+            "xp_amount": amount,
+        }
+    ).execute()
+
+    stats = (
+        supabase.table("user_stats").select("*").eq("user_id", user_id).execute().data[0]
+    )
+    new_val = stats[stat] + amount
+
+    # уровень = среднее XP по 5 статам / 100 (как в правилах RPG)
+    total = sum(stats[s] for s in STATS) - stats[stat] + new_val
+    level = int((total / len(STATS)) // 100)
+
+    supabase.table("user_stats").update(
+        {stat: new_val, "level": level}
+    ).eq("user_id", user_id).execute()
 
 
 # --- Вода ---------------------------------------------------------------------
@@ -66,30 +102,65 @@ def add_water(user_id: str, amount_ml: int) -> int:
     return new_total
 
 
-# --- RPG ----------------------------------------------------------------------
+# --- Ритуалы ------------------------------------------------------------------
 
-def add_xp(user_id: str, stat: str, amount: int, source: str) -> None:
-    """Начисляет XP в характеристику, логирует событие и пересчитывает уровень."""
-    # лог события (откуда пришёл XP)
-    supabase.table("xp_events").insert(
-        {
-            "user_id": user_id,
-            "source_module": source,
-            "stat_affected": stat,
-            "xp_amount": amount,
-        }
-    ).execute()
-
-    # увеличиваем нужный стат
-    stats = (
-        supabase.table("user_stats").select("*").eq("user_id", user_id).execute().data[0]
+def get_rituals(user_id: str) -> list[dict]:
+    """Активные ритуалы пользователя, по порядку создания."""
+    return (
+        supabase.table("rituals")
+        .select("*")
+        .eq("user_id", user_id)
+        .eq("is_active", True)
+        .order("created_at")
+        .execute()
+        .data
     )
-    new_val = stats[stat] + amount
 
-    # уровень = среднее XP по 5 статам / 100 (как в правилах RPG)
-    total = sum(stats[s] for s in STATS) - stats[stat] + new_val
-    level = int((total / len(STATS)) // 100)
 
-    supabase.table("user_stats").update(
-        {stat: new_val, "level": level}
-    ).eq("user_id", user_id).execute()
+def add_ritual(user_id: str, title: str, icon: str | None = None) -> dict:
+    return (
+        supabase.table("rituals")
+        .insert({"user_id": user_id, "title": title, "icon": icon})
+        .execute()
+        .data[0]
+    )
+
+
+def is_ritual_done_today(ritual_id: str) -> bool:
+    today = date.today().isoformat()
+    res = (
+        supabase.table("ritual_logs")
+        .select("is_done")
+        .eq("ritual_id", ritual_id)
+        .eq("date", today)
+        .execute()
+    )
+    return bool(res.data and res.data[0]["is_done"])
+
+
+def toggle_ritual(ritual_id: str, user_id: str) -> bool:
+    """Переключает отметку за сегодня. Возвращает новое состояние (True = выполнен)."""
+    today = date.today().isoformat()
+    if is_ritual_done_today(ritual_id):
+        supabase.table("ritual_logs").delete().eq("ritual_id", ritual_id).eq(
+            "date", today
+        ).execute()
+        return False
+    supabase.table("ritual_logs").upsert(
+        {"ritual_id": ritual_id, "user_id": user_id, "date": today, "is_done": True},
+        on_conflict="ritual_id,date",
+    ).execute()
+    return True
+
+
+def ritual_streak_7(ritual_id: str) -> int:
+    """Сколько из последних 7 дней ритуал был выполнен."""
+    start = (date.today() - timedelta(days=6)).isoformat()
+    res = (
+        supabase.table("ritual_logs")
+        .select("is_done")
+        .eq("ritual_id", ritual_id)
+        .gte("date", start)
+        .execute()
+    )
+    return sum(1 for r in res.data if r["is_done"])

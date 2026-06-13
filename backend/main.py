@@ -4,20 +4,32 @@ FastAPI поднимает веб-сервер (для Render и вебхука 
 aiogram обрабатывает сообщения бота.
 
 Команды:
-  /start  — регистрация + привет
-  /water  — вода за день: кнопки +250/+500/+1000, +2 XP к Питанию при достижении цели
+  /start                 — регистрация + привет
+  /water                 — вода за день (+2 XP к Питанию при достижении цели)
+  /addritual <название>  — создать ритуал
+  /rituals               — ритуалы дня, отметка ✅/⬜, стрик x/7 (+2 XP к Дисциплине)
 """
 
 import re
 from contextlib import asynccontextmanager
 
 from aiogram import Bot, Dispatcher, F, types
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from fastapi import FastAPI, Header, Request, Response
 
 from config import settings
-from db import add_water, add_xp, ensure_user, get_water_today
+from db import (
+    add_ritual,
+    add_water,
+    add_xp,
+    ensure_user,
+    get_rituals,
+    get_water_today,
+    is_ritual_done_today,
+    ritual_streak_7,
+    toggle_ritual,
+)
 
 bot = Bot(token=settings.bot_token)
 dp = Dispatcher()
@@ -50,6 +62,29 @@ def water_keyboard() -> InlineKeyboardMarkup:
     )
 
 
+def rituals_view(rituals: list[dict]) -> str:
+    lines = ["🔥 Ритуалы сегодня:\n"]
+    for r in rituals:
+        mark = "✅" if is_ritual_done_today(r["id"]) else "⬜"
+        icon = f"{r['icon']} " if r.get("icon") else ""
+        streak = ritual_streak_7(r["id"])
+        lines.append(f"{mark} {icon}{r['title']}  ·  {streak}/7")
+    lines.append("\nЖми кнопку, чтобы отметить/снять.\nДобавить: /addritual Название")
+    return "\n".join(lines)
+
+
+def rituals_keyboard(rituals: list[dict]) -> InlineKeyboardMarkup:
+    rows = []
+    for r in rituals:
+        mark = "✅" if is_ritual_done_today(r["id"]) else "⬜"
+        rows.append([
+            InlineKeyboardButton(
+                text=f"{mark} {r['title']}", callback_data=f"ritual:{r['id']}"
+            )
+        ])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
 # --- Обработчики бота (порядок важен: catch-all всегда последним) -------------
 
 @dp.message(CommandStart())
@@ -57,7 +92,7 @@ async def on_start(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     await message.answer(
         f"MY-OS на связи 👋\nПривет, {user['name']}!\n\n"
-        "Команда /water — отметить воду за день."
+        "Команды:\n/water — вода\n/rituals — ритуалы\n/addritual Название — новый ритуал"
     )
 
 
@@ -81,8 +116,8 @@ async def cb_water(callback: types.CallbackQuery):
 
     note = ""
     if before < goal <= total:  # цель достигнута впервые за сегодня
-        add_xp(user["id"], "nutrition", 2, "water")
-        note = "\n\n🎉 Цель по воде выполнена! +2 XP к Питанию"
+        add_xp(user["id"], "health", 2, "water")
+        note = "\n\n🎉 Цель по воде выполнена! +2 XP к Здоровью"
 
     await callback.message.edit_text(
         water_view(total, goal) + note, reply_markup=water_keyboard()
@@ -90,9 +125,50 @@ async def cb_water(callback: types.CallbackQuery):
     await callback.answer(f"+{amount} мл")
 
 
+@dp.message(Command("addritual"))
+async def cmd_addritual(message: types.Message, command: CommandObject):
+    title = (command.args or "").strip()
+    if not title:
+        await message.answer("Напиши название после команды:\n/addritual Медитация")
+        return
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    add_ritual(user["id"], title)
+    rituals = get_rituals(user["id"])
+    await message.answer(
+        f"Добавлен ритуал: {title}\n\n" + rituals_view(rituals),
+        reply_markup=rituals_keyboard(rituals),
+    )
+
+
+@dp.message(Command("rituals"))
+async def cmd_rituals(message: types.Message):
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    rituals = get_rituals(user["id"])
+    if not rituals:
+        await message.answer("Ритуалов пока нет.\nДобавь первый: /addritual Медитация")
+        return
+    await message.answer(rituals_view(rituals), reply_markup=rituals_keyboard(rituals))
+
+
+@dp.callback_query(F.data.startswith("ritual:"))
+async def cb_ritual(callback: types.CallbackQuery):
+    ritual_id = callback.data.split(":", 1)[1]
+    user = ensure_user(callback.from_user.id, callback.from_user.full_name)
+
+    now_done = toggle_ritual(ritual_id, user["id"])
+    if now_done:  # отметили выполненным — начисляем XP
+        add_xp(user["id"], "discipline", 2, "rituals")
+
+    rituals = get_rituals(user["id"])
+    await callback.message.edit_text(
+        rituals_view(rituals), reply_markup=rituals_keyboard(rituals)
+    )
+    await callback.answer("Отмечено ✅ (+2 XP)" if now_done else "Снято")
+
+
 @dp.message()
 async def on_any(message: types.Message):
-    await message.answer("Пока умею /water. Скоро добавим задачи и остальное 🙂")
+    await message.answer("Команды: /water, /rituals, /addritual. Скоро добавим задачи 🙂")
 
 
 # --- Веб-сервер --------------------------------------------------------------
