@@ -47,16 +47,21 @@ async def on_any(message: types.Message):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # При запуске сервера прописываем вебхук в Telegram.
+    # При запуске прописываем вебхук в Telegram (повторно — не страшно).
     if settings.webhook_base_url:
+        base = settings.webhook_base_url.rstrip("/")  # защита от слэша в конце
+        webhook_url = f"{base}{WEBHOOK_PATH}"
         await bot.set_webhook(
-            f"{settings.webhook_base_url}{WEBHOOK_PATH}",
+            webhook_url,
             secret_token=WEBHOOK_SECRET,
             drop_pending_updates=True,
         )
+        print(f"[startup] webhook set to {webhook_url}", flush=True)
+    else:
+        print("[startup] WEBHOOK_BASE_URL пустой — вебхук НЕ установлен", flush=True)
     yield
-    # При остановке — убираем вебхук и закрываем сессию.
-    await bot.delete_webhook()
+    # ВАЖНО: вебхук на остановке НЕ удаляем. На free-хостинге сервис часто
+    # перезапускается и засыпает — delete_webhook оставил бы бота без связи.
     await bot.session.close()
 
 
