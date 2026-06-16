@@ -201,14 +201,14 @@ def ritual_streak_7(ritual_id: str) -> int:
 
 BALANCE_FIELDS = ("health", "work", "relations", "finance", "growth", "leisure", "creativity", "purpose")
 BALANCE_LABELS = {
-    "health": "Здоровье",
-    "work": "Работа",
-    "relations": "Отношения",
-    "finance": "Финансы",
-    "growth": "Развитие",
-    "leisure": "Отдых",
-    "creativity": "Творчество",
-    "purpose": "Смысл",
+    "health": "Здоров'я",
+    "work": "Робота",
+    "relations": "Стосунки",
+    "finance": "Фінанси",
+    "growth": "Розвиток",
+    "leisure": "Відпочинок",
+    "creativity": "Творчість",
+    "purpose": "Сенс",
 }
 
 

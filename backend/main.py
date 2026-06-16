@@ -1,13 +1,13 @@
 """MY-OS MVP — сервер.
 
-FastAPI поднимает веб-сервер (для Render и вебхука Telegram),
-aiogram обрабатывает сообщения бота.
+FastAPI піднімає веб-сервер (для Render і вебхука Telegram),
+aiogram обробляє повідомлення бота.
 
-Команды:
-  /start                 — регистрация + привет
-  /water                 — вода за день (+2 XP к Питанию при достижении цели)
-  /addritual <название>  — создать ритуал
-  /rituals               — ритуалы дня, отметка ✅/⬜, стрик x/7 (+2 XP к Дисциплине)
+Команди:
+  /start                 — реєстрація + привіт
+  /water                 — вода за день (+2 XP до Здоров'я при досягненні цілі)
+  /addritual <назва>     — створити ритуал
+  /rituals               — ритуали дня, відмітка ✅/⬜, стрік x/7 (+2 XP до Дисципліни)
 """
 
 import re
@@ -73,36 +73,34 @@ from db import (
 bot = Bot(token=settings.bot_token)
 dp = Dispatcher()
 
-# Секрет для вебхука (из токена) — чтобы чужой не слал фейковые апдейты.
 WEBHOOK_SECRET = re.sub(r"[^A-Za-z0-9_-]", "", settings.bot_token)[:128]
 WEBHOOK_PATH = "/webhook"
 
 
-# --- Помощники отображения ---------------------------------------------------
+# --- Помічники відображення ---------------------------------------------------
 
-# Временное хранилище оценок колеса баланса (user_id → {field: score})
+# Тимчасове сховище оцінок колеса балансу (user_id → {field: score})
 _balance_sessions: dict[int, dict] = {}
 
 
 MAIN_KEYBOARD = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="📅 Сегодня"), KeyboardButton(text="⚔️ Статы")],
-        [KeyboardButton(text="💧 Вода"), KeyboardButton(text="🔥 Ритуалы")],
-        [KeyboardButton(text="✅ Задачи"), KeyboardButton(text="🍽 Питание")],
+        [KeyboardButton(text="📅 Сьогодні"), KeyboardButton(text="⚔️ Стати")],
+        [KeyboardButton(text="💧 Вода"), KeyboardButton(text="🔥 Ритуали")],
+        [KeyboardButton(text="✅ Завдання"), KeyboardButton(text="🍽 Харчування")],
     ],
     resize_keyboard=True,
 )
 
 
 def progress_bar(value: int, goal: int, width: int = 10) -> str:
-    """Текстовый прогресс-бар: ▰▰▰▱▱▱▱▱▱▱"""
     goal = goal or 1
     filled = min(width, int(width * value / goal))
     return "▰" * filled + "▱" * (width - filled)
 
 
 def water_view(total: int, goal: int) -> str:
-    return f"💧 Вода сегодня: {total} / {goal} мл\n{progress_bar(total, goal)}"
+    return f"💧 Вода сьогодні: {total} / {goal} мл\n{progress_bar(total, goal)}"
 
 
 def water_keyboard() -> InlineKeyboardMarkup:
@@ -116,13 +114,13 @@ def water_keyboard() -> InlineKeyboardMarkup:
 
 
 def rituals_view(rituals: list[dict], done: set, streaks: dict) -> str:
-    lines = ["🔥 Ритуалы сегодня:\n"]
+    lines = ["🔥 Ритуали сьогодні:\n"]
     for r in rituals:
         mark = "✅" if r["id"] in done else "⬜"
         icon = f"{r['icon']} " if r.get("icon") else ""
         streak = streaks.get(r["id"], 0)
         lines.append(f"{mark} {icon}{r['title']}  ·  {streak}/7")
-    lines.append("\nЖми кнопку, чтобы отметить/снять.\nДобавить: /addritual Название")
+    lines.append("\nНатисни кнопку, щоб відмітити/зняти.\nДодати: /addritual Назва")
     return "\n".join(lines)
 
 
@@ -139,7 +137,6 @@ def rituals_keyboard(rituals: list[dict], done: set) -> InlineKeyboardMarkup:
 
 
 def _ritual_state(user_id: str, rituals: list[dict]) -> tuple[set, dict]:
-    """Батч-загрузка done-флагов и стриков за 2 запроса вместо 2N."""
     if not rituals:
         return set(), {}
     done = get_rituals_done_today(user_id)
@@ -149,11 +146,11 @@ def _ritual_state(user_id: str, rituals: list[dict]) -> tuple[set, dict]:
 
 def tasks_view(tasks: list[dict]) -> str:
     if not tasks:
-        return "📋 Нет активных задач.\nДобавь: /addtask Название"
-    lines = ["📋 Задачи:\n"]
+        return "📋 Немає активних завдань.\nДодай: /addtask Назва"
+    lines = ["📋 Завдання:\n"]
     for t in tasks:
         lines.append(f"⬜ {t['title']}")
-    lines.append("\nЖми кнопку, чтобы отметить выполненной.")
+    lines.append("\nНатисни кнопку, щоб відмітити виконаним.")
     return "\n".join(lines)
 
 
@@ -168,13 +165,13 @@ def tasks_keyboard(tasks: list[dict]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-# --- Обработчики бота (порядок важен: catch-all всегда последним) -------------
+# --- Обробники бота (порядок важливий: catch-all завжди останнім) -------------
 
 @dp.message(CommandStart())
 async def on_start(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     await message.answer(
-        f"MY-OS на связи 👋\nПривет, {user['name']}!",
+        f"MY-OS на зв'язку 👋\nПривіт, {user['name']}!",
         reply_markup=MAIN_KEYBOARD,
     )
 
@@ -198,9 +195,9 @@ async def cb_water(callback: types.CallbackQuery):
     total = add_water(user["id"], amount)
 
     note = ""
-    if before < goal <= total:  # цель достигнута впервые за сегодня
+    if before < goal <= total:
         add_xp(user["id"], "health", 2, "water")
-        note = "\n\n🎉 Цель по воде выполнена! +2 XP к Здоровью"
+        note = "\n\n🎉 Ціль по воді виконана! +2 XP до Здоров'я"
 
     await callback.message.edit_text(
         water_view(total, goal) + note, reply_markup=water_keyboard()
@@ -212,14 +209,14 @@ async def cb_water(callback: types.CallbackQuery):
 async def cmd_addritual(message: types.Message, command: CommandObject):
     title = (command.args or "").strip()
     if not title:
-        await message.answer("Напиши название после команды:\n/addritual Медитация")
+        await message.answer("Напиши назву після команди:\n/addritual Медитація")
         return
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     add_ritual(user["id"], title)
     rituals = get_rituals(user["id"])
     done, streaks = _ritual_state(user["id"], rituals)
     await message.answer(
-        f"Добавлен ритуал: {title}\n\n" + rituals_view(rituals, done, streaks),
+        f"Додано ритуал: {title}\n\n" + rituals_view(rituals, done, streaks),
         reply_markup=rituals_keyboard(rituals, done),
     )
 
@@ -229,7 +226,7 @@ async def cmd_rituals(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     rituals = get_rituals(user["id"])
     if not rituals:
-        await message.answer("Ритуалов пока нет.\nДобавь первый: /addritual Медитация")
+        await message.answer("Ритуалів поки немає.\nДодай перший: /addritual Медитація")
         return
     done, streaks = _ritual_state(user["id"], rituals)
     await message.answer(rituals_view(rituals, done, streaks), reply_markup=rituals_keyboard(rituals, done))
@@ -249,18 +246,18 @@ async def cb_ritual(callback: types.CallbackQuery):
     await callback.message.edit_text(
         rituals_view(rituals, done, streaks), reply_markup=rituals_keyboard(rituals, done)
     )
-    await callback.answer("Отмечено ✅ (+2 XP)" if now_done else "Снято")
+    await callback.answer("Відмічено ✅ (+2 XP)" if now_done else "Знято")
 
 
 STAT_LABELS = {
     "strength":   "💪 Сила",
-    "endurance":  "🏃 Выносливость",
-    "nutrition":  "🥗 Питание",
-    "discipline": "🔥 Дисциплина",
-    "reflection": "🧘 Рефлексия",
-    "health":     "❤️ Здоровье",
-    "finance":    "💰 Финансы",
-    "intellect":  "🧠 Интеллект",
+    "endurance":  "🏃 Витривалість",
+    "nutrition":  "🥗 Харчування",
+    "discipline": "🔥 Дисципліна",
+    "reflection": "🧘 Рефлексія",
+    "health":     "❤️ Здоров'я",
+    "finance":    "💰 Фінанси",
+    "intellect":  "🧠 Інтелект",
 }
 
 
@@ -272,18 +269,19 @@ async def cmd_today(message: types.Message):
     water = get_water_today(uid)
     goal = user["water_goal"]
     rituals = get_rituals(uid)
-    rituals_done = sum(1 for r in rituals if is_ritual_done_today(r["id"]))
+    done_set = get_rituals_done_today(uid)
+    rituals_done = sum(1 for r in rituals if r["id"] in done_set)
     tasks_done = get_tasks_done_today(uid)
     food = get_food_today(uid)
-    kcal = int(sum(e["kcal"] for e in food))
+    kcal = int(sum(e["kcal"] for e in food if e.get("kcal")))
     stats = get_user_stats(uid)
 
     lines = [
-        f"📅 Сводка за сегодня  •  Уровень {stats['level']}\n",
+        f"📅 Зведення за сьогодні  •  Рівень {stats['level']}\n",
         f"💧 Вода: {water} / {goal} мл  {progress_bar(water, goal, 8)}",
-        f"🔥 Ритуалы: {rituals_done} / {len(rituals)}",
-        f"✅ Задачи выполнено: {tasks_done}",
-        f"🍽 Калории: {kcal} ккал ({len(food)} записей)",
+        f"🔥 Ритуали: {rituals_done} / {len(rituals)}",
+        f"✅ Завдань виконано: {tasks_done}",
+        f"🍽 Калорії: {kcal} ккал ({len(food)} записів)",
     ]
     await message.answer("\n".join(lines))
 
@@ -292,7 +290,7 @@ async def cmd_today(message: types.Message):
 async def cmd_stats(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     st = get_user_stats(user["id"])
-    lines = [f"⚔️ RPG-статы  •  Уровень {st['level']}\n"]
+    lines = [f"⚔️ RPG-стати  •  Рівень {st['level']}\n"]
     for key in STATS:
         xp = st[key]
         lvl = xp // 100
@@ -304,10 +302,9 @@ async def cmd_stats(message: types.Message):
 @dp.message(Command("addfood"))
 async def cmd_addfood(message: types.Message, command: CommandObject):
     args = (command.args or "").strip().split()
-    # последний аргумент — ккал (число), остальное — название
     if len(args) < 2 or not args[-1].lstrip("-").isdigit():
         await message.answer(
-            "Формат: /addfood Название ккал\nПример: /addfood Гречка 250"
+            "Формат: /addfood Назва ккал\nПриклад: /addfood Гречка 250"
         )
         return
     kcal = int(args[-1])
@@ -317,10 +314,10 @@ async def cmd_addfood(message: types.Message, command: CommandObject):
     add_xp(user["id"], "nutrition", 2, "food")
 
     entries = get_food_today(user["id"])
-    total_kcal = sum(e["kcal"] for e in entries)
+    total_kcal = sum(e["kcal"] for e in entries if e.get("kcal"))
     await message.answer(
-        f"🍽 Записано: {food_name} — {kcal} ккал  +2 XP к Питанию\n\n"
-        f"Итого сегодня: {total_kcal} ккал ({len(entries)} записей)"
+        f"🍽 Записано: {food_name} — {kcal} ккал  +2 XP до Харчування\n\n"
+        f"Всього сьогодні: {total_kcal} ккал ({len(entries)} записів)"
     )
 
 
@@ -329,13 +326,13 @@ async def cmd_food(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     entries = get_food_today(user["id"])
     if not entries:
-        await message.answer("🍽 Сегодня ещё ничего не записано.\nДобавь: /addfood Гречка 250")
+        await message.answer("🍽 Сьогодні ще нічого не записано.\nДодай: /addfood Гречка 250")
         return
-    lines = ["🍽 Питание сегодня:\n"]
+    lines = ["🍽 Харчування сьогодні:\n"]
     for e in entries:
         lines.append(f"• {e['food_name']} — {int(e['kcal'])} ккал")
-    total = sum(e["kcal"] for e in entries)
-    lines.append(f"\n📊 Итого: {int(total)} ккал")
+    total = sum(e["kcal"] for e in entries if e.get("kcal"))
+    lines.append(f"\n📊 Всього: {int(total)} ккал")
     await message.answer("\n".join(lines))
 
 
@@ -343,13 +340,13 @@ async def cmd_food(message: types.Message):
 async def cmd_addtask(message: types.Message, command: CommandObject):
     title = (command.args or "").strip()
     if not title:
-        await message.answer("Напиши название после команды:\n/addtask Купить молоко")
+        await message.answer("Напиши назву після команди:\n/addtask Купити молоко")
         return
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     add_task(user["id"], title)
     tasks = get_tasks(user["id"])
     await message.answer(
-        f"Задача добавлена: {title}\n\n" + tasks_view(tasks),
+        f"Завдання додано: {title}\n\n" + tasks_view(tasks),
         reply_markup=tasks_keyboard(tasks) if tasks else None,
     )
 
@@ -378,7 +375,7 @@ async def cb_task(callback: types.CallbackQuery):
         tasks_view(tasks),
         reply_markup=tasks_keyboard(tasks) if tasks else None,
     )
-    await callback.answer("Выполнено! +3 XP к Дисциплине" if done else "Уже выполнено")
+    await callback.answer("Виконано! +3 XP до Дисципліни" if done else "Вже виконано")
 
 
 def _balance_keyboard(field: str) -> InlineKeyboardMarkup:
@@ -391,7 +388,7 @@ async def cmd_balance(message: types.Message):
     _balance_sessions[message.from_user.id] = {}
     field = BALANCE_FIELDS[0]
     await message.answer(
-        f"🎡 Колесо баланса\nОцени каждую сферу от 1 до 10.\n\n"
+        f"🎡 Колесо балансу\nОціни кожну сферу від 1 до 10.\n\n"
         f"1/{len(BALANCE_FIELDS)}  {BALANCE_LABELS[field]}:",
         reply_markup=_balance_keyboard(field),
     )
@@ -401,7 +398,7 @@ async def cmd_balance(message: types.Message):
 async def cb_balance(callback: types.CallbackQuery):
     parts = callback.data.split(":", 2)
     if len(parts) != 3 or parts[1] not in BALANCE_FIELDS:
-        await callback.answer("Устаревшая кнопка. Запусти /balance заново.")
+        await callback.answer("Застаріла кнопка. Запусти /balance знову.")
         return
     _, field, score_str = parts
     score = int(score_str)
@@ -410,11 +407,10 @@ async def cb_balance(callback: types.CallbackQuery):
 
     session = _balance_sessions.get(uid)
     if session is None:
-        # Сессия потеряна (рестарт сервера) — начинаем заново
         await callback.message.edit_text(
-            "🎡 Сессия устарела после перезапуска. Запусти /balance заново."
+            "🎡 Сесія застаріла після перезапуску. Запусти /balance знову."
         )
-        await callback.answer("Сессия истекла")
+        await callback.answer("Сесія закінчилась")
         return
 
     session[field] = score
@@ -426,7 +422,7 @@ async def cb_balance(callback: types.CallbackQuery):
     if next_idx < len(fields):
         nfield = fields[next_idx]
         await callback.message.edit_text(
-            f"🎡 Колесо баланса\n\n"
+            f"🎡 Колесо балансу\n\n"
             f"{next_idx + 1}/{len(fields)}  {BALANCE_LABELS[nfield]}:",
             reply_markup=_balance_keyboard(nfield),
         )
@@ -435,17 +431,17 @@ async def cb_balance(callback: types.CallbackQuery):
         all_filled = all(f in session for f in fields)
         if not all_filled:
             await callback.message.edit_text(
-                "⚠️ Не все сферы оценены. Запусти /balance заново."
+                "⚠️ Не всі сфери оцінені. Запусти /balance знову."
             )
             _balance_sessions.pop(uid, None)
-            await callback.answer("Неполная сессия")
+            await callback.answer("Неповна сесія")
             return
 
         save_balance(user["id"], session)
         add_xp(user["id"], "reflection", 3, "balance")
         _balance_sessions.pop(uid, None)
 
-        lines = ["🎡 Колесо баланса сохранено  +3 XP к Рефлексии\n"]
+        lines = ["🎡 Колесо балансу збережено  +3 XP до Рефлексії\n"]
         for f in fields:
             bar = "█" * session[f] + "░" * (10 - session[f])
             lines.append(f"{BALANCE_LABELS[f][:10]:10} {bar} {session[f]}")
@@ -458,14 +454,14 @@ async def cmd_inbox(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     items = get_inbox(user["id"])
     if not items:
-        await message.answer("📥 Inbox пуст.\nЛюбое сообщение без команды попадает сюда.")
+        await message.answer("📥 Inbox порожній.\nБудь-яке повідомлення без команди потрапляє сюди.")
         return
     lines = [f"📥 Inbox ({len(items)} шт.):\n"]
     rows = []
     for item in items:
         lines.append(f"• {item['text']}")
         rows.append([InlineKeyboardButton(text=f"✅ {item['text'][:40]}", callback_data=f"inbox:{item['id']}")])
-    lines.append("\nНажми чтобы отметить обработанным:")
+    lines.append("\nНатисни щоб відмітити опрацьованим:")
     await message.answer("\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
 
 
@@ -476,17 +472,17 @@ async def cb_inbox(callback: types.CallbackQuery):
     clear_inbox_item(item_id, user["id"])
     items = get_inbox(user["id"])
     if not items:
-        await callback.message.edit_text("📥 Inbox пуст.")
-        await callback.answer("Обработано")
+        await callback.message.edit_text("📥 Inbox порожній.")
+        await callback.answer("Опрацьовано")
         return
     lines = [f"📥 Inbox ({len(items)} шт.):\n"]
     rows = []
     for item in items:
         lines.append(f"• {item['text']}")
         rows.append([InlineKeyboardButton(text=f"✅ {item['text'][:40]}", callback_data=f"inbox:{item['id']}")])
-    lines.append("\nНажми чтобы отметить обработанным:")
+    lines.append("\nНатисни щоб відмітити опрацьованим:")
     await callback.message.edit_text("\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
-    await callback.answer("Обработано")
+    await callback.answer("Опрацьовано")
 
 
 @dp.message(Command("digest"))
@@ -494,15 +490,15 @@ async def cmd_digest(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     d = get_week_digest(user["id"])
     await message.answer(
-        "📊 Дайджест за 7 дней\n\n"
-        f"💧 Вода: {d['water_total']} мл ({d['water_days']} дней)\n"
-        f"🔥 Ритуалов выполнено: {d['rituals_done']}\n"
-        f"✅ Задач выполнено: {d['tasks_done']}\n"
-        f"🍽 Среднее ккал/день: {d['kcal_avg']}\n"
-        f"😴 Средний сон: {d['sleep_avg_h']:.0f}ч\n"
-        f"🏋️ Тренировок: {d['workouts']}\n"
-        f"💸 Потрачено: {d['spend_total']}\n"
-        f"⚡ XP заработано: {d['xp_earned']}"
+        "📊 Дайджест за 7 днів\n\n"
+        f"💧 Вода: {d['water_total']} мл ({d['water_days']} днів)\n"
+        f"🔥 Ритуалів виконано: {d['rituals_done']}\n"
+        f"✅ Завдань виконано: {d['tasks_done']}\n"
+        f"🍽 Середнє ккал/день: {d['kcal_avg']}\n"
+        f"😴 Середній сон: {d['sleep_avg_h']:.0f}г\n"
+        f"🏋️ Тренувань: {d['workouts']}\n"
+        f"💸 Витрачено: {d['spend_total']}\n"
+        f"⚡ XP зароблено: {d['xp_earned']}"
     )
 
 
@@ -511,8 +507,8 @@ async def cmd_addmeeting(message: types.Message, command: CommandObject):
     args = (command.args or "").strip()
     if not args:
         await message.answer(
-            "Формат: /addmeeting Название ГГГГ-ММ-ДД [ЧЧ:ММ]\n"
-            "Пример: /addmeeting Встреча с врачом 2026-06-20 14:00"
+            "Формат: /addmeeting Назва РРРР-ММ-ДД [ГГ:ХХ]\n"
+            "Приклад: /addmeeting Зустріч з лікарем 2026-06-20 14:00"
         )
         return
     parts = args.split()
@@ -527,13 +523,13 @@ async def cmd_addmeeting(message: types.Message, command: CommandObject):
         else:
             title_parts.append(p)
     if not meeting_date:
-        await message.answer("Укажи дату в формате ГГГГ-ММ-ДД.\nПример: /addmeeting Встреча 2026-06-20 14:00")
+        await message.answer("Вкажи дату у форматі РРРР-ММ-ДД.\nПриклад: /addmeeting Зустріч 2026-06-20 14:00")
         return
-    title = " ".join(title_parts) or "Встреча"
+    title = " ".join(title_parts) or "Зустріч"
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     add_meeting(user["id"], title, meeting_date, meeting_time)
-    time_str = f" в {meeting_time}" if meeting_time else ""
-    await message.answer(f"📅 Встреча добавлена: {title}\n{meeting_date}{time_str}")
+    time_str = f" о {meeting_time}" if meeting_time else ""
+    await message.answer(f"📅 Зустріч додана: {title}\n{meeting_date}{time_str}")
 
 
 @dp.message(Command("meetings"))
@@ -541,9 +537,9 @@ async def cmd_meetings(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     meetings = get_upcoming_meetings(user["id"])
     if not meetings:
-        await message.answer("📅 Предстоящих встреч нет.\nДобавь: /addmeeting Название 2026-06-20 14:00")
+        await message.answer("📅 Майбутніх зустрічей немає.\nДодай: /addmeeting Назва 2026-06-20 14:00")
         return
-    lines = ["📅 Предстоящие встречи:\n"]
+    lines = ["📅 Майбутні зустрічі:\n"]
     for m in meetings:
         time_str = f" {m['time'][:5]}" if m.get("time") else ""
         lines.append(f"• {m['date']}{time_str} — {m['title']}")
@@ -555,8 +551,8 @@ async def cmd_workout(message: types.Message, command: CommandObject):
     args = (command.args or "").strip()
     if not args:
         await message.answer(
-            "Формат: /workout активность [минуты]\n"
-            "Примеры:\n/workout Бег 30\n/workout Силовая тренировка 60\n/workout Йога"
+            "Формат: /workout активність [хвилини]\n"
+            "Приклади:\n/workout Біг 30\n/workout Силове тренування 60\n/workout Йога"
         )
         return
     parts = args.rsplit(maxsplit=1)
@@ -571,13 +567,13 @@ async def cmd_workout(message: types.Message, command: CommandObject):
     add_workout(user["id"], activity, duration, workout_type)
 
     xp_stat = {"cardio": "endurance", "strength": "strength", "flexibility": "health"}.get(workout_type, "discipline")
-    xp_label = {"cardio": "Выносливость", "strength": "Сила", "flexibility": "Здоровье"}.get(workout_type, "Дисциплина")
+    xp_label = {"cardio": "Витривалість", "strength": "Сила", "flexibility": "Здоров'я"}.get(workout_type, "Дисципліна")
     add_xp(user["id"], xp_stat, 5, "workout")
 
-    dur_str = f"  ⏱ {duration} мин" if duration else ""
+    dur_str = f"  ⏱ {duration} хв" if duration else ""
     type_emoji = {"cardio": "🏃", "strength": "💪", "flexibility": "🧘"}.get(workout_type, "🏋️")
     await message.answer(
-        f"{type_emoji} Тренировка записана: {activity}{dur_str}\n+5 XP к {xp_label}"
+        f"{type_emoji} Тренування записано: {activity}{dur_str}\n+5 XP до {xp_label}"
     )
 
 
@@ -585,7 +581,7 @@ async def cmd_workout(message: types.Message, command: CommandObject):
 async def cmd_addgoal(message: types.Message, command: CommandObject):
     args = (command.args or "").strip()
     if not args:
-        await message.answer("Формат: /addgoal Название [ГГГГ-ММ-ДД]\nПример: /addgoal Выучить испанский 2026-12-31")
+        await message.answer("Формат: /addgoal Назва [РРРР-ММ-ДД]\nПриклад: /addgoal Вивчити іспанську 2026-12-31")
         return
     parts = args.rsplit(maxsplit=1)
     deadline = None
@@ -601,7 +597,7 @@ async def cmd_addgoal(message: types.Message, command: CommandObject):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     add_goal(user["id"], title, deadline)
     dl_str = f"  📅 до {deadline}" if deadline else ""
-    await message.answer(f"🎯 Цель добавлена: {title}{dl_str}")
+    await message.answer(f"🎯 Ціль додана: {title}{dl_str}")
 
 
 @dp.message(Command("goals"))
@@ -609,13 +605,13 @@ async def cmd_goals(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     goals = get_goals(user["id"])
     if not goals:
-        await message.answer("🎯 Целей нет.\nДобавь: /addgoal Название")
+        await message.answer("🎯 Цілей немає.\nДодай: /addgoal Назва")
         return
-    lines = ["🎯 Активные цели:\n"]
+    lines = ["🎯 Активні цілі:\n"]
     for g in goals:
         dl = f"  (до {g['deadline']})" if g.get("deadline") else ""
         lines.append(f"• {g['title']}{dl}")
-    lines.append("\nВыполнить: /goalsdone")
+    lines.append("\nВиконати: /goalsdone")
     await message.answer("\n".join(lines))
 
 
@@ -624,12 +620,12 @@ async def cmd_goalsdone(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     goals = get_goals(user["id"])
     if not goals:
-        await message.answer("Нет активных целей.")
+        await message.answer("Немає активних цілей.")
         return
     rows = []
     for g in goals:
         rows.append([InlineKeyboardButton(text=f"✅ {g['title']}", callback_data=f"goal:{g['id']}")])
-    await message.answer("Выбери выполненную цель:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await message.answer("Обери виконану ціль:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
 
 
 @dp.callback_query(F.data.startswith("goal:"))
@@ -641,7 +637,7 @@ async def cb_goal(callback: types.CallbackQuery):
         add_xp(user["id"], "discipline", 10, "goals")
         add_xp(user["id"], "reflection", 5, "goals")
     await callback.message.delete()
-    await callback.answer("🏆 Цель выполнена! +10 XP Дисциплина +5 XP Рефлексия" if done else "Уже выполнена")
+    await callback.answer("🏆 Ціль виконана! +10 XP Дисципліна +5 XP Рефлексія" if done else "Вже виконана")
 
 
 @dp.message(Command("idea"))
@@ -651,16 +647,16 @@ async def cmd_idea(message: types.Message, command: CommandObject):
         user = ensure_user(message.from_user.id, message.from_user.full_name)
         ideas = get_ideas(user["id"])
         if not ideas:
-            await message.answer("💡 Идей нет.\nДобавь: /idea текст")
+            await message.answer("💡 Ідей немає.\nДодай: /idea текст")
             return
-        lines = ["💡 Идеи:\n"]
+        lines = ["💡 Ідеї:\n"]
         for i, idea in enumerate(ideas, 1):
             lines.append(f"{i}. {idea['text']}")
         await message.answer("\n".join(lines))
         return
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     add_idea(user["id"], text)
-    await message.answer(f"💡 Идея сохранена!")
+    await message.answer("💡 Ідею збережено!")
 
 
 @dp.message(Command("weight"))
@@ -670,9 +666,9 @@ async def cmd_weight(message: types.Message, command: CommandObject):
         user = ensure_user(message.from_user.id, message.from_user.full_name)
         entries = get_last_weights(user["id"])
         if not entries:
-            await message.answer("⚖️ Замеров нет.\nДобавь: /weight 80.5")
+            await message.answer("⚖️ Замірів немає.\nДодай: /weight 80.5")
             return
-        lines = ["⚖️ Последние замеры:\n"]
+        lines = ["⚖️ Останні заміри:\n"]
         for e in entries:
             lines.append(f"• {e['date']} — {e['weight']} кг")
         await message.answer("\n".join(lines))
@@ -680,12 +676,12 @@ async def cmd_weight(message: types.Message, command: CommandObject):
     try:
         weight = float(arg)
     except ValueError:
-        await message.answer("Неверный формат. Пример: /weight 80.5")
+        await message.answer("Невірний формат. Приклад: /weight 80.5")
         return
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     log_weight(user["id"], weight)
     add_xp(user["id"], "reflection", 1, "body")
-    await message.answer(f"⚖️ Вес записан: {weight} кг  +1 XP к Рефлексии")
+    await message.answer(f"⚖️ Вагу записано: {weight} кг  +1 XP до Рефлексії")
 
 
 MOOD_EMOJI = {1: "😞", 2: "😕", 3: "😐", 4: "🙂", 5: "😄"}
@@ -695,7 +691,7 @@ MOOD_EMOJI = {1: "😞", 2: "😕", 3: "😐", 4: "🙂", 5: "😄"}
 async def cmd_journal(message: types.Message, command: CommandObject):
     text = (command.args or "").strip()
     if not text:
-        await message.answer("Формат: /journal текст [настроение 1-5]\nПример: /journal Хороший день 4")
+        await message.answer("Формат: /journal текст [настрій 1-5]\nПриклад: /journal Гарний день 4")
         return
     parts = text.rsplit(maxsplit=1)
     mood = None
@@ -707,8 +703,8 @@ async def cmd_journal(message: types.Message, command: CommandObject):
     add_diary_entry(user["id"], text, mood)
     add_xp(user["id"], "reflection", 2, "journal")
 
-    mood_str = f"  Настроение: {MOOD_EMOJI[mood]}" if mood else ""
-    await message.answer(f"📓 Записано в дневник  +2 XP к Рефлексии{mood_str}")
+    mood_str = f"  Настрій: {MOOD_EMOJI[mood]}" if mood else ""
+    await message.answer(f"📓 Записано в щоденник  +2 XP до Рефлексії{mood_str}")
 
 
 @dp.message(Command("spend"))
@@ -719,9 +715,9 @@ async def cmd_spend(message: types.Message, command: CommandObject):
         if amount is None or amount <= 0:
             raise ValueError
     except (ValueError, IndexError):
-        await message.answer("Формат: /spend сумма категория\nПример: /spend 500 еда")
+        await message.answer("Формат: /spend сума категорія\nПриклад: /spend 500 їжа")
         return
-    category = parts[1].strip() if len(parts) > 1 else "другое"
+    category = parts[1].strip() if len(parts) > 1 else "інше"
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     add_transaction(user["id"], amount, category)
     add_xp(user["id"], "finance", 1, "finance")
@@ -729,8 +725,8 @@ async def cmd_spend(message: types.Message, command: CommandObject):
     entries = get_transactions_today(user["id"])
     total = sum(e["amount"] for e in entries)
     await message.answer(
-        f"💸 Записано: {amount:.0f} — {category}  +1 XP к Финансам\n"
-        f"Итого сегодня: {total:.0f}"
+        f"💸 Записано: {amount:.0f} — {category}  +1 XP до Фінансів\n"
+        f"Всього сьогодні: {total:.0f}"
     )
 
 
@@ -739,12 +735,12 @@ async def cmd_finance(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     entries = get_transactions_today(user["id"])
     if not entries:
-        await message.answer("💰 Сегодня трат нет.\nДобавь: /spend 500 еда")
+        await message.answer("💰 Сьогодні витрат немає.\nДодай: /spend 500 їжа")
         return
-    lines = ["💰 Траты сегодня:\n"]
+    lines = ["💰 Витрати сьогодні:\n"]
     for e in entries:
         lines.append(f"• {e['category']} — {e['amount']:.0f}")
-    lines.append(f"\n📊 Итого: {sum(e['amount'] for e in entries):.0f}")
+    lines.append(f"\n📊 Всього: {sum(e['amount'] for e in entries):.0f}")
     await message.answer("\n".join(lines))
 
 
@@ -753,7 +749,7 @@ async def cmd_sleep(message: types.Message, command: CommandObject):
     parts = (command.args or "").strip().split()
     if len(parts) != 2:
         await message.answer(
-            "Формат: /sleep ЧЧ:ММ ЧЧ:ММ\nПример: /sleep 23:30 7:15\n(засыпание → пробуждение)"
+            "Формат: /sleep ГГ:ХХ ГГ:ХХ\nПриклад: /sleep 23:30 7:15\n(засинання → пробудження)"
         )
         return
 
@@ -767,10 +763,9 @@ async def cmd_sleep(message: types.Message, command: CommandObject):
         sleep_min = parse_time(parts[0])
         wake_min = parse_time(parts[1])
     except ValueError:
-        await message.answer("Неверный формат времени. Пример: /sleep 23:30 7:15")
+        await message.answer("Невірний формат часу. Приклад: /sleep 23:30 7:15")
         return
 
-    # если засыпание позже полуночи — считаем со вчера
     duration = wake_min - sleep_min
     if duration <= 0:
         duration += 24 * 60
@@ -784,20 +779,20 @@ async def cmd_sleep(message: types.Message, command: CommandObject):
     xp_note = ""
     if 7 * 60 <= duration <= 9 * 60:
         add_xp(user["id"], "health", 3, "sleep")
-        xp_note = "  +3 XP к Здоровью 🎉"
+        xp_note = "  +3 XP до Здоров'я 🎉"
 
     await message.answer(
-        f"😴 Сон записан: {parts[0]} → {parts[1]}\n"
-        f"⏱ Длительность: {hours}ч {mins}мин{xp_note}"
+        f"😴 Сон записано: {parts[0]} → {parts[1]}\n"
+        f"⏱ Тривалість: {hours}г {mins}хв{xp_note}"
     )
 
 
-@dp.message(F.text == "📅 Сегодня")
+@dp.message(F.text == "📅 Сьогодні")
 async def kb_today(message: types.Message):
     await cmd_today(message)
 
 
-@dp.message(F.text == "⚔️ Статы")
+@dp.message(F.text == "⚔️ Стати")
 async def kb_stats(message: types.Message):
     await cmd_stats(message)
 
@@ -807,17 +802,17 @@ async def kb_water(message: types.Message):
     await cmd_water(message)
 
 
-@dp.message(F.text == "🔥 Ритуалы")
+@dp.message(F.text == "🔥 Ритуали")
 async def kb_rituals(message: types.Message):
     await cmd_rituals(message)
 
 
-@dp.message(F.text == "✅ Задачи")
+@dp.message(F.text == "✅ Завдання")
 async def kb_tasks(message: types.Message):
     await cmd_tasks(message)
 
 
-@dp.message(F.text == "🍽 Питание")
+@dp.message(F.text == "🍽 Харчування")
 async def kb_food(message: types.Message):
     await cmd_food(message)
 
@@ -830,9 +825,9 @@ async def on_any(message: types.Message):
     if text:
         user = ensure_user(message.from_user.id, message.from_user.full_name)
         add_inbox(user["id"], text)
-        await message.answer("📥 Сохранено в Inbox.\n/inbox — просмотр", reply_markup=MAIN_KEYBOARD)
+        await message.answer("📥 Збережено в Inbox.\n/inbox — перегляд", reply_markup=MAIN_KEYBOARD)
     else:
-        await message.answer("Используй кнопки внизу.", reply_markup=MAIN_KEYBOARD)
+        await message.answer("Використовуй кнопки внизу.", reply_markup=MAIN_KEYBOARD)
 
 
 # --- Веб-сервер --------------------------------------------------------------
@@ -840,16 +835,15 @@ async def on_any(message: types.Message):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if settings.webhook_base_url:
-        base = settings.webhook_base_url.rstrip("/")  # защита от слэша в конце
+        base = settings.webhook_base_url.rstrip("/")
         webhook_url = f"{base}{WEBHOOK_PATH}"
         await bot.set_webhook(
             webhook_url, secret_token=WEBHOOK_SECRET, drop_pending_updates=True
         )
         print(f"[startup] webhook set to {webhook_url}", flush=True)
     else:
-        print("[startup] WEBHOOK_BASE_URL пустой — вебхук НЕ установлен", flush=True)
+        print("[startup] WEBHOOK_BASE_URL порожній — вебхук НЕ встановлено", flush=True)
     yield
-    # Вебхук НЕ удаляем: на free-хостинге сервис часто перезапускается.
     await bot.session.close()
 
 
