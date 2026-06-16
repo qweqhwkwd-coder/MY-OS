@@ -166,6 +166,39 @@ def ritual_streak_7(ritual_id: str) -> int:
     return sum(1 for r in res.data if r["is_done"])
 
 
+# --- Сон ----------------------------------------------------------------------
+
+def log_sleep(user_id: str, sleep_time: str, wake_time: str, duration_min: int) -> dict:
+    today = date.today().isoformat()
+    return (
+        supabase.table("sleep_logs")
+        .upsert(
+            {
+                "user_id": user_id,
+                "date": today,
+                "sleep_time": sleep_time,
+                "wake_time": wake_time,
+                "duration_min": duration_min,
+            },
+            on_conflict="user_id,date",
+        )
+        .execute()
+        .data[0]
+    )
+
+
+def get_sleep_today(user_id: str) -> dict | None:
+    today = date.today().isoformat()
+    res = (
+        supabase.table("sleep_logs")
+        .select("*")
+        .eq("user_id", user_id)
+        .eq("date", today)
+        .execute()
+    )
+    return res.data[0] if res.data else None
+
+
 # --- Дашборд / статы ----------------------------------------------------------
 
 def get_user_stats(user_id: str) -> dict:

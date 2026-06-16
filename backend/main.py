@@ -36,11 +36,13 @@ from db import (
     ensure_user,
     get_food_today,
     get_rituals,
+    get_sleep_today,
     get_tasks,
     get_tasks_done_today,
     get_user_stats,
     get_water_today,
     is_ritual_done_today,
+    log_sleep,
     ritual_streak_7,
     toggle_ritual,
 )
@@ -338,6 +340,48 @@ async def cb_task(callback: types.CallbackQuery):
         reply_markup=tasks_keyboard(tasks) if tasks else None,
     )
     await callback.answer("Выполнено! +3 XP к Дисциплине" if done else "Уже выполнено")
+
+
+@dp.message(Command("sleep"))
+async def cmd_sleep(message: types.Message, command: CommandObject):
+    parts = (command.args or "").strip().split()
+    if len(parts) != 2:
+        await message.answer(
+            "Формат: /sleep ЧЧ:ММ ЧЧ:ММ\nПример: /sleep 23:30 7:15\n(засыпание → пробуждение)"
+        )
+        return
+
+    def parse_time(s: str):
+        h, m = map(int, s.split(":"))
+        return h * 60 + m
+
+    try:
+        sleep_min = parse_time(parts[0])
+        wake_min = parse_time(parts[1])
+    except ValueError:
+        await message.answer("Неверный формат времени. Пример: /sleep 23:30 7:15")
+        return
+
+    # если засыпание позже полуночи — считаем со вчера
+    duration = wake_min - sleep_min
+    if duration <= 0:
+        duration += 24 * 60
+
+    hours = duration // 60
+    mins = duration % 60
+
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    log_sleep(user["id"], parts[0], parts[1], duration)
+
+    xp_note = ""
+    if 7 * 60 <= duration <= 9 * 60:
+        add_xp(user["id"], "health", 3, "sleep")
+        xp_note = "  +3 XP к Здоровью 🎉"
+
+    await message.answer(
+        f"😴 Сон записан: {parts[0]} → {parts[1]}\n"
+        f"⏱ Длительность: {hours}ч {mins}мин{xp_note}"
+    )
 
 
 @dp.message(F.text == "📅 Сегодня")
