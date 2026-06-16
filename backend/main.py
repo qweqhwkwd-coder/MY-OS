@@ -31,9 +31,12 @@ from db import (
     add_food,
     add_goal,
     add_idea,
+    BALANCE_FIELDS,
+    BALANCE_LABELS,
     add_inbox,
     add_meeting,
     add_transaction,
+    save_balance,
     add_workout,
     complete_goal,
     detect_workout_type,
@@ -74,6 +77,10 @@ WEBHOOK_PATH = "/webhook"
 
 
 # --- Помощники отображения ---------------------------------------------------
+
+# Временное хранилище оценок колеса баланса (user_id → {field: score})
+_balance_sessions: dict[int, dict] = {}
+
 
 MAIN_KEYBOARD = ReplyKeyboardMarkup(
     keyboard=[
@@ -358,6 +365,57 @@ async def cb_task(callback: types.CallbackQuery):
         reply_markup=tasks_keyboard(tasks) if tasks else None,
     )
     await callback.answer("Выполнено! +3 XP к Дисциплине" if done else "Уже выполнено")
+
+
+def _balance_keyboard(field: str) -> InlineKeyboardMarkup:
+    row = [InlineKeyboardButton(text=str(i), callback_data=f"bal:{field}:{i}") for i in range(1, 11)]
+    return InlineKeyboardMarkup(inline_keyboard=[row])
+
+
+@dp.message(Command("balance"))
+async def cmd_balance(message: types.Message):
+    _balance_sessions[message.from_user.id] = {}
+    field = BALANCE_FIELDS[0]
+    await message.answer(
+        f"🎡 Колесо баланса\nОцени каждую сферу от 1 до 10.\n\n"
+        f"1/{len(BALANCE_FIELDS)}  {BALANCE_LABELS[field]}:",
+        reply_markup=_balance_keyboard(field),
+    )
+
+
+@dp.callback_query(F.data.startswith("bal:"))
+async def cb_balance(callback: types.CallbackQuery):
+    _, field, score_str = callback.data.split(":")
+    score = int(score_str)
+    uid = callback.from_user.id
+    user = ensure_user(uid, callback.from_user.full_name)
+
+    session = _balance_sessions.setdefault(uid, {})
+    session[field] = score
+
+    fields = list(BALANCE_FIELDS)
+    idx = fields.index(field)
+    next_idx = idx + 1
+
+    if next_idx < len(fields):
+        nfield = fields[next_idx]
+        await callback.message.edit_text(
+            f"🎡 Колесо баланса\n\n"
+            f"{next_idx + 1}/{len(fields)}  {BALANCE_LABELS[nfield]}:",
+            reply_markup=_balance_keyboard(nfield),
+        )
+        await callback.answer(f"{BALANCE_LABELS[field]}: {score}/10")
+    else:
+        save_balance(user["id"], session)
+        add_xp(user["id"], "reflection", 3, "balance")
+        _balance_sessions.pop(uid, None)
+
+        lines = ["🎡 Колесо баланса сохранено  +3 XP к Рефлексии\n"]
+        for f in fields:
+            bar = "█" * session[f] + "░" * (10 - session[f])
+            lines.append(f"{BALANCE_LABELS[f][:10]:10} {bar} {session[f]}")
+        await callback.message.edit_text("\n".join(lines))
+        await callback.answer("Готово!")
 
 
 @dp.message(Command("inbox"))

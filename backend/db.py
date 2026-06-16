@@ -166,6 +166,30 @@ def ritual_streak_7(ritual_id: str) -> int:
     return sum(1 for r in res.data if r["is_done"])
 
 
+# --- Колесо баланса ----------------------------------------------------------
+
+BALANCE_FIELDS = ("health", "work", "relations", "finance", "growth", "leisure", "creativity", "purpose")
+BALANCE_LABELS = {
+    "health": "Здоровье",
+    "work": "Работа",
+    "relations": "Отношения",
+    "finance": "Финансы",
+    "growth": "Развитие",
+    "leisure": "Отдых",
+    "creativity": "Творчество",
+    "purpose": "Смысл",
+}
+
+
+def save_balance(user_id: str, scores: dict) -> dict:
+    return (
+        supabase.table("life_balance")
+        .upsert({"user_id": user_id, "date": date.today().isoformat(), **scores}, on_conflict="user_id,date")
+        .execute()
+        .data[0]
+    )
+
+
 # --- Inbox -------------------------------------------------------------------
 
 def add_inbox(user_id: str, text: str) -> dict:
