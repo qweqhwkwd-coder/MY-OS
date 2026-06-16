@@ -166,6 +166,31 @@ def ritual_streak_7(ritual_id: str) -> int:
     return sum(1 for r in res.data if r["is_done"])
 
 
+# --- Питание ------------------------------------------------------------------
+
+def get_food_today(user_id: str) -> list[dict]:
+    today = date.today().isoformat()
+    return (
+        supabase.table("food_logs")
+        .select("food_name,kcal,created_at")
+        .eq("user_id", user_id)
+        .eq("date", today)
+        .order("created_at")
+        .execute()
+        .data
+    )
+
+
+def add_food(user_id: str, food_name: str, kcal: int) -> dict:
+    today = date.today().isoformat()
+    return (
+        supabase.table("food_logs")
+        .insert({"user_id": user_id, "date": today, "food_name": food_name, "kcal": kcal})
+        .execute()
+        .data[0]
+    )
+
+
 # --- Задачи -------------------------------------------------------------------
 
 def get_tasks(user_id: str) -> list[dict]:

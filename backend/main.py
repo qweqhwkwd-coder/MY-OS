@@ -20,12 +20,14 @@ from fastapi import FastAPI, Header, Request, Response
 
 from config import settings
 from db import (
+    add_food,
     add_ritual,
     add_task,
     add_water,
     add_xp,
     complete_task,
     ensure_user,
+    get_food_today,
     get_rituals,
     get_tasks,
     get_water_today,
@@ -116,7 +118,7 @@ async def on_start(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     await message.answer(
         f"MY-OS на связи 👋\nПривет, {user['name']}!\n\n"
-        "Команды:\n/water — вода\n/rituals — ритуалы\n/addritual Название — новый ритуал"
+        "Команды:\n/water — вода\n/rituals — ритуалы\n/tasks — задачи\n/food — питание"
     )
 
 
@@ -190,6 +192,44 @@ async def cb_ritual(callback: types.CallbackQuery):
     await callback.answer("Отмечено ✅ (+2 XP)" if now_done else "Снято")
 
 
+@dp.message(Command("addfood"))
+async def cmd_addfood(message: types.Message, command: CommandObject):
+    args = (command.args or "").strip().split()
+    # последний аргумент — ккал (число), остальное — название
+    if len(args) < 2 or not args[-1].lstrip("-").isdigit():
+        await message.answer(
+            "Формат: /addfood Название ккал\nПример: /addfood Гречка 250"
+        )
+        return
+    kcal = int(args[-1])
+    food_name = " ".join(args[:-1])
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    add_food(user["id"], food_name, kcal)
+    add_xp(user["id"], "nutrition", 2, "food")
+
+    entries = get_food_today(user["id"])
+    total_kcal = sum(e["kcal"] for e in entries)
+    await message.answer(
+        f"🍽 Записано: {food_name} — {kcal} ккал  +2 XP к Питанию\n\n"
+        f"Итого сегодня: {total_kcal} ккал ({len(entries)} записей)"
+    )
+
+
+@dp.message(Command("food"))
+async def cmd_food(message: types.Message):
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    entries = get_food_today(user["id"])
+    if not entries:
+        await message.answer("🍽 Сегодня ещё ничего не записано.\nДобавь: /addfood Гречка 250")
+        return
+    lines = ["🍽 Питание сегодня:\n"]
+    for e in entries:
+        lines.append(f"• {e['food_name']} — {int(e['kcal'])} ккал")
+    total = sum(e["kcal"] for e in entries)
+    lines.append(f"\n📊 Итого: {int(total)} ккал")
+    await message.answer("\n".join(lines))
+
+
 @dp.message(Command("addtask"))
 async def cmd_addtask(message: types.Message, command: CommandObject):
     title = (command.args or "").strip()
@@ -234,7 +274,7 @@ async def cb_task(callback: types.CallbackQuery):
 
 @dp.message()
 async def on_any(message: types.Message):
-    await message.answer("Команды: /water, /rituals, /addritual, /tasks, /addtask")
+    await message.answer("Команды: /water · /rituals · /addritual · /tasks · /addtask · /food · /addfood")
 
 
 # --- Веб-сервер --------------------------------------------------------------
