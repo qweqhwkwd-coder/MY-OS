@@ -166,6 +166,30 @@ def ritual_streak_7(ritual_id: str) -> int:
     return sum(1 for r in res.data if r["is_done"])
 
 
+# --- Идеи --------------------------------------------------------------------
+
+def add_idea(user_id: str, text: str) -> dict:
+    return (
+        supabase.table("ideas")
+        .insert({"user_id": user_id, "text": text})
+        .execute()
+        .data[0]
+    )
+
+
+def get_ideas(user_id: str) -> list[dict]:
+    return (
+        supabase.table("ideas")
+        .select("id,text,status,created_at")
+        .eq("user_id", user_id)
+        .eq("status", "raw")
+        .order("created_at", desc=True)
+        .limit(10)
+        .execute()
+        .data
+    )
+
+
 # --- Замеры тела --------------------------------------------------------------
 
 def log_weight(user_id: str, weight: float) -> dict:

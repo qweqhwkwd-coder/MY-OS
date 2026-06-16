@@ -29,7 +29,9 @@ from db import (
     STATS,
     add_diary_entry,
     add_food,
+    add_idea,
     add_transaction,
+    get_ideas,
     get_last_weights,
     log_weight,
     add_ritual,
@@ -345,6 +347,25 @@ async def cb_task(callback: types.CallbackQuery):
         reply_markup=tasks_keyboard(tasks) if tasks else None,
     )
     await callback.answer("Выполнено! +3 XP к Дисциплине" if done else "Уже выполнено")
+
+
+@dp.message(Command("idea"))
+async def cmd_idea(message: types.Message, command: CommandObject):
+    text = (command.args or "").strip()
+    if not text:
+        user = ensure_user(message.from_user.id, message.from_user.full_name)
+        ideas = get_ideas(user["id"])
+        if not ideas:
+            await message.answer("💡 Идей нет.\nДобавь: /idea текст")
+            return
+        lines = ["💡 Идеи:\n"]
+        for i, idea in enumerate(ideas, 1):
+            lines.append(f"{i}. {idea['text']}")
+        await message.answer("\n".join(lines))
+        return
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    add_idea(user["id"], text)
+    await message.answer(f"💡 Идея сохранена!")
 
 
 @dp.message(Command("weight"))
