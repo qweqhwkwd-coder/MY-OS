@@ -166,6 +166,32 @@ def ritual_streak_7(ritual_id: str) -> int:
     return sum(1 for r in res.data if r["is_done"])
 
 
+# --- Встречи -----------------------------------------------------------------
+
+def add_meeting(user_id: str, title: str, meeting_date: str, meeting_time: str | None = None) -> dict:
+    return (
+        supabase.table("meetings")
+        .insert({"user_id": user_id, "title": title, "date": meeting_date, "time": meeting_time})
+        .execute()
+        .data[0]
+    )
+
+
+def get_upcoming_meetings(user_id: str) -> list[dict]:
+    today = date.today().isoformat()
+    return (
+        supabase.table("meetings")
+        .select("title,date,time")
+        .eq("user_id", user_id)
+        .gte("date", today)
+        .order("date")
+        .order("time")
+        .limit(10)
+        .execute()
+        .data
+    )
+
+
 # --- Тренировки --------------------------------------------------------------
 
 CARDIO_KEYWORDS = {"бег", "кардио", "велосипед", "плавание", "прыжки", "ходьба", "скакалка", "эллипс"}

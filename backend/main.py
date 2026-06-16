@@ -31,6 +31,7 @@ from db import (
     add_food,
     add_goal,
     add_idea,
+    add_meeting,
     add_transaction,
     add_workout,
     complete_goal,
@@ -38,6 +39,7 @@ from db import (
     get_goals,
     get_ideas,
     get_last_weights,
+    get_upcoming_meetings,
     log_weight,
     add_ritual,
     add_task,
@@ -352,6 +354,50 @@ async def cb_task(callback: types.CallbackQuery):
         reply_markup=tasks_keyboard(tasks) if tasks else None,
     )
     await callback.answer("Выполнено! +3 XP к Дисциплине" if done else "Уже выполнено")
+
+
+@dp.message(Command("addmeeting"))
+async def cmd_addmeeting(message: types.Message, command: CommandObject):
+    args = (command.args or "").strip()
+    if not args:
+        await message.answer(
+            "Формат: /addmeeting Название ГГГГ-ММ-ДД [ЧЧ:ММ]\n"
+            "Пример: /addmeeting Встреча с врачом 2026-06-20 14:00"
+        )
+        return
+    parts = args.split()
+    meeting_date = None
+    meeting_time = None
+    title_parts = []
+    for p in parts:
+        if re.match(r"^\d{4}-\d{2}-\d{2}$", p):
+            meeting_date = p
+        elif re.match(r"^\d{2}:\d{2}$", p):
+            meeting_time = p
+        else:
+            title_parts.append(p)
+    if not meeting_date:
+        await message.answer("Укажи дату в формате ГГГГ-ММ-ДД.\nПример: /addmeeting Встреча 2026-06-20 14:00")
+        return
+    title = " ".join(title_parts) or "Встреча"
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    add_meeting(user["id"], title, meeting_date, meeting_time)
+    time_str = f" в {meeting_time}" if meeting_time else ""
+    await message.answer(f"📅 Встреча добавлена: {title}\n{meeting_date}{time_str}")
+
+
+@dp.message(Command("meetings"))
+async def cmd_meetings(message: types.Message):
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    meetings = get_upcoming_meetings(user["id"])
+    if not meetings:
+        await message.answer("📅 Предстоящих встреч нет.\nДобавь: /addmeeting Название 2026-06-20 14:00")
+        return
+    lines = ["📅 Предстоящие встречи:\n"]
+    for m in meetings:
+        time_str = f" {m['time'][:5]}" if m.get("time") else ""
+        lines.append(f"• {m['date']}{time_str} — {m['title']}")
+    await message.answer("\n".join(lines))
 
 
 @dp.message(Command("workout"))
