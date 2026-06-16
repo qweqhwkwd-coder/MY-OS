@@ -27,6 +27,7 @@ from fastapi import FastAPI, Header, Request, Response
 from config import settings
 from db import (
     STATS,
+    add_diary_entry,
     add_food,
     add_transaction,
     add_ritual,
@@ -342,6 +343,29 @@ async def cb_task(callback: types.CallbackQuery):
         reply_markup=tasks_keyboard(tasks) if tasks else None,
     )
     await callback.answer("Выполнено! +3 XP к Дисциплине" if done else "Уже выполнено")
+
+
+MOOD_EMOJI = {1: "😞", 2: "😕", 3: "😐", 4: "🙂", 5: "😄"}
+
+
+@dp.message(Command("journal"))
+async def cmd_journal(message: types.Message, command: CommandObject):
+    text = (command.args or "").strip()
+    if not text:
+        await message.answer("Формат: /journal текст [настроение 1-5]\nПример: /journal Хороший день 4")
+        return
+    parts = text.rsplit(maxsplit=1)
+    mood = None
+    if len(parts) == 2 and parts[1].isdigit() and 1 <= int(parts[1]) <= 5:
+        mood = int(parts[1])
+        text = parts[0]
+
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    add_diary_entry(user["id"], text, mood)
+    add_xp(user["id"], "reflection", 2, "journal")
+
+    mood_str = f"  Настроение: {MOOD_EMOJI[mood]}" if mood else ""
+    await message.answer(f"📓 Записано в дневник  +2 XP к Рефлексии{mood_str}")
 
 
 @dp.message(Command("spend"))

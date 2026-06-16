@@ -166,6 +166,17 @@ def ritual_streak_7(ritual_id: str) -> int:
     return sum(1 for r in res.data if r["is_done"])
 
 
+# --- Дневник ------------------------------------------------------------------
+
+def add_diary_entry(user_id: str, text: str, mood: int | None = None) -> dict:
+    return (
+        supabase.table("diary_entries")
+        .insert({"user_id": user_id, "date": date.today().isoformat(), "text": text, "mood": mood})
+        .execute()
+        .data[0]
+    )
+
+
 # --- Финансы ------------------------------------------------------------------
 
 def add_transaction(user_id: str, amount: float, category: str, note: str | None = None) -> dict:
