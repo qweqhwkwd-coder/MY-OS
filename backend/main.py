@@ -29,8 +29,11 @@ from db import (
     STATS,
     add_diary_entry,
     add_food,
+    add_goal,
     add_idea,
     add_transaction,
+    complete_goal,
+    get_goals,
     get_ideas,
     get_last_weights,
     log_weight,
@@ -347,6 +350,69 @@ async def cb_task(callback: types.CallbackQuery):
         reply_markup=tasks_keyboard(tasks) if tasks else None,
     )
     await callback.answer("Выполнено! +3 XP к Дисциплине" if done else "Уже выполнено")
+
+
+@dp.message(Command("addgoal"))
+async def cmd_addgoal(message: types.Message, command: CommandObject):
+    args = (command.args or "").strip()
+    if not args:
+        await message.answer("Формат: /addgoal Название [ГГГГ-ММ-ДД]\nПример: /addgoal Выучить испанский 2026-12-31")
+        return
+    parts = args.rsplit(maxsplit=1)
+    deadline = None
+    title = args
+    if len(parts) == 2:
+        try:
+            from datetime import datetime
+            datetime.strptime(parts[1], "%Y-%m-%d")
+            deadline = parts[1]
+            title = parts[0]
+        except ValueError:
+            pass
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    add_goal(user["id"], title, deadline)
+    dl_str = f"  📅 до {deadline}" if deadline else ""
+    await message.answer(f"🎯 Цель добавлена: {title}{dl_str}")
+
+
+@dp.message(Command("goals"))
+async def cmd_goals(message: types.Message):
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    goals = get_goals(user["id"])
+    if not goals:
+        await message.answer("🎯 Целей нет.\nДобавь: /addgoal Название")
+        return
+    lines = ["🎯 Активные цели:\n"]
+    for g in goals:
+        dl = f"  (до {g['deadline']})" if g.get("deadline") else ""
+        lines.append(f"• {g['title']}{dl}")
+    lines.append("\nВыполнить: /goalsdone")
+    await message.answer("\n".join(lines))
+
+
+@dp.message(Command("goalsdone"))
+async def cmd_goalsdone(message: types.Message):
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    goals = get_goals(user["id"])
+    if not goals:
+        await message.answer("Нет активных целей.")
+        return
+    rows = []
+    for g in goals:
+        rows.append([InlineKeyboardButton(text=f"✅ {g['title']}", callback_data=f"goal:{g['id']}")])
+    await message.answer("Выбери выполненную цель:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+
+
+@dp.callback_query(F.data.startswith("goal:"))
+async def cb_goal(callback: types.CallbackQuery):
+    goal_id = callback.data.split(":", 1)[1]
+    user = ensure_user(callback.from_user.id, callback.from_user.full_name)
+    done = complete_goal(goal_id, user["id"])
+    if done:
+        add_xp(user["id"], "discipline", 10, "goals")
+        add_xp(user["id"], "reflection", 5, "goals")
+    await callback.message.delete()
+    await callback.answer("🏆 Цель выполнена! +10 XP Дисциплина +5 XP Рефлексия" if done else "Уже выполнена")
 
 
 @dp.message(Command("idea"))

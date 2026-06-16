@@ -166,6 +166,42 @@ def ritual_streak_7(ritual_id: str) -> int:
     return sum(1 for r in res.data if r["is_done"])
 
 
+# --- Цели --------------------------------------------------------------------
+
+def add_goal(user_id: str, title: str, deadline: str | None = None) -> dict:
+    return (
+        supabase.table("goals")
+        .insert({"user_id": user_id, "title": title, "deadline": deadline})
+        .execute()
+        .data[0]
+    )
+
+
+def get_goals(user_id: str) -> list[dict]:
+    return (
+        supabase.table("goals")
+        .select("id,title,deadline,is_done")
+        .eq("user_id", user_id)
+        .eq("is_done", False)
+        .order("created_at")
+        .execute()
+        .data
+    )
+
+
+def complete_goal(goal_id: str, user_id: str) -> bool:
+    from datetime import datetime
+    res = (
+        supabase.table("goals")
+        .update({"is_done": True, "done_at": datetime.utcnow().isoformat()})
+        .eq("id", goal_id)
+        .eq("user_id", user_id)
+        .eq("is_done", False)
+        .execute()
+    )
+    return bool(res.data)
+
+
 # --- Идеи --------------------------------------------------------------------
 
 def add_idea(user_id: str, text: str) -> dict:
