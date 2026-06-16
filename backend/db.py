@@ -166,6 +166,32 @@ def ritual_streak_7(ritual_id: str) -> int:
     return sum(1 for r in res.data if r["is_done"])
 
 
+# --- Замеры тела --------------------------------------------------------------
+
+def log_weight(user_id: str, weight: float) -> dict:
+    return (
+        supabase.table("body_measurements")
+        .upsert(
+            {"user_id": user_id, "date": date.today().isoformat(), "weight": weight},
+            on_conflict="user_id,date",
+        )
+        .execute()
+        .data[0]
+    )
+
+
+def get_last_weights(user_id: str, limit: int = 5) -> list[dict]:
+    return (
+        supabase.table("body_measurements")
+        .select("date,weight")
+        .eq("user_id", user_id)
+        .order("date", desc=True)
+        .limit(limit)
+        .execute()
+        .data
+    )
+
+
 # --- Дневник ------------------------------------------------------------------
 
 def add_diary_entry(user_id: str, text: str, mood: int | None = None) -> dict:

@@ -30,6 +30,8 @@ from db import (
     add_diary_entry,
     add_food,
     add_transaction,
+    get_last_weights,
+    log_weight,
     add_ritual,
     add_task,
     add_water,
@@ -343,6 +345,31 @@ async def cb_task(callback: types.CallbackQuery):
         reply_markup=tasks_keyboard(tasks) if tasks else None,
     )
     await callback.answer("Выполнено! +3 XP к Дисциплине" if done else "Уже выполнено")
+
+
+@dp.message(Command("weight"))
+async def cmd_weight(message: types.Message, command: CommandObject):
+    arg = (command.args or "").strip().replace(",", ".")
+    if not arg:
+        user = ensure_user(message.from_user.id, message.from_user.full_name)
+        entries = get_last_weights(user["id"])
+        if not entries:
+            await message.answer("⚖️ Замеров нет.\nДобавь: /weight 80.5")
+            return
+        lines = ["⚖️ Последние замеры:\n"]
+        for e in entries:
+            lines.append(f"• {e['date']} — {e['weight']} кг")
+        await message.answer("\n".join(lines))
+        return
+    try:
+        weight = float(arg)
+    except ValueError:
+        await message.answer("Неверный формат. Пример: /weight 80.5")
+        return
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    log_weight(user["id"], weight)
+    add_xp(user["id"], "reflection", 1, "body")
+    await message.answer(f"⚖️ Вес записан: {weight} кг  +1 XP к Рефлексии")
 
 
 MOOD_EMOJI = {1: "😞", 2: "😕", 3: "😐", 4: "🙂", 5: "😄"}
