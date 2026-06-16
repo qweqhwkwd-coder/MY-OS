@@ -32,7 +32,9 @@ from db import (
     add_goal,
     add_idea,
     add_transaction,
+    add_workout,
     complete_goal,
+    detect_workout_type,
     get_goals,
     get_ideas,
     get_last_weights,
@@ -350,6 +352,37 @@ async def cb_task(callback: types.CallbackQuery):
         reply_markup=tasks_keyboard(tasks) if tasks else None,
     )
     await callback.answer("Выполнено! +3 XP к Дисциплине" if done else "Уже выполнено")
+
+
+@dp.message(Command("workout"))
+async def cmd_workout(message: types.Message, command: CommandObject):
+    args = (command.args or "").strip()
+    if not args:
+        await message.answer(
+            "Формат: /workout активность [минуты]\n"
+            "Примеры:\n/workout Бег 30\n/workout Силовая тренировка 60\n/workout Йога"
+        )
+        return
+    parts = args.rsplit(maxsplit=1)
+    duration = None
+    activity = args
+    if len(parts) == 2 and parts[1].isdigit():
+        duration = int(parts[1])
+        activity = parts[0]
+
+    workout_type = detect_workout_type(activity)
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    add_workout(user["id"], activity, duration, workout_type)
+
+    xp_stat = {"cardio": "endurance", "strength": "strength", "flexibility": "health"}.get(workout_type, "discipline")
+    xp_label = {"cardio": "Выносливость", "strength": "Сила", "flexibility": "Здоровье"}.get(workout_type, "Дисциплина")
+    add_xp(user["id"], xp_stat, 5, "workout")
+
+    dur_str = f"  ⏱ {duration} мин" if duration else ""
+    type_emoji = {"cardio": "🏃", "strength": "💪", "flexibility": "🧘"}.get(workout_type, "🏋️")
+    await message.answer(
+        f"{type_emoji} Тренировка записана: {activity}{dur_str}\n+5 XP к {xp_label}"
+    )
 
 
 @dp.message(Command("addgoal"))

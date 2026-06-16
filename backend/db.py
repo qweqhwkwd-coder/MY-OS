@@ -166,6 +166,42 @@ def ritual_streak_7(ritual_id: str) -> int:
     return sum(1 for r in res.data if r["is_done"])
 
 
+# --- Тренировки --------------------------------------------------------------
+
+CARDIO_KEYWORDS = {"бег", "кардио", "велосипед", "плавание", "прыжки", "ходьба", "скакалка", "эллипс"}
+STRENGTH_KEYWORDS = {"силовая", "жим", "присед", "тяга", "штанга", "гантели", "турник", "отжимания"}
+FLEX_KEYWORDS = {"йога", "растяжка", "стретчинг", "пилатес"}
+
+
+def detect_workout_type(activity: str) -> str:
+    low = activity.lower()
+    for kw in CARDIO_KEYWORDS:
+        if kw in low:
+            return "cardio"
+    for kw in STRENGTH_KEYWORDS:
+        if kw in low:
+            return "strength"
+    for kw in FLEX_KEYWORDS:
+        if kw in low:
+            return "flexibility"
+    return "other"
+
+
+def add_workout(user_id: str, activity: str, duration_min: int | None, workout_type: str) -> dict:
+    return (
+        supabase.table("workouts")
+        .insert({
+            "user_id": user_id,
+            "date": date.today().isoformat(),
+            "activity": activity,
+            "duration_min": duration_min,
+            "type": workout_type,
+        })
+        .execute()
+        .data[0]
+    )
+
+
 # --- Цели --------------------------------------------------------------------
 
 def add_goal(user_id: str, title: str, deadline: str | None = None) -> dict:
