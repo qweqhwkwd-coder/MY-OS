@@ -166,6 +166,59 @@ def ritual_streak_7(ritual_id: str) -> int:
     return sum(1 for r in res.data if r["is_done"])
 
 
+# --- Дайджест ----------------------------------------------------------------
+
+def get_week_digest(user_id: str) -> dict:
+    today = date.today()
+    week_start = (today - timedelta(days=6)).isoformat()
+
+    water = (
+        supabase.table("water_logs").select("amount_ml").eq("user_id", user_id)
+        .gte("date", week_start).execute().data
+    )
+    rituals_done = (
+        supabase.table("ritual_logs").select("id").eq("user_id", user_id)
+        .gte("date", week_start).execute().data
+    )
+    tasks_done = (
+        supabase.table("tasks").select("id").eq("user_id", user_id)
+        .eq("is_completed", True).gte("completed_at", week_start).execute().data
+    )
+    food = (
+        supabase.table("food_logs").select("kcal").eq("user_id", user_id)
+        .gte("date", week_start).execute().data
+    )
+    sleep = (
+        supabase.table("sleep_logs").select("duration_min").eq("user_id", user_id)
+        .gte("date", week_start).execute().data
+    )
+    workouts = (
+        supabase.table("workouts").select("id").eq("user_id", user_id)
+        .gte("date", week_start).execute().data
+    )
+    spends = (
+        supabase.table("transactions").select("amount").eq("user_id", user_id)
+        .gte("date", week_start).execute().data
+    )
+    xp_events = (
+        supabase.table("xp_events").select("xp_amount").eq("user_id", user_id)
+        .gte("created_at", week_start).execute().data
+    )
+
+    avg_sleep = (sum(s["duration_min"] for s in sleep) / len(sleep) // 60) if sleep else 0
+    return {
+        "water_total": sum(w["amount_ml"] for w in water),
+        "water_days": len(water),
+        "rituals_done": len(rituals_done),
+        "tasks_done": len(tasks_done),
+        "kcal_avg": int(sum(f["kcal"] for f in food) / 7),
+        "sleep_avg_h": avg_sleep,
+        "workouts": len(workouts),
+        "spend_total": int(sum(s["amount"] for s in spends)),
+        "xp_earned": sum(e["xp_amount"] for e in xp_events),
+    }
+
+
 # --- Встречи -----------------------------------------------------------------
 
 def add_meeting(user_id: str, title: str, meeting_date: str, meeting_time: str | None = None) -> dict:

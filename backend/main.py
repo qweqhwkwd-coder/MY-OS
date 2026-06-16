@@ -40,6 +40,7 @@ from db import (
     get_ideas,
     get_last_weights,
     get_upcoming_meetings,
+    get_week_digest,
     log_weight,
     add_ritual,
     add_task,
@@ -354,6 +355,23 @@ async def cb_task(callback: types.CallbackQuery):
         reply_markup=tasks_keyboard(tasks) if tasks else None,
     )
     await callback.answer("Выполнено! +3 XP к Дисциплине" if done else "Уже выполнено")
+
+
+@dp.message(Command("digest"))
+async def cmd_digest(message: types.Message):
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    d = get_week_digest(user["id"])
+    await message.answer(
+        "📊 Дайджест за 7 дней\n\n"
+        f"💧 Вода: {d['water_total']} мл ({d['water_days']} дней)\n"
+        f"🔥 Ритуалов выполнено: {d['rituals_done']}\n"
+        f"✅ Задач выполнено: {d['tasks_done']}\n"
+        f"🍽 Среднее ккал/день: {d['kcal_avg']}\n"
+        f"😴 Средний сон: {d['sleep_avg_h']:.0f}ч\n"
+        f"🏋️ Тренировок: {d['workouts']}\n"
+        f"💸 Потрачено: {d['spend_total']}\n"
+        f"⚡ XP заработано: {d['xp_earned']}"
+    )
 
 
 @dp.message(Command("addmeeting"))
