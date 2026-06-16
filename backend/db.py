@@ -166,6 +166,29 @@ def ritual_streak_7(ritual_id: str) -> int:
     return sum(1 for r in res.data if r["is_done"])
 
 
+# --- Финансы ------------------------------------------------------------------
+
+def add_transaction(user_id: str, amount: float, category: str, note: str | None = None) -> dict:
+    return (
+        supabase.table("transactions")
+        .insert({"user_id": user_id, "date": date.today().isoformat(), "amount": amount, "category": category, "note": note})
+        .execute()
+        .data[0]
+    )
+
+
+def get_transactions_today(user_id: str) -> list[dict]:
+    return (
+        supabase.table("transactions")
+        .select("amount,category,note")
+        .eq("user_id", user_id)
+        .eq("date", date.today().isoformat())
+        .order("created_at")
+        .execute()
+        .data
+    )
+
+
 # --- Сон ----------------------------------------------------------------------
 
 def log_sleep(user_id: str, sleep_time: str, wake_time: str, duration_min: int) -> dict:

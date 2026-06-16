@@ -28,6 +28,7 @@ from config import settings
 from db import (
     STATS,
     add_food,
+    add_transaction,
     add_ritual,
     add_task,
     add_water,
@@ -37,6 +38,7 @@ from db import (
     get_food_today,
     get_rituals,
     get_sleep_today,
+    get_transactions_today,
     get_tasks,
     get_tasks_done_today,
     get_user_stats,
@@ -340,6 +342,40 @@ async def cb_task(callback: types.CallbackQuery):
         reply_markup=tasks_keyboard(tasks) if tasks else None,
     )
     await callback.answer("Выполнено! +3 XP к Дисциплине" if done else "Уже выполнено")
+
+
+@dp.message(Command("spend"))
+async def cmd_spend(message: types.Message, command: CommandObject):
+    parts = (command.args or "").strip().split(maxsplit=1)
+    if not parts or not parts[0].replace(".", "").isdigit():
+        await message.answer("Формат: /spend сумма категория\nПример: /spend 500 еда")
+        return
+    amount = float(parts[0])
+    category = parts[1].strip() if len(parts) > 1 else "другое"
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    add_transaction(user["id"], amount, category)
+    add_xp(user["id"], "finance", 1, "finance")
+
+    entries = get_transactions_today(user["id"])
+    total = sum(e["amount"] for e in entries)
+    await message.answer(
+        f"💸 Записано: {amount:.0f} — {category}  +1 XP к Финансам\n"
+        f"Итого сегодня: {total:.0f}"
+    )
+
+
+@dp.message(Command("finance"))
+async def cmd_finance(message: types.Message):
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    entries = get_transactions_today(user["id"])
+    if not entries:
+        await message.answer("💰 Сегодня трат нет.\nДобавь: /spend 500 еда")
+        return
+    lines = ["💰 Траты сегодня:\n"]
+    for e in entries:
+        lines.append(f"• {e['category']} — {e['amount']:.0f}")
+    lines.append(f"\n📊 Итого: {sum(e['amount'] for e in entries):.0f}")
+    await message.answer("\n".join(lines))
 
 
 @dp.message(Command("sleep"))
