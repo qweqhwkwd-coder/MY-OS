@@ -166,6 +166,34 @@ def ritual_streak_7(ritual_id: str) -> int:
     return sum(1 for r in res.data if r["is_done"])
 
 
+# --- Inbox -------------------------------------------------------------------
+
+def add_inbox(user_id: str, text: str) -> dict:
+    return (
+        supabase.table("inbox_items")
+        .insert({"user_id": user_id, "text": text})
+        .execute()
+        .data[0]
+    )
+
+
+def get_inbox(user_id: str) -> list[dict]:
+    return (
+        supabase.table("inbox_items")
+        .select("id,text,created_at")
+        .eq("user_id", user_id)
+        .eq("is_handled", False)
+        .order("created_at", desc=True)
+        .limit(10)
+        .execute()
+        .data
+    )
+
+
+def clear_inbox_item(item_id: str, user_id: str) -> None:
+    supabase.table("inbox_items").update({"is_handled": True}).eq("id", item_id).eq("user_id", user_id).execute()
+
+
 # --- Дайджест ----------------------------------------------------------------
 
 def get_week_digest(user_id: str) -> dict:

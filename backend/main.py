@@ -31,6 +31,7 @@ from db import (
     add_food,
     add_goal,
     add_idea,
+    add_inbox,
     add_meeting,
     add_transaction,
     add_workout,
@@ -39,6 +40,8 @@ from db import (
     get_goals,
     get_ideas,
     get_last_weights,
+    clear_inbox_item,
+    get_inbox,
     get_upcoming_meetings,
     get_week_digest,
     log_weight,
@@ -355,6 +358,42 @@ async def cb_task(callback: types.CallbackQuery):
         reply_markup=tasks_keyboard(tasks) if tasks else None,
     )
     await callback.answer("Выполнено! +3 XP к Дисциплине" if done else "Уже выполнено")
+
+
+@dp.message(Command("inbox"))
+async def cmd_inbox(message: types.Message):
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    items = get_inbox(user["id"])
+    if not items:
+        await message.answer("📥 Inbox пуст.\nЛюбое сообщение без команды попадает сюда.")
+        return
+    lines = [f"📥 Inbox ({len(items)} шт.):\n"]
+    rows = []
+    for item in items:
+        lines.append(f"• {item['text']}")
+        rows.append([InlineKeyboardButton(text=f"✅ {item['text'][:40]}", callback_data=f"inbox:{item['id']}")])
+    lines.append("\nНажми чтобы отметить обработанным:")
+    await message.answer("\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+
+
+@dp.callback_query(F.data.startswith("inbox:"))
+async def cb_inbox(callback: types.CallbackQuery):
+    item_id = callback.data.split(":", 1)[1]
+    user = ensure_user(callback.from_user.id, callback.from_user.full_name)
+    clear_inbox_item(item_id, user["id"])
+    items = get_inbox(user["id"])
+    if not items:
+        await callback.message.edit_text("📥 Inbox пуст.")
+        await callback.answer("Обработано")
+        return
+    lines = [f"📥 Inbox ({len(items)} шт.):\n"]
+    rows = []
+    for item in items:
+        lines.append(f"• {item['text']}")
+        rows.append([InlineKeyboardButton(text=f"✅ {item['text'][:40]}", callback_data=f"inbox:{item['id']}")])
+    lines.append("\nНажми чтобы отметить обработанным:")
+    await callback.message.edit_text("\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await callback.answer("Обработано")
 
 
 @dp.message(Command("digest"))
@@ -687,10 +726,13 @@ async def kb_food(message: types.Message):
 
 @dp.message()
 async def on_any(message: types.Message):
-    await message.answer(
-        "Используй кнопки внизу или команды:\n/addritual · /addfood · /addtask",
-        reply_markup=MAIN_KEYBOARD,
-    )
+    text = message.text or ""
+    if text:
+        user = ensure_user(message.from_user.id, message.from_user.full_name)
+        add_inbox(user["id"], text)
+        await message.answer("📥 Сохранено в Inbox.\n/inbox — просмотр", reply_markup=MAIN_KEYBOARD)
+    else:
+        await message.answer("Используй кнопки внизу.", reply_markup=MAIN_KEYBOARD)
 
 
 # --- Веб-сервер --------------------------------------------------------------
