@@ -138,6 +138,37 @@ def is_ritual_done_today(ritual_id: str) -> bool:
     return bool(res.data and res.data[0]["is_done"])
 
 
+def get_rituals_done_today(user_id: str) -> set:
+    """Возвращает множество ritual_id, выполненных сегодня — один запрос вместо N."""
+    today = date.today().isoformat()
+    res = (
+        supabase.table("ritual_logs")
+        .select("ritual_id")
+        .eq("user_id", user_id)
+        .eq("date", today)
+        .eq("is_done", True)
+        .execute()
+    )
+    return {r["ritual_id"] for r in res.data}
+
+
+def get_ritual_streaks(user_id: str) -> dict:
+    """Возвращает {ritual_id: count} за последние 7 дней — один запрос вместо N."""
+    start = (date.today() - timedelta(days=6)).isoformat()
+    res = (
+        supabase.table("ritual_logs")
+        .select("ritual_id,is_done")
+        .eq("user_id", user_id)
+        .gte("date", start)
+        .execute()
+    )
+    counts: dict = {}
+    for row in res.data:
+        if row["is_done"]:
+            counts[row["ritual_id"]] = counts.get(row["ritual_id"], 0) + 1
+    return counts
+
+
 def toggle_ritual(ritual_id: str, user_id: str) -> bool:
     """Переключает отметку за сегодня. Возвращает новое состояние (True = выполнен)."""
     today = date.today().isoformat()
@@ -182,9 +213,10 @@ BALANCE_LABELS = {
 
 
 def save_balance(user_id: str, scores: dict) -> dict:
+    safe = {k: v for k, v in scores.items() if k in BALANCE_FIELDS}
     return (
         supabase.table("life_balance")
-        .upsert({"user_id": user_id, "date": date.today().isoformat(), **scores}, on_conflict="user_id,date")
+        .upsert({"user_id": user_id, "date": date.today().isoformat(), **safe}, on_conflict="user_id,date")
         .execute()
         .data[0]
     )
@@ -257,13 +289,15 @@ def get_week_digest(user_id: str) -> dict:
         .gte("created_at", week_start).execute().data
     )
 
-    avg_sleep = (sum(s["duration_min"] for s in sleep) / len(sleep) // 60) if sleep else 0
+    avg_sleep = (sum(s["duration_min"] for s in sleep) / len(sleep) / 60) if sleep else 0
+    food_kcal = [f["kcal"] for f in food if f.get("kcal") is not None]
+    kcal_avg = int(sum(food_kcal) / len(food_kcal)) if food_kcal else 0
     return {
         "water_total": sum(w["amount_ml"] for w in water),
         "water_days": len(water),
         "rituals_done": len(rituals_done),
         "tasks_done": len(tasks_done),
-        "kcal_avg": int(sum(f["kcal"] for f in food) / 7),
+        "kcal_avg": kcal_avg,
         "sleep_avg_h": avg_sleep,
         "workouts": len(workouts),
         "spend_total": int(sum(s["amount"] for s in spends)),

@@ -56,6 +56,8 @@ from db import (
     ensure_user,
     get_food_today,
     get_rituals,
+    get_ritual_streaks,
+    get_rituals_done_today,
     get_sleep_today,
     get_transactions_today,
     get_tasks,
@@ -113,27 +115,36 @@ def water_keyboard() -> InlineKeyboardMarkup:
     )
 
 
-def rituals_view(rituals: list[dict]) -> str:
+def rituals_view(rituals: list[dict], done: set, streaks: dict) -> str:
     lines = ["🔥 Ритуалы сегодня:\n"]
     for r in rituals:
-        mark = "✅" if is_ritual_done_today(r["id"]) else "⬜"
+        mark = "✅" if r["id"] in done else "⬜"
         icon = f"{r['icon']} " if r.get("icon") else ""
-        streak = ritual_streak_7(r["id"])
+        streak = streaks.get(r["id"], 0)
         lines.append(f"{mark} {icon}{r['title']}  ·  {streak}/7")
     lines.append("\nЖми кнопку, чтобы отметить/снять.\nДобавить: /addritual Название")
     return "\n".join(lines)
 
 
-def rituals_keyboard(rituals: list[dict]) -> InlineKeyboardMarkup:
+def rituals_keyboard(rituals: list[dict], done: set) -> InlineKeyboardMarkup:
     rows = []
     for r in rituals:
-        mark = "✅" if is_ritual_done_today(r["id"]) else "⬜"
+        mark = "✅" if r["id"] in done else "⬜"
         rows.append([
             InlineKeyboardButton(
                 text=f"{mark} {r['title']}", callback_data=f"ritual:{r['id']}"
             )
         ])
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def _ritual_state(user_id: str, rituals: list[dict]) -> tuple[set, dict]:
+    """Батч-загрузка done-флагов и стриков за 2 запроса вместо 2N."""
+    if not rituals:
+        return set(), {}
+    done = get_rituals_done_today(user_id)
+    streaks = get_ritual_streaks(user_id)
+    return done, streaks
 
 
 def tasks_view(tasks: list[dict]) -> str:
@@ -206,9 +217,10 @@ async def cmd_addritual(message: types.Message, command: CommandObject):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     add_ritual(user["id"], title)
     rituals = get_rituals(user["id"])
+    done, streaks = _ritual_state(user["id"], rituals)
     await message.answer(
-        f"Добавлен ритуал: {title}\n\n" + rituals_view(rituals),
-        reply_markup=rituals_keyboard(rituals),
+        f"Добавлен ритуал: {title}\n\n" + rituals_view(rituals, done, streaks),
+        reply_markup=rituals_keyboard(rituals, done),
     )
 
 
@@ -219,7 +231,8 @@ async def cmd_rituals(message: types.Message):
     if not rituals:
         await message.answer("Ритуалов пока нет.\nДобавь первый: /addritual Медитация")
         return
-    await message.answer(rituals_view(rituals), reply_markup=rituals_keyboard(rituals))
+    done, streaks = _ritual_state(user["id"], rituals)
+    await message.answer(rituals_view(rituals, done, streaks), reply_markup=rituals_keyboard(rituals, done))
 
 
 @dp.callback_query(F.data.startswith("ritual:"))
@@ -228,12 +241,13 @@ async def cb_ritual(callback: types.CallbackQuery):
     user = ensure_user(callback.from_user.id, callback.from_user.full_name)
 
     now_done = toggle_ritual(ritual_id, user["id"])
-    if now_done:  # отметили выполненным — начисляем XP
+    if now_done:
         add_xp(user["id"], "discipline", 2, "rituals")
 
     rituals = get_rituals(user["id"])
+    done, streaks = _ritual_state(user["id"], rituals)
     await callback.message.edit_text(
-        rituals_view(rituals), reply_markup=rituals_keyboard(rituals)
+        rituals_view(rituals, done, streaks), reply_markup=rituals_keyboard(rituals, done)
     )
     await callback.answer("Отмечено ✅ (+2 XP)" if now_done else "Снято")
 
@@ -385,12 +399,24 @@ async def cmd_balance(message: types.Message):
 
 @dp.callback_query(F.data.startswith("bal:"))
 async def cb_balance(callback: types.CallbackQuery):
-    _, field, score_str = callback.data.split(":")
+    parts = callback.data.split(":", 2)
+    if len(parts) != 3 or parts[1] not in BALANCE_FIELDS:
+        await callback.answer("Устаревшая кнопка. Запусти /balance заново.")
+        return
+    _, field, score_str = parts
     score = int(score_str)
     uid = callback.from_user.id
     user = ensure_user(uid, callback.from_user.full_name)
 
-    session = _balance_sessions.setdefault(uid, {})
+    session = _balance_sessions.get(uid)
+    if session is None:
+        # Сессия потеряна (рестарт сервера) — начинаем заново
+        await callback.message.edit_text(
+            "🎡 Сессия устарела после перезапуска. Запусти /balance заново."
+        )
+        await callback.answer("Сессия истекла")
+        return
+
     session[field] = score
 
     fields = list(BALANCE_FIELDS)
@@ -406,6 +432,15 @@ async def cb_balance(callback: types.CallbackQuery):
         )
         await callback.answer(f"{BALANCE_LABELS[field]}: {score}/10")
     else:
+        all_filled = all(f in session for f in fields)
+        if not all_filled:
+            await callback.message.edit_text(
+                "⚠️ Не все сферы оценены. Запусти /balance заново."
+            )
+            _balance_sessions.pop(uid, None)
+            await callback.answer("Неполная сессия")
+            return
+
         save_balance(user["id"], session)
         add_xp(user["id"], "reflection", 3, "balance")
         _balance_sessions.pop(uid, None)
@@ -679,10 +714,13 @@ async def cmd_journal(message: types.Message, command: CommandObject):
 @dp.message(Command("spend"))
 async def cmd_spend(message: types.Message, command: CommandObject):
     parts = (command.args or "").strip().split(maxsplit=1)
-    if not parts or not parts[0].replace(".", "").isdigit():
+    try:
+        amount = float(parts[0]) if parts else None
+        if amount is None or amount <= 0:
+            raise ValueError
+    except (ValueError, IndexError):
         await message.answer("Формат: /spend сумма категория\nПример: /spend 500 еда")
         return
-    amount = float(parts[0])
     category = parts[1].strip() if len(parts) > 1 else "другое"
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     add_transaction(user["id"], amount, category)
@@ -719,8 +757,10 @@ async def cmd_sleep(message: types.Message, command: CommandObject):
         )
         return
 
-    def parse_time(s: str):
+    def parse_time(s: str) -> int:
         h, m = map(int, s.split(":"))
+        if not (0 <= h <= 23 and 0 <= m <= 59):
+            raise ValueError(f"Invalid time: {s}")
         return h * 60 + m
 
     try:
@@ -784,6 +824,8 @@ async def kb_food(message: types.Message):
 
 @dp.message()
 async def on_any(message: types.Message):
+    if not message.from_user:
+        return
     text = message.text or ""
     if text:
         user = ensure_user(message.from_user.id, message.from_user.full_name)
