@@ -15,7 +15,13 @@ from contextlib import asynccontextmanager
 
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command, CommandObject, CommandStart
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from aiogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+    Update,
+)
 from fastapi import FastAPI, Header, Request, Response
 
 from config import settings
@@ -48,6 +54,16 @@ WEBHOOK_PATH = "/webhook"
 
 
 # --- Помощники отображения ---------------------------------------------------
+
+MAIN_KEYBOARD = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="📅 Сегодня"), KeyboardButton(text="⚔️ Статы")],
+        [KeyboardButton(text="💧 Вода"), KeyboardButton(text="🔥 Ритуалы")],
+        [KeyboardButton(text="✅ Задачи"), KeyboardButton(text="🍽 Питание")],
+    ],
+    resize_keyboard=True,
+)
+
 
 def progress_bar(value: int, goal: int, width: int = 10) -> str:
     """Текстовый прогресс-бар: ▰▰▰▱▱▱▱▱▱▱"""
@@ -120,8 +136,8 @@ def tasks_keyboard(tasks: list[dict]) -> InlineKeyboardMarkup:
 async def on_start(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     await message.answer(
-        f"MY-OS на связи 👋\nПривет, {user['name']}!\n\n"
-        "Команды:\n/today — сводка дня\n/stats — RPG-статы\n/water · /rituals · /tasks · /food"
+        f"MY-OS на связи 👋\nПривет, {user['name']}!",
+        reply_markup=MAIN_KEYBOARD,
     )
 
 
@@ -324,9 +340,42 @@ async def cb_task(callback: types.CallbackQuery):
     await callback.answer("Выполнено! +3 XP к Дисциплине" if done else "Уже выполнено")
 
 
+@dp.message(F.text == "📅 Сегодня")
+async def kb_today(message: types.Message):
+    await cmd_today(message)
+
+
+@dp.message(F.text == "⚔️ Статы")
+async def kb_stats(message: types.Message):
+    await cmd_stats(message)
+
+
+@dp.message(F.text == "💧 Вода")
+async def kb_water(message: types.Message):
+    await cmd_water(message)
+
+
+@dp.message(F.text == "🔥 Ритуалы")
+async def kb_rituals(message: types.Message):
+    await cmd_rituals(message)
+
+
+@dp.message(F.text == "✅ Задачи")
+async def kb_tasks(message: types.Message):
+    await cmd_tasks(message)
+
+
+@dp.message(F.text == "🍽 Питание")
+async def kb_food(message: types.Message):
+    await cmd_food(message)
+
+
 @dp.message()
 async def on_any(message: types.Message):
-    await message.answer("Команды: /today · /stats · /water · /rituals · /tasks · /food")
+    await message.answer(
+        "Используй кнопки внизу или команды:\n/addritual · /addfood · /addtask",
+        reply_markup=MAIN_KEYBOARD,
+    )
 
 
 # --- Веб-сервер --------------------------------------------------------------
