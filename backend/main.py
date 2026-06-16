@@ -823,9 +823,12 @@ async def on_any(message: types.Message):
         return
     text = message.text or ""
     if text:
-        user = ensure_user(message.from_user.id, message.from_user.full_name)
-        add_inbox(user["id"], text)
-        await message.answer("📥 Збережено в Inbox.\n/inbox — перегляд", reply_markup=MAIN_KEYBOARD)
+        try:
+            user = ensure_user(message.from_user.id, message.from_user.full_name)
+            add_inbox(user["id"], text)
+            await message.answer("📥 Збережено в Inbox.\n/inbox — перегляд", reply_markup=MAIN_KEYBOARD)
+        except Exception:
+            await message.answer("Використовуй кнопки внизу.", reply_markup=MAIN_KEYBOARD)
     else:
         await message.answer("Використовуй кнопки внизу.", reply_markup=MAIN_KEYBOARD)
 
