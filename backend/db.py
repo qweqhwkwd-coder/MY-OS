@@ -164,3 +164,41 @@ def ritual_streak_7(ritual_id: str) -> int:
         .execute()
     )
     return sum(1 for r in res.data if r["is_done"])
+
+
+# --- Задачи -------------------------------------------------------------------
+
+def get_tasks(user_id: str) -> list[dict]:
+    """Незавершённые задачи пользователя, по дате создания."""
+    return (
+        supabase.table("tasks")
+        .select("*")
+        .eq("user_id", user_id)
+        .eq("is_completed", False)
+        .order("created_at")
+        .execute()
+        .data
+    )
+
+
+def add_task(user_id: str, title: str) -> dict:
+    return (
+        supabase.table("tasks")
+        .insert({"user_id": user_id, "title": title})
+        .execute()
+        .data[0]
+    )
+
+
+def complete_task(task_id: str, user_id: str) -> bool:
+    """Помечает задачу выполненной. Возвращает True если задача найдена и обновлена."""
+    from datetime import datetime
+    res = (
+        supabase.table("tasks")
+        .update({"is_completed": True, "completed_at": datetime.utcnow().isoformat()})
+        .eq("id", task_id)
+        .eq("user_id", user_id)
+        .eq("is_completed", False)
+        .execute()
+    )
+    return bool(res.data)

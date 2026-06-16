@@ -21,10 +21,13 @@ from fastapi import FastAPI, Header, Request, Response
 from config import settings
 from db import (
     add_ritual,
+    add_task,
     add_water,
     add_xp,
+    complete_task,
     ensure_user,
     get_rituals,
+    get_tasks,
     get_water_today,
     is_ritual_done_today,
     ritual_streak_7,
@@ -80,6 +83,27 @@ def rituals_keyboard(rituals: list[dict]) -> InlineKeyboardMarkup:
         rows.append([
             InlineKeyboardButton(
                 text=f"{mark} {r['title']}", callback_data=f"ritual:{r['id']}"
+            )
+        ])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def tasks_view(tasks: list[dict]) -> str:
+    if not tasks:
+        return "📋 Нет активных задач.\nДобавь: /addtask Название"
+    lines = ["📋 Задачи:\n"]
+    for t in tasks:
+        lines.append(f"⬜ {t['title']}")
+    lines.append("\nЖми кнопку, чтобы отметить выполненной.")
+    return "\n".join(lines)
+
+
+def tasks_keyboard(tasks: list[dict]) -> InlineKeyboardMarkup:
+    rows = []
+    for t in tasks:
+        rows.append([
+            InlineKeyboardButton(
+                text=f"✅ {t['title']}", callback_data=f"task:{t['id']}"
             )
         ])
     return InlineKeyboardMarkup(inline_keyboard=rows)
@@ -166,9 +190,51 @@ async def cb_ritual(callback: types.CallbackQuery):
     await callback.answer("Отмечено ✅ (+2 XP)" if now_done else "Снято")
 
 
+@dp.message(Command("addtask"))
+async def cmd_addtask(message: types.Message, command: CommandObject):
+    title = (command.args or "").strip()
+    if not title:
+        await message.answer("Напиши название после команды:\n/addtask Купить молоко")
+        return
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    add_task(user["id"], title)
+    tasks = get_tasks(user["id"])
+    await message.answer(
+        f"Задача добавлена: {title}\n\n" + tasks_view(tasks),
+        reply_markup=tasks_keyboard(tasks) if tasks else None,
+    )
+
+
+@dp.message(Command("tasks"))
+async def cmd_tasks(message: types.Message):
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    tasks = get_tasks(user["id"])
+    await message.answer(
+        tasks_view(tasks),
+        reply_markup=tasks_keyboard(tasks) if tasks else None,
+    )
+
+
+@dp.callback_query(F.data.startswith("task:"))
+async def cb_task(callback: types.CallbackQuery):
+    task_id = callback.data.split(":", 1)[1]
+    user = ensure_user(callback.from_user.id, callback.from_user.full_name)
+
+    done = complete_task(task_id, user["id"])
+    if done:
+        add_xp(user["id"], "discipline", 3, "tasks")
+
+    tasks = get_tasks(user["id"])
+    await callback.message.edit_text(
+        tasks_view(tasks),
+        reply_markup=tasks_keyboard(tasks) if tasks else None,
+    )
+    await callback.answer("Выполнено! +3 XP к Дисциплине" if done else "Уже выполнено")
+
+
 @dp.message()
 async def on_any(message: types.Message):
-    await message.answer("Команды: /water, /rituals, /addritual. Скоро добавим задачи 🙂")
+    await message.answer("Команды: /water, /rituals, /addritual, /tasks, /addtask")
 
 
 # --- Веб-сервер --------------------------------------------------------------
