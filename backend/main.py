@@ -20,6 +20,7 @@ from fastapi import FastAPI, Header, Request, Response
 
 from config import settings
 from db import (
+    STATS,
     add_food,
     add_ritual,
     add_task,
@@ -30,6 +31,8 @@ from db import (
     get_food_today,
     get_rituals,
     get_tasks,
+    get_tasks_done_today,
+    get_user_stats,
     get_water_today,
     is_ritual_done_today,
     ritual_streak_7,
@@ -118,7 +121,7 @@ async def on_start(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     await message.answer(
         f"MY-OS на связи 👋\nПривет, {user['name']}!\n\n"
-        "Команды:\n/water — вода\n/rituals — ритуалы\n/tasks — задачи\n/food — питание"
+        "Команды:\n/today — сводка дня\n/stats — RPG-статы\n/water · /rituals · /tasks · /food"
     )
 
 
@@ -190,6 +193,55 @@ async def cb_ritual(callback: types.CallbackQuery):
         rituals_view(rituals), reply_markup=rituals_keyboard(rituals)
     )
     await callback.answer("Отмечено ✅ (+2 XP)" if now_done else "Снято")
+
+
+STAT_LABELS = {
+    "strength":   "💪 Сила",
+    "endurance":  "🏃 Выносливость",
+    "nutrition":  "🥗 Питание",
+    "discipline": "🔥 Дисциплина",
+    "reflection": "🧘 Рефлексия",
+    "health":     "❤️ Здоровье",
+    "finance":    "💰 Финансы",
+    "intellect":  "🧠 Интеллект",
+}
+
+
+@dp.message(Command("today"))
+async def cmd_today(message: types.Message):
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    uid = user["id"]
+
+    water = get_water_today(uid)
+    goal = user["water_goal"]
+    rituals = get_rituals(uid)
+    rituals_done = sum(1 for r in rituals if is_ritual_done_today(r["id"]))
+    tasks_done = get_tasks_done_today(uid)
+    food = get_food_today(uid)
+    kcal = int(sum(e["kcal"] for e in food))
+    stats = get_user_stats(uid)
+
+    lines = [
+        f"📅 Сводка за сегодня  •  Уровень {stats['level']}\n",
+        f"💧 Вода: {water} / {goal} мл  {progress_bar(water, goal, 8)}",
+        f"🔥 Ритуалы: {rituals_done} / {len(rituals)}",
+        f"✅ Задачи выполнено: {tasks_done}",
+        f"🍽 Калории: {kcal} ккал ({len(food)} записей)",
+    ]
+    await message.answer("\n".join(lines))
+
+
+@dp.message(Command("stats"))
+async def cmd_stats(message: types.Message):
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    st = get_user_stats(user["id"])
+    lines = [f"⚔️ RPG-статы  •  Уровень {st['level']}\n"]
+    for key in STATS:
+        xp = st[key]
+        lvl = xp // 100
+        bar = progress_bar(xp % 100, 100, 8)
+        lines.append(f"{STAT_LABELS[key]}: {xp} XP (lv{lvl})  {bar}")
+    await message.answer("\n".join(lines))
 
 
 @dp.message(Command("addfood"))
@@ -274,7 +326,7 @@ async def cb_task(callback: types.CallbackQuery):
 
 @dp.message()
 async def on_any(message: types.Message):
-    await message.answer("Команды: /water · /rituals · /addritual · /tasks · /addtask · /food · /addfood")
+    await message.answer("Команды: /today · /stats · /water · /rituals · /tasks · /food")
 
 
 # --- Веб-сервер --------------------------------------------------------------
