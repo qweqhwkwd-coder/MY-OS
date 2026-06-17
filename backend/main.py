@@ -240,6 +240,11 @@ def _parse_addfood(args_str: str) -> tuple[str, int | None, int] | None:
 
 # --- Обробники бота (catch-all завжди останнім) --------------------------------
 
+OPEN_APP_KB = InlineKeyboardMarkup(inline_keyboard=[[
+    InlineKeyboardButton(text="🚀 Відкрити MY-OS", web_app=WebAppInfo(url=MINIAPP_URL))
+]])
+
+
 @dp.message(CommandStart())
 async def on_start(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
@@ -247,6 +252,7 @@ async def on_start(message: types.Message):
         f"MY-OS на зв'язку 👋\nПривіт, {user['name']}!",
         reply_markup=MAIN_KEYBOARD,
     )
+    await message.answer("Відкрий свою особисту ОС:", reply_markup=OPEN_APP_KB)
 
 
 @dp.message(Command("water"))
