@@ -42,7 +42,9 @@ from aiogram.types import (
     Update,
 )
 from fastapi import FastAPI, Header, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 
+from api_routes import router as api_router
 from config import settings
 from db import (
     STATS,
@@ -1037,6 +1039,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://qweqhwkwd-coder.github.io"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "X-Telegram-Init-Data"],
+)
+app.include_router(api_router)
 
 
 @app.get("/health")
