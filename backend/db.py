@@ -465,13 +465,25 @@ def delete_ritual(ritual_id: str, user_id: str) -> bool:
     return bool(res.data)
 
 
-def get_diary_entries(user_id: str, limit: int = 7) -> list[dict]:
+def get_diary_entries(user_id: str, limit: int = 10) -> list[dict]:
     return (
         supabase.table("diary_entries")
         .select("date,text,mood")
         .eq("user_id", user_id)
         .order("created_at", desc=True)
         .limit(limit)
+        .execute()
+        .data
+    )
+
+
+def get_diary_entries_by_date(user_id: str, entry_date: str) -> list[dict]:
+    return (
+        supabase.table("diary_entries")
+        .select("text,mood,created_at")
+        .eq("user_id", user_id)
+        .eq("date", entry_date)
+        .order("created_at")
         .execute()
         .data
     )
@@ -573,7 +585,7 @@ def get_food_today(user_id: str) -> list[dict]:
     today = date.today().isoformat()
     return (
         supabase.table("food_logs")
-        .select("id,food_name,kcal,created_at")
+        .select("id,food_name,grams,kcal,created_at")
         .eq("user_id", user_id)
         .eq("date", today)
         .order("created_at")
@@ -593,11 +605,11 @@ def delete_food(food_id: str, user_id: str) -> bool:
     return bool(res.data)
 
 
-def add_food(user_id: str, food_name: str, kcal: int) -> dict:
+def add_food(user_id: str, food_name: str, kcal: int, grams: int | None = None) -> dict:
     today = date.today().isoformat()
     return (
         supabase.table("food_logs")
-        .insert({"user_id": user_id, "date": today, "food_name": food_name, "kcal": kcal})
+        .insert({"user_id": user_id, "date": today, "food_name": food_name, "kcal": kcal, "grams": grams})
         .execute()
         .data[0]
     )

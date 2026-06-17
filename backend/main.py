@@ -44,6 +44,7 @@ from db import (
     delete_task,
     detect_workout_type,
     get_diary_entries,
+    get_diary_entries_by_date,
     get_goals,
     get_ideas,
     get_last_weights,
@@ -148,11 +149,15 @@ def food_view(entries: list[dict]) -> str:
     return f"🍽 Харчування сьогодні — {total} ккал ({len(entries)} записів):"
 
 
+def food_entry_label(e: dict) -> str:
+    grams_str = f" {int(e['grams'])}г" if e.get("grams") else ""
+    return f"🗑 {e['food_name']}{grams_str} — {int(e['kcal'])} ккал"
+
+
 def food_keyboard(entries: list[dict]) -> InlineKeyboardMarkup:
     rows = []
     for e in entries:
-        label = f"🗑 {e['food_name']} ({int(e['kcal'])} ккал)"
-        rows.append([InlineKeyboardButton(text=label, callback_data=f"delfood:{e['id']}")])
+        rows.append([InlineKeyboardButton(text=food_entry_label(e), callback_data=f"delfood:{e['id']}")])
     rows.append([InlineKeyboardButton(text="➕ Як додати їжу?", callback_data="food:howto")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -321,24 +326,46 @@ async def cmd_stats(message: types.Message):
     await message.answer("\n".join(lines))
 
 
+def _parse_addfood(args_str: str) -> tuple[str, int | None, int] | None:
+    """Парсить 'Назва [Xг] ккал'. Повертає (food_name, grams, kcal) або None."""
+    parts = args_str.split()
+    if len(parts) < 2:
+        return None
+    # Останній токен — ккал (число)
+    if not parts[-1].lstrip("-").isdigit():
+        return None
+    kcal = int(parts[-1])
+    rest = parts[:-1]
+    # Передостанній токен — грами (число або число+'г')?
+    grams = None
+    if len(rest) >= 2:
+        g_token = rest[-1].rstrip("гgG")
+        if g_token.isdigit():
+            grams = int(g_token)
+            rest = rest[:-1]
+    food_name = " ".join(rest)
+    return food_name, grams, kcal
+
+
 @dp.message(Command("addfood"))
 async def cmd_addfood(message: types.Message, command: CommandObject):
-    args = (command.args or "").strip().split()
-    if len(args) < 2 or not args[-1].lstrip("-").isdigit():
+    parsed = _parse_addfood((command.args or "").strip())
+    if not parsed:
         await message.answer(
-            "Формат: /addfood Назва ккал\nПриклад: /addfood Гречка 250"
+            "Формат: /addfood Назва [грами] ккал\n"
+            "Приклади:\n/addfood Гречка 250\n/addfood Рис 100г 180"
         )
         return
-    kcal = int(args[-1])
-    food_name = " ".join(args[:-1])
+    food_name, grams, kcal = parsed
     user = ensure_user(message.from_user.id, message.from_user.full_name)
-    add_food(user["id"], food_name, kcal)
+    add_food(user["id"], food_name, kcal, grams)
     add_xp(user["id"], "nutrition", 2, "food")
 
     entries = get_food_today(user["id"])
     total_kcal = sum(e["kcal"] for e in entries if e.get("kcal"))
+    grams_str = f" {grams}г" if grams else ""
     await message.answer(
-        f"🍽 Записано: {food_name} — {kcal} ккал  +2 XP до Харчування\n\n"
+        f"🍽 Записано: {food_name}{grams_str} — {kcal} ккал  +2 XP до Харчування\n\n"
         f"Всього сьогодні: {total_kcal} ккал ({len(entries)} записів)"
     )
 
@@ -714,13 +741,26 @@ async def cmd_journal(message: types.Message, command: CommandObject):
         entries = get_diary_entries(user["id"], limit=10)
         if not entries:
             await message.answer(
-                "📓 Щоденник порожній.\n\nДодати запис: /journal текст [настрій 1-5]\nПриклад: /journal Гарний день 4"
+                "📓 Щоденник порожній.\n\nДодати запис: /journal текст [настрій 1-5]\nПриклад: /journal Гарний день 4\n\nАрхів за датою: /journal 2026-06-15"
             )
             return
         lines = ["📓 Щоденник (останні записи):\n"]
         for e in entries:
             mood_str = f"  {MOOD_EMOJI[e['mood']]}" if e.get("mood") else ""
             lines.append(f"📅 {e['date']}{mood_str}\n{e['text']}\n")
+        await message.answer("\n".join(lines))
+        return
+
+    # Архів по даті: /journal РРРР-ММ-ДД
+    if re.match(r"^\d{4}-\d{2}-\d{2}$", text):
+        entries = get_diary_entries_by_date(user["id"], text)
+        if not entries:
+            await message.answer(f"📓 Записів за {text} немає.")
+            return
+        lines = [f"📓 Щоденник за {text}:\n"]
+        for e in entries:
+            mood_str = f"  {MOOD_EMOJI[e['mood']]}" if e.get("mood") else ""
+            lines.append(f"{e['text']}{mood_str}\n")
         await message.answer("\n".join(lines))
         return
 
