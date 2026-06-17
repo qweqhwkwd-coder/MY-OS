@@ -56,7 +56,7 @@ def verify_init_data(init_data: str) -> dict:
         raise HTTPException(status_code=401, detail="Invalid init data signature")
 
     auth_date = parsed.get("auth_date", "0")
-    if not auth_date.isdigit() or (time.time() - int(auth_date)) > 86400:
+    if not auth_date.isdigit() or (time.time() - int(auth_date)) > 3600:
         raise HTTPException(status_code=401, detail="Init data expired")
 
     user_json = parsed.get("user", "{}")
@@ -80,22 +80,6 @@ def get_current_user(
 
 
 # --- Ендпоїнти ----------------------------------------------------------------
-
-@router.get("/debug")
-def api_debug(x_telegram_init_data: str = Header(default="")):
-    """Тимчасовий ендпоїнт для діагностики initData."""
-    import time as t
-    parsed = dict(parse_qsl(unquote(x_telegram_init_data), keep_blank_values=True)) if x_telegram_init_data else {}
-    auth_date = int(parsed.get("auth_date", 0))
-    return {
-        "has_init_data": bool(x_telegram_init_data),
-        "init_data_len": len(x_telegram_init_data),
-        "has_hash": "hash" in parsed,
-        "has_user": "user" in parsed,
-        "auth_date": auth_date,
-        "age_seconds": int(t.time()) - auth_date if auth_date else None,
-        "keys": list(parsed.keys()),
-    }
 
 
 @router.get("/today")

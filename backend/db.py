@@ -4,7 +4,7 @@
 (полный доступ) — сложная авторизация не нужна.
 """
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from supabase import Client, create_client
 
@@ -62,9 +62,11 @@ def add_xp(user_id: str, stat: str, amount: int, source: str) -> None:
         }
     ).execute()
 
-    stats = (
-        supabase.table("user_stats").select("*").eq("user_id", user_id).execute().data[0]
-    )
+    rows = supabase.table("user_stats").select("*").eq("user_id", user_id).execute().data
+    if not rows:
+        supabase.table("user_stats").insert({"user_id": user_id}).execute()
+        rows = supabase.table("user_stats").select("*").eq("user_id", user_id).execute().data
+    stats = rows[0]
     new_val = stats[stat] + amount
 
     total = sum(stats[s] for s in STATS) - stats[stat] + new_val
@@ -87,7 +89,7 @@ def get_water_today(user_id: str) -> int:
         .eq("date", today)
         .execute()
     )
-    return res.data[0]["amount_ml"] if res.data else 0
+    return sum(r["amount_ml"] for r in res.data) if res.data else 0
 
 
 def add_water(user_id: str, amount_ml: int) -> int:
@@ -179,22 +181,10 @@ def toggle_ritual(ritual_id: str, user_id: str) -> bool:
         return False
     supabase.table("ritual_logs").upsert(
         {"ritual_id": ritual_id, "user_id": user_id, "date": today, "is_done": True},
-        on_conflict="ritual_id,date",
+        on_conflict="ritual_id,user_id,date",
     ).execute()
     return True
 
-
-def ritual_streak_7(ritual_id: str) -> int:
-    """Сколько из последних 7 дней ритуал был выполнен."""
-    start = (date.today() - timedelta(days=6)).isoformat()
-    res = (
-        supabase.table("ritual_logs")
-        .select("is_done")
-        .eq("ritual_id", ritual_id)
-        .gte("date", start)
-        .execute()
-    )
-    return sum(1 for r in res.data if r["is_done"])
 
 
 # --- Колесо баланса ----------------------------------------------------------
@@ -214,12 +204,12 @@ BALANCE_LABELS = {
 
 def save_balance(user_id: str, scores: dict) -> dict:
     safe = {k: v for k, v in scores.items() if k in BALANCE_FIELDS}
-    return (
+    res = (
         supabase.table("life_balance")
         .upsert({"user_id": user_id, "date": date.today().isoformat(), **safe}, on_conflict="user_id,date")
         .execute()
-        .data[0]
     )
+    return res.data[0] if res.data else {}
 
 
 # --- Inbox -------------------------------------------------------------------
@@ -262,7 +252,7 @@ def get_week_digest(user_id: str) -> dict:
     )
     rituals_done = (
         supabase.table("ritual_logs").select("id").eq("user_id", user_id)
-        .gte("date", week_start).execute().data
+        .eq("is_done", True).gte("date", week_start).execute().data
     )
     tasks_done = (
         supabase.table("tasks").select("id").eq("user_id", user_id)
@@ -417,10 +407,9 @@ def get_goals(user_id: str) -> list[dict]:
 
 
 def complete_goal(goal_id: str, user_id: str) -> bool:
-    from datetime import datetime
     res = (
         supabase.table("goals")
-        .update({"is_done": True, "done_at": datetime.utcnow().isoformat()})
+        .update({"is_done": True, "done_at": datetime.now(timezone.utc).isoformat()})
         .eq("id", goal_id)
         .eq("user_id", user_id)
         .eq("is_done", False)
@@ -634,13 +623,17 @@ def get_sleep_today(user_id: str) -> dict | None:
 # --- Дашборд / статы ----------------------------------------------------------
 
 def get_user_stats(user_id: str) -> dict:
-    return (
+    rows = (
         supabase.table("user_stats")
         .select("*")
         .eq("user_id", user_id)
         .execute()
-        .data[0]
+        .data
     )
+    if not rows:
+        supabase.table("user_stats").insert({"user_id": user_id}).execute()
+        rows = supabase.table("user_stats").select("*").eq("user_id", user_id).execute().data
+    return rows[0]
 
 
 def get_tasks_done_today(user_id: str) -> int:
@@ -729,10 +722,9 @@ def delete_task(task_id: str, user_id: str) -> bool:
 
 def complete_task(task_id: str, user_id: str) -> bool:
     """Помечает задачу выполненной. Возвращает True если задача найдена и обновлена."""
-    from datetime import datetime
     res = (
         supabase.table("tasks")
-        .update({"is_completed": True, "completed_at": datetime.utcnow().isoformat()})
+        .update({"is_completed": True, "completed_at": datetime.now(timezone.utc).isoformat()})
         .eq("id", task_id)
         .eq("user_id", user_id)
         .eq("is_completed", False)

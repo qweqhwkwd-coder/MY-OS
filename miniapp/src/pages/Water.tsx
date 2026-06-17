@@ -9,9 +9,12 @@ export function Water({ initData }: { initData: string }) {
   const [goal, setGoal] = useState(2000)
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
+  const [err, setErr] = useState('')
 
   useEffect(() => {
-    api.water(initData).then(d => { setTotal(d.total); setGoal(d.goal ?? 2000); setLoading(false) })
+    api.water(initData)
+      .then(d => { setTotal(d.total); setGoal(d.goal ?? 2000); setLoading(false) })
+      .catch((e: Error) => { setErr(e.message); setLoading(false) })
   }, [initData])
 
   async function add(amount: number) {
@@ -25,6 +28,7 @@ export function Water({ initData }: { initData: string }) {
   }
 
   if (loading) return <div className="p-4 text-white/50">Завантаження...</div>
+  if (err) return <div className="p-4 text-red-400 text-sm">{err}</div>
 
   const pct = Math.round((total / goal) * 100)
 

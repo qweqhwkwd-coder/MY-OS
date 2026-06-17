@@ -43,7 +43,11 @@ export default function App() {
     return () => { clearInterval(check); clearTimeout(fallback) }
   }, [])
 
-  if (!ready) return null
+  if (!ready) return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-white/50">Завантаження...</div>
+    </div>
+  )
   if (!initData) return (
     <div className="flex flex-col items-center justify-center min-h-screen text-center p-8 gap-4">
       <div className="text-4xl">🚀</div>

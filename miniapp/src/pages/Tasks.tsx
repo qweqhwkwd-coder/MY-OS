@@ -5,17 +5,25 @@ import type { Task } from '../api'
 export function Tasks({ initData }: { initData: string }) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState('')
 
   useEffect(() => {
-    api.tasks(initData).then(d => { setTasks(d); setLoading(false) })
+    api.tasks(initData)
+      .then(d => { setTasks(d); setLoading(false) })
+      .catch((e: Error) => { setErr(e.message); setLoading(false) })
   }, [initData])
 
   async function complete(id: string) {
-    await api.completeTask(initData, id)
-    setTasks(prev => prev.filter(t => t.id !== id))
+    try {
+      await api.completeTask(initData, id)
+      setTasks(prev => prev.filter(t => t.id !== id))
+    } catch {
+      // ignore complete errors silently
+    }
   }
 
   if (loading) return <div className="p-4 text-white/50">Завантаження...</div>
+  if (err) return <div className="p-4 text-red-400 text-sm">{err}</div>
 
   return (
     <div className="p-4 space-y-4">

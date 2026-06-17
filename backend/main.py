@@ -93,7 +93,6 @@ from db import (
     get_workouts_recent,
     log_sleep,
     log_weight,
-    ritual_streak_7,
     save_balance,
     toggle_ritual,
 )
@@ -1052,7 +1051,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://qweqhwkwd-coder.github.io"],
+    allow_origin_regex=r"^(https://qweqhwkwd-coder\.github\.io|null)$",
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type", "X-Telegram-Init-Data"],
 )

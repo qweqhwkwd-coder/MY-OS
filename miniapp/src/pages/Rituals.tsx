@@ -5,17 +5,25 @@ import type { Ritual } from '../api'
 export function Rituals({ initData }: { initData: string }) {
   const [rituals, setRituals] = useState<Ritual[]>([])
   const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState('')
 
   useEffect(() => {
-    api.rituals(initData).then(d => { setRituals(d); setLoading(false) })
+    api.rituals(initData)
+      .then(d => { setRituals(d); setLoading(false) })
+      .catch((e: Error) => { setErr(e.message); setLoading(false) })
   }, [initData])
 
   async function toggle(id: string) {
-    const res = await api.toggleRitual(initData, id)
-    setRituals(prev => prev.map(r => r.id === id ? { ...r, done: res.done } : r))
+    try {
+      const res = await api.toggleRitual(initData, id)
+      setRituals(prev => prev.map(r => r.id === id ? { ...r, done: res.done } : r))
+    } catch {
+      // ignore toggle errors silently
+    }
   }
 
   if (loading) return <div className="p-4 text-white/50">Завантаження...</div>
+  if (err) return <div className="p-4 text-red-400 text-sm">{err}</div>
 
   const done = rituals.filter(r => r.done).length
 

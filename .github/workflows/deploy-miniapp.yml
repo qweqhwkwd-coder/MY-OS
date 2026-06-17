@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'miniapp/**'
+  workflow_dispatch:
 
 permissions:
   contents: read
