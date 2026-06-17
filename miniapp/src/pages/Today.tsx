@@ -9,7 +9,7 @@ export function Today({ initData }: { initData: string }) {
   const [err, setErr] = useState('')
 
   useEffect(() => {
-    api.today(initData)(initData)
+    api.today(initData)
       .then(setData)
       .catch(() => setErr('Не вдалося завантажити дані'))
   }, [initData])
