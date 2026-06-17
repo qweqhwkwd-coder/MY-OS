@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_API_URL ?? 'https://my-os-ijgn.onrender.com'
+const BASE = import.meta.env.VITE_API_URL || 'https://my-os-ijgn.onrender.com'
 
 async function req<T>(path: string, initData: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {

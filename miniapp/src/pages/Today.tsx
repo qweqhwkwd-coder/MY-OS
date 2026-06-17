@@ -18,7 +18,7 @@ export function Today({ initData }: { initData: string }) {
     <div className="p-4 space-y-3">
       <div className="text-red-400 text-sm break-all">{err}</div>
       <button
-        onClick={() => fetch(`${import.meta.env.VITE_API_URL ?? 'https://my-os-ijgn.onrender.com'}/api/debug`, {
+        onClick={() => fetch(`${import.meta.env.VITE_API_URL || 'https://my-os-ijgn.onrender.com'}/api/debug`, {
           headers: { 'X-Telegram-Init-Data': initData }
         }).then(r => r.json()).then(d => setErr(JSON.stringify(d, null, 2))).catch(e => setErr('debug: ' + e.message))}
         className="text-xs bg-white/10 px-3 py-2 rounded-xl text-white/60"
