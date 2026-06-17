@@ -65,6 +65,8 @@ from db import (
     complete_task,
     detect_workout_type,
     ensure_user,
+    delete_ritual_by_title,
+    delete_task_by_title,
     get_diary_entries,
     get_diary_entries_by_date,
     get_food_today,
@@ -75,14 +77,17 @@ from db import (
     get_ritual_streaks,
     get_rituals,
     get_rituals_done_today,
+    get_sleep_history,
     get_sleep_today,
     get_tasks,
     get_tasks_done_today,
     get_transactions_today,
+    get_transactions_week,
     get_upcoming_meetings,
     get_user_stats,
     get_water_today,
     get_week_digest,
+    get_workouts_recent,
     log_sleep,
     log_weight,
     ritual_streak_7,
@@ -825,20 +830,60 @@ async def cmd_spend(message: types.Message, command: CommandObject):
 @dp.message(Command("finance"))
 async def cmd_finance(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
-    entries = get_transactions_today(user["id"])
+    entries = get_transactions_week(user["id"])
     if not entries:
-        await message.answer("💰 Сьогодні витрат немає.\nДодай: /spend 500 їжа")
+        await message.answer("💰 Витрат за тиждень немає.\nДодай: /spend 500 їжа")
         return
-    lines = ["💰 Витрати сьогодні:\n"]
+    # Групуємо по категоріях
+    by_cat: dict[str, float] = {}
+    by_day: dict[str, float] = {}
     for e in entries:
-        lines.append(f"• {e['category']} — {e['amount']:.0f}")
-    lines.append(f"\n📊 Всього: {sum(e['amount'] for e in entries):.0f}")
+        by_cat[e["category"]] = by_cat.get(e["category"], 0) + e["amount"]
+        by_day[e["date"]] = by_day.get(e["date"], 0) + e["amount"]
+    total = sum(e["amount"] for e in entries)
+    lines = [f"💰 Витрати за 7 днів — {total:.0f} грн\n"]
+    lines.append("По категоріях:")
+    for cat, amt in sorted(by_cat.items(), key=lambda x: -x[1]):
+        pct = amt / total * 100
+        lines.append(f"  {cat}: {amt:.0f} ({pct:.0f}%)")
+    lines.append(f"\nЗаписів: {len(entries)}")
+    await message.answer("\n".join(lines))
+
+
+@dp.message(Command("workouts"))
+async def cmd_workouts(message: types.Message):
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    entries = get_workouts_recent(user["id"])
+    if not entries:
+        await message.answer("🏋️ Тренувань ще немає.\nДодай: /workout Біг 30")
+        return
+    type_emoji = {"cardio": "🏃", "strength": "💪", "flexibility": "🧘", "other": "🏋️"}
+    lines = ["🏋️ Останні тренування:\n"]
+    for w in entries:
+        emoji = type_emoji.get(w.get("type", "other"), "🏋️")
+        dur = f"  {w['duration_min']} хв" if w.get("duration_min") else ""
+        lines.append(f"{emoji} {w['date']} — {w['activity']}{dur}")
     await message.answer("\n".join(lines))
 
 
 @dp.message(Command("sleep"))
 async def cmd_sleep(message: types.Message, command: CommandObject):
     parts = (command.args or "").strip().split()
+    if not parts:
+        user = ensure_user(message.from_user.id, message.from_user.full_name)
+        history = get_sleep_history(user["id"])
+        if not history:
+            await message.answer(
+                "😴 Записів сну немає.\n\nФормат: /sleep ГГ:ХХ ГГ:ХХ\nПриклад: /sleep 23:30 7:15"
+            )
+            return
+        lines = ["😴 Останній сон:\n"]
+        for s in history:
+            h, m = divmod(s["duration_min"], 60)
+            quality = "✅" if 7 * 60 <= s["duration_min"] <= 9 * 60 else "⚠️"
+            lines.append(f"{quality} {s['date']}  {s['sleep_time']}→{s['wake_time']}  {h}г{m:02d}хв")
+        await message.answer("\n".join(lines))
+        return
     if len(parts) != 2:
         await message.answer(
             "Формат: /sleep ГГ:ХХ ГГ:ХХ\nПриклад: /sleep 23:30 7:15\n(засинання → пробудження)"
@@ -877,6 +922,52 @@ async def cmd_sleep(message: types.Message, command: CommandObject):
         f"😴 Сон записано: {parts[0]} → {parts[1]}\n"
         f"⏱ Тривалість: {hours}г {mins}хв{xp_note}"
     )
+
+
+# --- Видалення командою -------------------------------------------------------
+
+@dp.message(Command("delritual"))
+async def cmd_delritual(message: types.Message, command: CommandObject):
+    title = (command.args or "").strip()
+    if not title:
+        user = ensure_user(message.from_user.id, message.from_user.full_name)
+        rituals = get_rituals(user["id"])
+        if not rituals:
+            await message.answer("Ритуалів немає.")
+            return
+        lines = ["Ритуали (для видалення: /delritual Назва):\n"]
+        for r in rituals:
+            lines.append(f"• {r['title']}")
+        await message.answer("\n".join(lines))
+        return
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    deleted = delete_ritual_by_title(user["id"], title)
+    if deleted:
+        await message.answer(f"🗑 Ритуал «{title}» видалено.")
+    else:
+        await message.answer(f"Ритуал «{title}» не знайдено.")
+
+
+@dp.message(Command("deltask"))
+async def cmd_deltask(message: types.Message, command: CommandObject):
+    title = (command.args or "").strip()
+    if not title:
+        user = ensure_user(message.from_user.id, message.from_user.full_name)
+        tasks = get_tasks(user["id"])
+        if not tasks:
+            await message.answer("Активних завдань немає.")
+            return
+        lines = ["Завдання (для видалення: /deltask Назва):\n"]
+        for t in tasks:
+            lines.append(f"• {t['title']}")
+        await message.answer("\n".join(lines))
+        return
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    deleted = delete_task_by_title(user["id"], title)
+    if deleted:
+        await message.answer(f"🗑 Завдання «{title}» видалено.")
+    else:
+        await message.answer(f"Завдання «{title}» не знайдено.")
 
 
 # --- Reply keyboard shortcuts -------------------------------------------------

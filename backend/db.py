@@ -333,9 +333,22 @@ def get_upcoming_meetings(user_id: str) -> list[dict]:
 
 # --- Тренировки --------------------------------------------------------------
 
-CARDIO_KEYWORDS = {"бег", "кардио", "велосипед", "плавание", "прыжки", "ходьба", "скакалка", "эллипс"}
-STRENGTH_KEYWORDS = {"силовая", "жим", "присед", "тяга", "штанга", "гантели", "турник", "отжимания"}
-FLEX_KEYWORDS = {"йога", "растяжка", "стретчинг", "пилатес"}
+CARDIO_KEYWORDS = {
+    # українська
+    "біг", "кардіо", "велосипед", "плавання", "стрибки", "ходьба", "скакалка", "еліпс",
+    # російська (зворотна сумісність)
+    "бег", "кардио", "плавание", "прыжки", "эллипс",
+}
+STRENGTH_KEYWORDS = {
+    # українська
+    "силове", "жим", "присід", "тяга", "штанга", "гантелі", "турнік", "віджимання", "підтягування",
+    # російська
+    "силовая", "присед", "гантели", "турник", "отжимания",
+}
+FLEX_KEYWORDS = {
+    "йога", "розтяжка", "стретчинг", "пілатес",
+    "растяжка", "пилатес",
+}
 
 
 def detect_workout_type(activity: str) -> str:
@@ -350,6 +363,19 @@ def detect_workout_type(activity: str) -> str:
         if kw in low:
             return "flexibility"
     return "other"
+
+
+def get_workouts_recent(user_id: str, limit: int = 10) -> list[dict]:
+    return (
+        supabase.table("workouts")
+        .select("date,activity,duration_min,type")
+        .eq("user_id", user_id)
+        .order("date", desc=True)
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+        .data
+    )
 
 
 def add_workout(user_id: str, activity: str, duration_min: int | None, workout_type: str) -> dict:
@@ -510,6 +536,44 @@ def add_transaction(user_id: str, amount: float, category: str, note: str | None
     )
 
 
+def get_transactions_week(user_id: str) -> list[dict]:
+    week_start = (date.today() - timedelta(days=6)).isoformat()
+    return (
+        supabase.table("transactions")
+        .select("date,amount,category,note")
+        .eq("user_id", user_id)
+        .gte("date", week_start)
+        .order("date", desc=True)
+        .order("created_at", desc=True)
+        .execute()
+        .data
+    )
+
+
+def delete_ritual_by_title(user_id: str, title: str) -> bool:
+    res = (
+        supabase.table("rituals")
+        .update({"is_active": False})
+        .eq("user_id", user_id)
+        .ilike("title", title)
+        .eq("is_active", True)
+        .execute()
+    )
+    return bool(res.data)
+
+
+def delete_task_by_title(user_id: str, title: str) -> bool:
+    res = (
+        supabase.table("tasks")
+        .delete()
+        .eq("user_id", user_id)
+        .ilike("title", title)
+        .eq("is_completed", False)
+        .execute()
+    )
+    return bool(res.data)
+
+
 def get_transactions_today(user_id: str) -> list[dict]:
     return (
         supabase.table("transactions")
@@ -540,6 +604,18 @@ def log_sleep(user_id: str, sleep_time: str, wake_time: str, duration_min: int) 
         )
         .execute()
         .data[0]
+    )
+
+
+def get_sleep_history(user_id: str, limit: int = 7) -> list[dict]:
+    return (
+        supabase.table("sleep_logs")
+        .select("date,sleep_time,wake_time,duration_min")
+        .eq("user_id", user_id)
+        .order("date", desc=True)
+        .limit(limit)
+        .execute()
+        .data
     )
 
 
