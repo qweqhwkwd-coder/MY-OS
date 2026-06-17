@@ -9,7 +9,10 @@ async function req<T>(path: string, initData: string, options?: RequestInit): Pr
       ...options?.headers,
     },
   })
-  if (!res.ok) throw new Error(`${res.status} ${path}`)
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`${res.status}: ${body || path}`)
+  }
   return res.json()
 }
 
