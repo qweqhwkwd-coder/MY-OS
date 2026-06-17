@@ -23,29 +23,24 @@ export default function App() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const tg = window.Telegram?.WebApp
-    if (tg) {
-      tg.ready()
-      tg.expand()
-      // initData доступний одразу після ready()
-      const data = tg.initData
-      setInitData(data)
+    // Чекаємо поки initData стане непорожнім (WebApp ініціалізується асинхронно)
+    const check = setInterval(() => {
+      const tg = window.Telegram?.WebApp
+      if (tg?.initData) {
+        clearInterval(check)
+        tg.ready()
+        tg.expand()
+        setInitData(tg.initData)
+        setReady(true)
+      }
+    }, 50)
+    // Через 5 секунд здаємось (відкрито не в Telegram)
+    const fallback = setTimeout(() => {
+      clearInterval(check)
+      window.Telegram?.WebApp?.ready()
       setReady(true)
-    } else {
-      // Запасний варіант — чекаємо завантаження скрипта Telegram
-      const check = setInterval(() => {
-        const tg2 = window.Telegram?.WebApp
-        if (tg2) {
-          clearInterval(check)
-          tg2.ready()
-          tg2.expand()
-          setInitData(tg2.initData)
-          setReady(true)
-        }
-      }, 100)
-      // Через 3 секунди здаємось
-      setTimeout(() => { clearInterval(check); setReady(true) }, 3000)
-    }
+    }, 5000)
+    return () => { clearInterval(check); clearTimeout(fallback) }
   }, [])
 
   if (!ready) return null
