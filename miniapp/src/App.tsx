@@ -23,20 +23,38 @@ export default function App() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const tg = window.Telegram?.WebApp
-    if (tg) {
-      tg.ready()
-      tg.expand()
-      // initData доступний синхронно після ready()
-      setInitData(tg.initData || '')
+    // Telegram Desktop може інжектити WebApp з затримкою
+    const init = () => {
+      const tg = window.Telegram?.WebApp
+      if (tg) {
+        tg.ready()
+        tg.expand()
+        setInitData(tg.initData || '')
+      }
+      setReady(true)
     }
-    setReady(true)
+    // Спробуємо одразу, якщо не спрацює — через 300мс
+    if (window.Telegram?.WebApp?.initData) {
+      init()
+    } else {
+      setTimeout(init, 300)
+    }
   }, [])
 
   if (!ready) return null
   if (!initData) return (
-    <div className="flex items-center justify-center min-h-screen text-white/50 text-center p-8">
-      Відкрий через Telegram:<br />t.me/mmyyooss_bot/myos
+    <div className="flex flex-col items-center justify-center min-h-screen text-center p-8 gap-4">
+      <div className="text-4xl">🚀</div>
+      <div className="text-white font-bold text-lg">MY-OS</div>
+      <div className="text-white/50 text-sm">
+        Не вдалось отримати дані від Telegram.
+      </div>
+      <button
+        onClick={() => window.location.reload()}
+        className="bg-blue-500 hover:bg-blue-400 px-6 py-3 rounded-2xl text-white font-bold"
+      >
+        Спробувати ще раз
+      </button>
     </div>
   )
 
