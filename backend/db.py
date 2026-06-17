@@ -67,9 +67,8 @@ def add_xp(user_id: str, stat: str, amount: int, source: str) -> None:
     )
     new_val = stats[stat] + amount
 
-    # уровень = среднее XP по 5 статам / 100 (как в правилах RPG)
     total = sum(stats[s] for s in STATS) - stats[stat] + new_val
-    level = int((total / len(STATS)) // 100)
+    level = total // 100
 
     supabase.table("user_stats").update(
         {stat: new_val, "level": level}
@@ -455,6 +454,29 @@ def get_last_weights(user_id: str, limit: int = 5) -> list[dict]:
 
 # --- Дневник ------------------------------------------------------------------
 
+def delete_ritual(ritual_id: str, user_id: str) -> bool:
+    res = (
+        supabase.table("rituals")
+        .update({"is_active": False})
+        .eq("id", ritual_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return bool(res.data)
+
+
+def get_diary_entries(user_id: str, limit: int = 7) -> list[dict]:
+    return (
+        supabase.table("diary_entries")
+        .select("date,text,mood")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+        .data
+    )
+
+
 def add_diary_entry(user_id: str, text: str, mood: int | None = None) -> dict:
     return (
         supabase.table("diary_entries")
@@ -551,13 +573,24 @@ def get_food_today(user_id: str) -> list[dict]:
     today = date.today().isoformat()
     return (
         supabase.table("food_logs")
-        .select("food_name,kcal,created_at")
+        .select("id,food_name,kcal,created_at")
         .eq("user_id", user_id)
         .eq("date", today)
         .order("created_at")
         .execute()
         .data
     )
+
+
+def delete_food(food_id: str, user_id: str) -> bool:
+    res = (
+        supabase.table("food_logs")
+        .delete()
+        .eq("id", food_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return bool(res.data)
 
 
 def add_food(user_id: str, food_name: str, kcal: int) -> dict:
@@ -592,6 +625,17 @@ def add_task(user_id: str, title: str) -> dict:
         .execute()
         .data[0]
     )
+
+
+def delete_task(task_id: str, user_id: str) -> bool:
+    res = (
+        supabase.table("tasks")
+        .delete()
+        .eq("id", task_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return bool(res.data)
 
 
 def complete_task(task_id: str, user_id: str) -> bool:

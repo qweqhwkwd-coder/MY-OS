@@ -39,7 +39,11 @@ from db import (
     save_balance,
     add_workout,
     complete_goal,
+    delete_food,
+    delete_ritual,
+    delete_task,
     detect_workout_type,
+    get_diary_entries,
     get_goals,
     get_ideas,
     get_last_weights,
@@ -131,8 +135,25 @@ def rituals_keyboard(rituals: list[dict], done: set) -> InlineKeyboardMarkup:
         rows.append([
             InlineKeyboardButton(
                 text=f"{mark} {r['title']}", callback_data=f"ritual:{r['id']}"
-            )
+            ),
+            InlineKeyboardButton(text="🗑", callback_data=f"delritual:{r['id']}"),
         ])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def food_view(entries: list[dict]) -> str:
+    if not entries:
+        return "🍽 Сьогодні ще нічого не записано."
+    total = int(sum(e["kcal"] for e in entries if e.get("kcal")))
+    return f"🍽 Харчування сьогодні — {total} ккал ({len(entries)} записів):"
+
+
+def food_keyboard(entries: list[dict]) -> InlineKeyboardMarkup:
+    rows = []
+    for e in entries:
+        label = f"🗑 {e['food_name']} ({int(e['kcal'])} ккал)"
+        rows.append([InlineKeyboardButton(text=label, callback_data=f"delfood:{e['id']}")])
+    rows.append([InlineKeyboardButton(text="➕ Як додати їжу?", callback_data="food:howto")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -160,7 +181,8 @@ def tasks_keyboard(tasks: list[dict]) -> InlineKeyboardMarkup:
         rows.append([
             InlineKeyboardButton(
                 text=f"✅ {t['title']}", callback_data=f"task:{t['id']}"
-            )
+            ),
+            InlineKeyboardButton(text="🗑", callback_data=f"deltask:{t['id']}"),
         ])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -325,15 +347,11 @@ async def cmd_addfood(message: types.Message, command: CommandObject):
 async def cmd_food(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     entries = get_food_today(user["id"])
+    text = food_view(entries)
     if not entries:
-        await message.answer("🍽 Сьогодні ще нічого не записано.\nДодай: /addfood Гречка 250")
+        await message.answer(text + "\nДодай: /addfood Гречка 250")
         return
-    lines = ["🍽 Харчування сьогодні:\n"]
-    for e in entries:
-        lines.append(f"• {e['food_name']} — {int(e['kcal'])} ккал")
-    total = sum(e["kcal"] for e in entries if e.get("kcal"))
-    lines.append(f"\n📊 Всього: {int(total)} ккал")
-    await message.answer("\n".join(lines))
+    await message.answer(text, reply_markup=food_keyboard(entries))
 
 
 @dp.message(Command("addtask"))
@@ -690,16 +708,28 @@ MOOD_EMOJI = {1: "😞", 2: "😕", 3: "😐", 4: "🙂", 5: "😄"}
 @dp.message(Command("journal"))
 async def cmd_journal(message: types.Message, command: CommandObject):
     text = (command.args or "").strip()
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+
     if not text:
-        await message.answer("Формат: /journal текст [настрій 1-5]\nПриклад: /journal Гарний день 4")
+        entries = get_diary_entries(user["id"], limit=10)
+        if not entries:
+            await message.answer(
+                "📓 Щоденник порожній.\n\nДодати запис: /journal текст [настрій 1-5]\nПриклад: /journal Гарний день 4"
+            )
+            return
+        lines = ["📓 Щоденник (останні записи):\n"]
+        for e in entries:
+            mood_str = f"  {MOOD_EMOJI[e['mood']]}" if e.get("mood") else ""
+            lines.append(f"📅 {e['date']}{mood_str}\n{e['text']}\n")
+        await message.answer("\n".join(lines))
         return
+
     parts = text.rsplit(maxsplit=1)
     mood = None
     if len(parts) == 2 and parts[1].isdigit() and 1 <= int(parts[1]) <= 5:
         mood = int(parts[1])
         text = parts[0]
 
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
     add_diary_entry(user["id"], text, mood)
     add_xp(user["id"], "reflection", 2, "journal")
 
@@ -815,6 +845,55 @@ async def kb_tasks(message: types.Message):
 @dp.message(F.text == "🍽 Харчування")
 async def kb_food(message: types.Message):
     await cmd_food(message)
+
+
+@dp.callback_query(F.data.startswith("delritual:"))
+async def cb_delritual(callback: types.CallbackQuery):
+    ritual_id = callback.data.split(":", 1)[1]
+    user = ensure_user(callback.from_user.id, callback.from_user.full_name)
+    delete_ritual(ritual_id, user["id"])
+    rituals = get_rituals(user["id"])
+    if not rituals:
+        await callback.message.edit_text("🔥 Всі ритуали видалено.\nДодати: /addritual Назва")
+        await callback.answer("Видалено")
+        return
+    done, streaks = _ritual_state(user["id"], rituals)
+    await callback.message.edit_text(
+        rituals_view(rituals, done, streaks), reply_markup=rituals_keyboard(rituals, done)
+    )
+    await callback.answer("Ритуал видалено")
+
+
+@dp.callback_query(F.data.startswith("deltask:"))
+async def cb_deltask(callback: types.CallbackQuery):
+    task_id = callback.data.split(":", 1)[1]
+    user = ensure_user(callback.from_user.id, callback.from_user.full_name)
+    delete_task(task_id, user["id"])
+    tasks = get_tasks(user["id"])
+    await callback.message.edit_text(
+        tasks_view(tasks),
+        reply_markup=tasks_keyboard(tasks) if tasks else None,
+    )
+    await callback.answer("Завдання видалено")
+
+
+@dp.callback_query(F.data.startswith("delfood:"))
+async def cb_delfood(callback: types.CallbackQuery):
+    food_id = callback.data.split(":", 1)[1]
+    user = ensure_user(callback.from_user.id, callback.from_user.full_name)
+    delete_food(food_id, user["id"])
+    entries = get_food_today(user["id"])
+    if not entries:
+        await callback.message.edit_text("🍽 Список порожній.\nДодай: /addfood Гречка 250")
+        await callback.answer("Видалено")
+        return
+    await callback.message.edit_text(food_view(entries), reply_markup=food_keyboard(entries))
+    await callback.answer("Запис видалено")
+
+
+@dp.callback_query(F.data == "food:howto")
+async def cb_food_howto(callback: types.CallbackQuery):
+    await callback.answer("Напиши: /addfood Назва ккал\nПриклад: /addfood Гречка 250", show_alert=True)
 
 
 @dp.message()
