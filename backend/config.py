@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     supabase_service_role_key: str     # секретный ключ sb_secret_...
     supabase_anon_key: str = ""        # публичный, пока не используется
     webhook_base_url: str = ""         # публичный адрес сервиса на Render
+    webhook_secret: str = ""           # окремий секрет вебхука (не токен!)
     port: int = 8000
 
 

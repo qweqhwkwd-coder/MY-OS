@@ -125,12 +125,13 @@ def add_ritual(user_id: str, title: str, icon: str | None = None) -> dict:
     )
 
 
-def is_ritual_done_today(ritual_id: str) -> bool:
+def is_ritual_done_today(ritual_id: str, user_id: str) -> bool:
     today = date.today().isoformat()
     res = (
         supabase.table("ritual_logs")
         .select("is_done")
         .eq("ritual_id", ritual_id)
+        .eq("user_id", user_id)
         .eq("date", today)
         .execute()
     )
@@ -171,10 +172,10 @@ def get_ritual_streaks(user_id: str) -> dict:
 def toggle_ritual(ritual_id: str, user_id: str) -> bool:
     """Переключает отметку за сегодня. Возвращает новое состояние (True = выполнен)."""
     today = date.today().isoformat()
-    if is_ritual_done_today(ritual_id):
+    if is_ritual_done_today(ritual_id, user_id):
         supabase.table("ritual_logs").delete().eq("ritual_id", ritual_id).eq(
-            "date", today
-        ).execute()
+            "user_id", user_id
+        ).eq("date", today).execute()
         return False
     supabase.table("ritual_logs").upsert(
         {"ritual_id": ritual_id, "user_id": user_id, "date": today, "is_done": True},

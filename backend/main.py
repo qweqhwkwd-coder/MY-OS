@@ -4,20 +4,36 @@ FastAPI піднімає веб-сервер (для Render і вебхука Te
 aiogram обробляє повідомлення бота.
 
 Команди:
-  /start                 — реєстрація + привіт
-  /water                 — вода за день (+2 XP до Здоров'я при досягненні цілі)
-  /addritual <назва>     — створити ритуал
-  /rituals               — ритуали дня, відмітка ✅/⬜, стрік x/7 (+2 XP до Дисципліни)
+  /start                      — реєстрація + привіт
+  /today                      — зведення дня
+  /stats                      — RPG-стати
+  /water                      — вода (+2 XP Здоров'я при досягненні цілі)
+  /addritual <назва>          — додати ритуал
+  /rituals                    — список ритуалів, відмітка ✅/⬜
+  /addtask <назва>            — додати завдання
+  /tasks                      — список завдань
+  /addfood <назва> [гр] <ккал> — їжа: /addfood Рис 100г 180
+  /food                       — харчування за день
+  /journal [текст] [1-5]      — щоденник (без аргументів — архів)
+  /sleep <ЗЗ:ХХ> <ПП:ХХ>    — сон
+  /workout <активність> [хв]  — тренування
+  /spend <сума> [категорія]   — витрати
+  /finance                    — витрати за день
+  /weight [кг]                — вага
+  /balance                    — колесо балансу
+  /goals / /addgoal / /goalsdone — цілі
+  /idea [текст]               — ідеї
+  /meetings / /addmeeting     — зустрічі
+  /inbox                      — невідсортовані повідомлення
+  /digest                     — дайджест за 7 днів
 """
 
 import re
+import secrets
 from contextlib import asynccontextmanager
 
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command, CommandObject, CommandStart
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
-from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -30,64 +46,55 @@ from fastapi import FastAPI, Header, Request, Response
 from config import settings
 from db import (
     STATS,
+    BALANCE_FIELDS,
+    BALANCE_LABELS,
     add_diary_entry,
     add_food,
     add_goal,
     add_idea,
-    BALANCE_FIELDS,
-    BALANCE_LABELS,
     add_inbox,
     add_meeting,
-    add_transaction,
-    save_balance,
-    add_workout,
-    complete_goal,
-    delete_food,
-    delete_ritual,
-    delete_task,
-    detect_workout_type,
-    get_diary_entries,
-    get_diary_entries_by_date,
-    get_goals,
-    get_ideas,
-    get_last_weights,
-    clear_inbox_item,
-    get_inbox,
-    get_upcoming_meetings,
-    get_week_digest,
-    log_weight,
     add_ritual,
     add_task,
+    add_transaction,
     add_water,
+    add_workout,
     add_xp,
+    clear_inbox_item,
+    complete_goal,
     complete_task,
+    detect_workout_type,
     ensure_user,
+    get_diary_entries,
+    get_diary_entries_by_date,
     get_food_today,
-    get_rituals,
+    get_goals,
+    get_ideas,
+    get_inbox,
+    get_last_weights,
     get_ritual_streaks,
+    get_rituals,
     get_rituals_done_today,
     get_sleep_today,
-    get_transactions_today,
     get_tasks,
     get_tasks_done_today,
+    get_transactions_today,
+    get_upcoming_meetings,
     get_user_stats,
     get_water_today,
-    is_ritual_done_today,
+    get_week_digest,
     log_sleep,
+    log_weight,
     ritual_streak_7,
+    save_balance,
     toggle_ritual,
 )
 
-class Form(StatesGroup):
-    adding_food = State()
-    adding_task = State()
-    adding_ritual = State()
-
-
 bot = Bot(token=settings.bot_token)
-dp = Dispatcher(storage=MemoryStorage())
+dp = Dispatcher()
 
-WEBHOOK_SECRET = re.sub(r"[^A-Za-z0-9_-]", "", settings.bot_token)[:128]
+# Секрет вебхука — окреме значення, не похідне від токена
+WEBHOOK_SECRET = settings.webhook_secret or secrets.token_hex(32)
 WEBHOOK_PATH = "/webhook"
 
 
@@ -145,36 +152,9 @@ def rituals_keyboard(rituals: list[dict], done: set) -> InlineKeyboardMarkup:
         rows.append([
             InlineKeyboardButton(
                 text=f"{mark} {r['title']}", callback_data=f"ritual:{r['id']}"
-            ),
-            InlineKeyboardButton(text="🗑", callback_data=f"delritual:{r['id']}"),
+            )
         ])
     return InlineKeyboardMarkup(inline_keyboard=rows)
-
-
-def food_view(entries: list[dict]) -> str:
-    if not entries:
-        return "🍽 Сьогодні ще нічого не записано."
-    total = int(sum(e["kcal"] for e in entries if e.get("kcal")))
-    return f"🍽 Харчування сьогодні — {total} ккал ({len(entries)} записів):"
-
-
-def food_entry_label(e: dict) -> str:
-    grams_str = f" {int(e['grams'])}г" if e.get("grams") else ""
-    return f"🗑 {e['food_name']}{grams_str} — {int(e['kcal'])} ккал"
-
-
-def food_keyboard(entries: list[dict]) -> InlineKeyboardMarkup:
-    rows = []
-    for e in entries:
-        rows.append([InlineKeyboardButton(text=food_entry_label(e), callback_data=f"delfood:{e['id']}")])
-    rows.append([InlineKeyboardButton(text="➕ Додати їжу", callback_data="food:add")])
-    return InlineKeyboardMarkup(inline_keyboard=rows)
-
-
-def food_empty_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="➕ Додати їжу", callback_data="food:add")
-    ]])
 
 
 def _ritual_state(user_id: str, rituals: list[dict]) -> tuple[set, dict]:
@@ -201,13 +181,53 @@ def tasks_keyboard(tasks: list[dict]) -> InlineKeyboardMarkup:
         rows.append([
             InlineKeyboardButton(
                 text=f"✅ {t['title']}", callback_data=f"task:{t['id']}"
-            ),
-            InlineKeyboardButton(text="🗑", callback_data=f"deltask:{t['id']}"),
+            )
         ])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-# --- Обробники бота (порядок важливий: catch-all завжди останнім) -------------
+def _sum_kcal(entries: list[dict]) -> int:
+    """Сума ккал; None-значення пропускаємо, 0 — рахуємо."""
+    return int(sum(e["kcal"] for e in entries if e.get("kcal") is not None))
+
+
+# --- Парсер їжі ---------------------------------------------------------------
+
+def _parse_addfood(args_str: str) -> tuple[str, int | None, int] | None:
+    """Парсить 'Назва [Xг] ккал'. Повертає (food_name, grams, kcal) або None.
+
+    Підтримувані формати:
+      Гречка 250
+      Рис 100г 180
+      Рис 100 180       ← грами без суфікса якщо передостанній токен — число
+    """
+    parts = args_str.split()
+    if len(parts) < 2:
+        return None
+    if not parts[-1].lstrip("-").isdigit():
+        return None
+
+    kcal = int(parts[-1])
+    if kcal <= 0:
+        return None  # від'ємні та нульові ккал не приймаємо
+
+    rest = parts[:-1]
+
+    grams: int | None = None
+    if len(rest) >= 2:
+        g_token = rest[-1].rstrip("гgG")
+        if g_token.isdigit():
+            grams = int(g_token)
+            rest = rest[:-1]
+
+    food_name = " ".join(rest).strip()
+    if not food_name:
+        return None  # не дозволяємо порожню назву
+
+    return food_name, grams, kcal
+
+
+# --- Обробники бота (catch-all завжди останнім) --------------------------------
 
 @dp.message(CommandStart())
 async def on_start(message: types.Message):
@@ -315,7 +335,7 @@ async def cmd_today(message: types.Message):
     rituals_done = sum(1 for r in rituals if r["id"] in done_set)
     tasks_done = get_tasks_done_today(uid)
     food = get_food_today(uid)
-    kcal = int(sum(e["kcal"] for e in food if e.get("kcal")))
+    kcal = _sum_kcal(food)
     stats = get_user_stats(uid)
 
     lines = [
@@ -341,27 +361,6 @@ async def cmd_stats(message: types.Message):
     await message.answer("\n".join(lines))
 
 
-def _parse_addfood(args_str: str) -> tuple[str, int | None, int] | None:
-    """Парсить 'Назва [Xг] ккал'. Повертає (food_name, grams, kcal) або None."""
-    parts = args_str.split()
-    if len(parts) < 2:
-        return None
-    # Останній токен — ккал (число)
-    if not parts[-1].lstrip("-").isdigit():
-        return None
-    kcal = int(parts[-1])
-    rest = parts[:-1]
-    # Передостанній токен — грами (число або число+'г')?
-    grams = None
-    if len(rest) >= 2:
-        g_token = rest[-1].rstrip("гgG")
-        if g_token.isdigit():
-            grams = int(g_token)
-            rest = rest[:-1]
-    food_name = " ".join(rest)
-    return food_name, grams, kcal
-
-
 @dp.message(Command("addfood"))
 async def cmd_addfood(message: types.Message, command: CommandObject):
     parsed = _parse_addfood((command.args or "").strip())
@@ -377,7 +376,7 @@ async def cmd_addfood(message: types.Message, command: CommandObject):
     add_xp(user["id"], "nutrition", 2, "food")
 
     entries = get_food_today(user["id"])
-    total_kcal = sum(e["kcal"] for e in entries if e.get("kcal"))
+    total_kcal = _sum_kcal(entries)
     grams_str = f" {grams}г" if grams else ""
     await message.answer(
         f"🍽 Записано: {food_name}{grams_str} — {kcal} ккал  +2 XP до Харчування\n\n"
@@ -389,9 +388,15 @@ async def cmd_addfood(message: types.Message, command: CommandObject):
 async def cmd_food(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     entries = get_food_today(user["id"])
-    text = food_view(entries)
-    kb = food_keyboard(entries) if entries else food_empty_keyboard()
-    await message.answer(text, reply_markup=kb)
+    if not entries:
+        await message.answer("🍽 Сьогодні ще нічого не записано.\nДодай: /addfood Гречка 250")
+        return
+    lines = ["🍽 Харчування сьогодні:\n"]
+    for e in entries:
+        grams_str = f" {int(e['grams'])}г" if e.get("grams") is not None else ""
+        lines.append(f"• {e['food_name']}{grams_str} — {int(e['kcal'])} ккал")
+    lines.append(f"\n📊 Всього: {_sum_kcal(entries)} ккал")
+    await message.answer("\n".join(lines))
 
 
 @dp.message(Command("addtask"))
@@ -754,7 +759,10 @@ async def cmd_journal(message: types.Message, command: CommandObject):
         entries = get_diary_entries(user["id"], limit=10)
         if not entries:
             await message.answer(
-                "📓 Щоденник порожній.\n\nДодати запис: /journal текст [настрій 1-5]\nПриклад: /journal Гарний день 4\n\nАрхів за датою: /journal 2026-06-15"
+                "📓 Щоденник порожній.\n\n"
+                "Додати запис: /journal текст [настрій 1-5]\n"
+                "Приклад: /journal Гарний день 4\n\n"
+                "Архів за датою: /journal 2026-06-15"
             )
             return
         lines = ["📓 Щоденник (останні записи):\n"]
@@ -777,6 +785,7 @@ async def cmd_journal(message: types.Message, command: CommandObject):
         await message.answer("\n".join(lines))
         return
 
+    # Новий запис: /journal текст [1-5]
     parts = text.rsplit(maxsplit=1)
     mood = None
     if len(parts) == 2 and parts[1].isdigit() and 1 <= int(parts[1]) <= 5:
@@ -870,6 +879,8 @@ async def cmd_sleep(message: types.Message, command: CommandObject):
     )
 
 
+# --- Reply keyboard shortcuts -------------------------------------------------
+
 @dp.message(F.text == "📅 Сьогодні")
 async def kb_today(message: types.Message):
     await cmd_today(message)
@@ -900,97 +911,8 @@ async def kb_food(message: types.Message):
     await cmd_food(message)
 
 
-@dp.callback_query(F.data.startswith("delritual:"))
-async def cb_delritual(callback: types.CallbackQuery):
-    ritual_id = callback.data.split(":", 1)[1]
-    user = ensure_user(callback.from_user.id, callback.from_user.full_name)
-    delete_ritual(ritual_id, user["id"])
-    rituals = get_rituals(user["id"])
-    if not rituals:
-        await callback.message.edit_text("🔥 Всі ритуали видалено.\nДодати: /addritual Назва")
-        await callback.answer("Видалено")
-        return
-    done, streaks = _ritual_state(user["id"], rituals)
-    await callback.message.edit_text(
-        rituals_view(rituals, done, streaks), reply_markup=rituals_keyboard(rituals, done)
-    )
-    await callback.answer("Ритуал видалено")
-
-
-@dp.callback_query(F.data.startswith("deltask:"))
-async def cb_deltask(callback: types.CallbackQuery):
-    task_id = callback.data.split(":", 1)[1]
-    user = ensure_user(callback.from_user.id, callback.from_user.full_name)
-    delete_task(task_id, user["id"])
-    tasks = get_tasks(user["id"])
-    await callback.message.edit_text(
-        tasks_view(tasks),
-        reply_markup=tasks_keyboard(tasks) if tasks else None,
-    )
-    await callback.answer("Завдання видалено")
-
-
-@dp.callback_query(F.data.startswith("delfood:"))
-async def cb_delfood(callback: types.CallbackQuery):
-    food_id = callback.data.split(":", 1)[1]
-    user = ensure_user(callback.from_user.id, callback.from_user.full_name)
-    delete_food(food_id, user["id"])
-    entries = get_food_today(user["id"])
-    if not entries:
-        await callback.message.edit_text("🍽 Сьогодні ще нічого не записано.", reply_markup=food_empty_keyboard())
-        await callback.answer("Видалено")
-        return
-    await callback.message.edit_text(food_view(entries), reply_markup=food_keyboard(entries))
-    await callback.answer("Запис видалено")
-
-
-CANCEL_KB = ReplyKeyboardMarkup(
-    keyboard=[[KeyboardButton(text="❌ Скасувати")]],
-    resize_keyboard=True,
-)
-
-
-@dp.callback_query(F.data == "food:add")
-async def cb_food_add(callback: types.CallbackQuery, state: FSMContext):
-    await state.set_state(Form.adding_food)
-    await callback.message.answer(
-        "🍽 Напиши їжу у форматі:\nНазва [грами] ккал\n\nПриклади:\nГречка 250\nРис 100г 180",
-        reply_markup=CANCEL_KB,
-    )
-    await callback.answer()
-
-
-@dp.message(Form.adding_food)
-async def fsm_food_input(message: types.Message, state: FSMContext):
-    if message.text == "❌ Скасувати":
-        await state.clear()
-        await message.answer("Скасовано.", reply_markup=MAIN_KEYBOARD)
-        return
-
-    parsed = _parse_addfood((message.text or "").strip())
-    if not parsed:
-        await message.answer(
-            "Не розумію формат. Спробуй:\nГречка 250\nРис 100г 180\n\nАбо натисни ❌ Скасувати"
-        )
-        return
-
-    food_name, grams, kcal = parsed
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
-    add_food(user["id"], food_name, kcal, grams)
-    add_xp(user["id"], "nutrition", 2, "food")
-    await state.clear()
-
-    entries = get_food_today(user["id"])
-    total_kcal = int(sum(e["kcal"] for e in entries if e.get("kcal")))
-    grams_str = f" {grams}г" if grams else ""
-    await message.answer(
-        f"✅ {food_name}{grams_str} — {kcal} ккал  +2 XP\n\n"
-        f"Всього сьогодні: {total_kcal} ккал",
-        reply_markup=MAIN_KEYBOARD,
-    )
-
-
-@dp.message(~F.text.in_({"❌ Скасувати"}))
+# Catch-all — ЗАВЖДИ ОСТАННІМ
+@dp.message()
 async def on_any(message: types.Message):
     if not message.from_user:
         return
@@ -1006,7 +928,7 @@ async def on_any(message: types.Message):
         await message.answer("Використовуй кнопки внизу.", reply_markup=MAIN_KEYBOARD)
 
 
-# --- Веб-сервер --------------------------------------------------------------
+# --- Веб-сервер ---------------------------------------------------------------
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
