@@ -40,6 +40,7 @@ from aiogram.types import (
     KeyboardButton,
     ReplyKeyboardMarkup,
     Update,
+    WebAppInfo,
 )
 from fastapi import FastAPI, Header, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -111,8 +112,11 @@ WEBHOOK_PATH = "/webhook"
 _balance_sessions: dict[int, dict] = {}
 
 
+MINIAPP_URL = "https://qweqhwkwd-coder.github.io/MY-OS/"
+
 MAIN_KEYBOARD = ReplyKeyboardMarkup(
     keyboard=[
+        [KeyboardButton(text="🚀 Відкрити MY-OS", web_app=WebAppInfo(url=MINIAPP_URL))],
         [KeyboardButton(text="📅 Сьогодні"), KeyboardButton(text="⚔️ Стати")],
         [KeyboardButton(text="💧 Вода"), KeyboardButton(text="🔥 Ритуали")],
         [KeyboardButton(text="✅ Завдання"), KeyboardButton(text="🍽 Харчування")],
