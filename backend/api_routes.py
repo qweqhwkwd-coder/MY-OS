@@ -3,6 +3,7 @@
 import hashlib
 import hmac
 import json
+import time
 from urllib.parse import parse_qsl, unquote
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -54,6 +55,10 @@ def verify_init_data(init_data: str) -> dict:
     if not hmac.compare_digest(computed_hash, received_hash):
         raise HTTPException(status_code=401, detail="Invalid init data signature")
 
+    auth_date = parsed.get("auth_date", "0")
+    if not auth_date.isdigit() or (time.time() - int(auth_date)) > 86400:
+        raise HTTPException(status_code=401, detail="Init data expired")
+
     user_json = parsed.get("user", "{}")
     try:
         tg_user = json.loads(user_json)
@@ -104,7 +109,7 @@ def api_stats(user: dict = Depends(get_current_user)):
 
 @router.get("/water")
 def api_water(user: dict = Depends(get_current_user)):
-    return {"total": get_water_today(user["id"]), "goal": user["water_goal"]}
+    return {"total": get_water_today(user["id"]), "goal": user.get("water_goal") or 2000}
 
 
 class WaterIn(BaseModel):
@@ -118,7 +123,7 @@ def api_add_water(body: WaterIn, user: dict = Depends(get_current_user)):
     uid = user["id"]
     before = get_water_today(uid)
     total = add_water(uid, body.amount)
-    if before < user["water_goal"] <= total:
+    if before < (user.get("water_goal") or 2000) <= total:
         add_xp(uid, "health", 2, "water")
     return {"total": total}
 

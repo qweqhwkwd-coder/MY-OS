@@ -6,12 +6,12 @@ const AMOUNTS = [250, 500, 1000]
 
 export function Water({ initData }: { initData: string }) {
   const [total, setTotal] = useState(0)
-  const goal = 2000
+  const [goal, setGoal] = useState(2000)
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
 
   useEffect(() => {
-    api.water(initData).then(d => { setTotal(d.total); setLoading(false) })
+    api.water(initData).then(d => { setTotal(d.total); setGoal(d.goal ?? 2000); setLoading(false) })
   }, [initData])
 
   async function add(amount: number) {

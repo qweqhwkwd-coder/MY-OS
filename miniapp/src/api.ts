@@ -16,7 +16,7 @@ async function req<T>(path: string, initData: string, options?: RequestInit): Pr
 export const api = {
   today: (initData: string) => req<TodayData>('/api/today', initData),
   stats: (initData: string) => req<StatsData>('/api/stats', initData),
-  water: (initData: string) => req<{ total: number }>('/api/water', initData),
+  water: (initData: string) => req<{ total: number; goal: number }>('/api/water', initData),
   addWater: (initData: string, amount: number) =>
     req<{ total: number }>('/api/water', initData, {
       method: 'POST',

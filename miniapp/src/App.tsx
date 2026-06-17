@@ -17,24 +17,28 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'food', label: 'Їжа', icon: '🍽' },
 ]
 
-// Беремо initData від Telegram WebApp або порожній рядок у браузері
-function getInitData(): string {
-  if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initData) {
-    return window.Telegram.WebApp.initData
-  }
-  return ''
-}
-
 export default function App() {
   const [tab, setTab] = useState<Tab>('today')
-  const [initData] = useState(getInitData)
+  const [initData, setInitData] = useState('')
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    if (window.Telegram?.WebApp) {
-      window.Telegram.WebApp.ready()
-      window.Telegram.WebApp.expand()
+    const tg = window.Telegram?.WebApp
+    if (tg) {
+      tg.ready()
+      tg.expand()
+      // initData доступний синхронно після ready()
+      setInitData(tg.initData || '')
     }
+    setReady(true)
   }, [])
+
+  if (!ready) return null
+  if (!initData) return (
+    <div className="flex items-center justify-center min-h-screen text-white/50 text-center p-8">
+      Відкрий через Telegram:<br />t.me/mmyyooss_bot/myos
+    </div>
+  )
 
   const page = (() => {
     switch (tab) {
