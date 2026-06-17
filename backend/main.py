@@ -15,6 +15,9 @@ from contextlib import asynccontextmanager
 
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command, CommandObject, CommandStart
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -75,8 +78,14 @@ from db import (
     toggle_ritual,
 )
 
+class Form(StatesGroup):
+    adding_food = State()
+    adding_task = State()
+    adding_ritual = State()
+
+
 bot = Bot(token=settings.bot_token)
-dp = Dispatcher()
+dp = Dispatcher(storage=MemoryStorage())
 
 WEBHOOK_SECRET = re.sub(r"[^A-Za-z0-9_-]", "", settings.bot_token)[:128]
 WEBHOOK_PATH = "/webhook"
@@ -158,8 +167,14 @@ def food_keyboard(entries: list[dict]) -> InlineKeyboardMarkup:
     rows = []
     for e in entries:
         rows.append([InlineKeyboardButton(text=food_entry_label(e), callback_data=f"delfood:{e['id']}")])
-    rows.append([InlineKeyboardButton(text="➕ Як додати їжу?", callback_data="food:howto")])
+    rows.append([InlineKeyboardButton(text="➕ Додати їжу", callback_data="food:add")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def food_empty_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="➕ Додати їжу", callback_data="food:add")
+    ]])
 
 
 def _ritual_state(user_id: str, rituals: list[dict]) -> tuple[set, dict]:
@@ -375,10 +390,8 @@ async def cmd_food(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     entries = get_food_today(user["id"])
     text = food_view(entries)
-    if not entries:
-        await message.answer(text + "\nДодай: /addfood Гречка 250")
-        return
-    await message.answer(text, reply_markup=food_keyboard(entries))
+    kb = food_keyboard(entries) if entries else food_empty_keyboard()
+    await message.answer(text, reply_markup=kb)
 
 
 @dp.message(Command("addtask"))
@@ -924,19 +937,60 @@ async def cb_delfood(callback: types.CallbackQuery):
     delete_food(food_id, user["id"])
     entries = get_food_today(user["id"])
     if not entries:
-        await callback.message.edit_text("🍽 Список порожній.\nДодай: /addfood Гречка 250")
+        await callback.message.edit_text("🍽 Сьогодні ще нічого не записано.", reply_markup=food_empty_keyboard())
         await callback.answer("Видалено")
         return
     await callback.message.edit_text(food_view(entries), reply_markup=food_keyboard(entries))
     await callback.answer("Запис видалено")
 
 
-@dp.callback_query(F.data == "food:howto")
-async def cb_food_howto(callback: types.CallbackQuery):
-    await callback.answer("Напиши: /addfood Назва ккал\nПриклад: /addfood Гречка 250", show_alert=True)
+CANCEL_KB = ReplyKeyboardMarkup(
+    keyboard=[[KeyboardButton(text="❌ Скасувати")]],
+    resize_keyboard=True,
+)
 
 
-@dp.message()
+@dp.callback_query(F.data == "food:add")
+async def cb_food_add(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(Form.adding_food)
+    await callback.message.answer(
+        "🍽 Напиши їжу у форматі:\nНазва [грами] ккал\n\nПриклади:\nГречка 250\nРис 100г 180",
+        reply_markup=CANCEL_KB,
+    )
+    await callback.answer()
+
+
+@dp.message(Form.adding_food)
+async def fsm_food_input(message: types.Message, state: FSMContext):
+    if message.text == "❌ Скасувати":
+        await state.clear()
+        await message.answer("Скасовано.", reply_markup=MAIN_KEYBOARD)
+        return
+
+    parsed = _parse_addfood((message.text or "").strip())
+    if not parsed:
+        await message.answer(
+            "Не розумію формат. Спробуй:\nГречка 250\nРис 100г 180\n\nАбо натисни ❌ Скасувати"
+        )
+        return
+
+    food_name, grams, kcal = parsed
+    user = ensure_user(message.from_user.id, message.from_user.full_name)
+    add_food(user["id"], food_name, kcal, grams)
+    add_xp(user["id"], "nutrition", 2, "food")
+    await state.clear()
+
+    entries = get_food_today(user["id"])
+    total_kcal = int(sum(e["kcal"] for e in entries if e.get("kcal")))
+    grams_str = f" {grams}г" if grams else ""
+    await message.answer(
+        f"✅ {food_name}{grams_str} — {kcal} ккал  +2 XP\n\n"
+        f"Всього сьогодні: {total_kcal} ккал",
+        reply_markup=MAIN_KEYBOARD,
+    )
+
+
+@dp.message(~F.text.in_({"❌ Скасувати"}))
 async def on_any(message: types.Message):
     if not message.from_user:
         return
