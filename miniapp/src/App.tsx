@@ -23,21 +23,28 @@ export default function App() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    // Telegram Desktop може інжектити WebApp з затримкою
-    const init = () => {
-      const tg = window.Telegram?.WebApp
-      if (tg) {
-        tg.ready()
-        tg.expand()
-        setInitData(tg.initData || '')
-      }
+    const tg = window.Telegram?.WebApp
+    if (tg) {
+      tg.ready()
+      tg.expand()
+      // initData доступний одразу після ready()
+      const data = tg.initData
+      setInitData(data)
       setReady(true)
-    }
-    // Спробуємо одразу, якщо не спрацює — через 300мс
-    if (window.Telegram?.WebApp?.initData) {
-      init()
     } else {
-      setTimeout(init, 300)
+      // Запасний варіант — чекаємо завантаження скрипта Telegram
+      const check = setInterval(() => {
+        const tg2 = window.Telegram?.WebApp
+        if (tg2) {
+          clearInterval(check)
+          tg2.ready()
+          tg2.expand()
+          setInitData(tg2.initData)
+          setReady(true)
+        }
+      }, 100)
+      // Через 3 секунди здаємось
+      setTimeout(() => { clearInterval(check); setReady(true) }, 3000)
     }
   }, [])
 
