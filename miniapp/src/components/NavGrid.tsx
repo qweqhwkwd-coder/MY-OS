@@ -39,13 +39,14 @@ export function NavGrid({ activeView, onNavigate }: Props) {
             disabled={isLocked}
             className="relative flex flex-col items-start justify-between p-3 text-left"
             style={{
+              borderTop: 'none',
+              borderLeft: 'none',
               borderRight: '1px solid var(--subtle)',
               borderBottom: '1px solid var(--subtle)',
               background: isActive ? '#1a1a1a' : isLocked ? '#f2f0ec' : 'transparent',
               color: isActive ? '#f8f7f4' : isLocked ? '#bbb' : 'var(--ink)',
               cursor: isLocked ? 'default' : 'pointer',
               minHeight: '72px',
-              border: 'none',
               outline: 'none',
             }}
           >

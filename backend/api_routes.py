@@ -105,7 +105,7 @@ def api_today(user: dict = Depends(get_current_user)):
     return {
         "level": stats["level"],
         "water": water,
-        "water_goal": user["water_goal"],
+        "water_goal": user.get("water_goal") or DEFAULT_WATER_GOAL,
         "rituals_done": sum(1 for r in rituals if r["id"] in done_set),
         "rituals_total": len(rituals),
         "tasks_done": tasks_done,

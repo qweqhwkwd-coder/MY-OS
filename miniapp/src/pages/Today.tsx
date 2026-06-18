@@ -16,6 +16,7 @@ export function Today({ initData }: { initData: string }) {
   const [err, setErr] = useState('')
   const [modal, setModal] = useState<Modal>(null)
   const [saving, setSaving] = useState(false)
+  const [saveErr, setSaveErr] = useState('')
   const [taskTitle, setTaskTitle] = useState('')
   const [noteText, setNoteText] = useState('')
   const [foodName, setFoodName] = useState('')
@@ -29,6 +30,7 @@ export function Today({ initData }: { initData: string }) {
 
   function closeModal() {
     setModal(null)
+    setSaveErr('')
     setTaskTitle('')
     setNoteText('')
     setFoodName('')
@@ -37,32 +39,36 @@ export function Today({ initData }: { initData: string }) {
 
   async function handleAddWater(amount: number) {
     setSaving(true)
+    setSaveErr('')
     try { await api.addWater(initData, amount); reload(); closeModal() }
-    catch { /* silent */ }
+    catch (e: unknown) { setSaveErr(e instanceof Error ? e.message : 'Помилка') }
     finally { setSaving(false) }
   }
 
   async function handleAddTask() {
     if (!taskTitle.trim()) return
     setSaving(true)
+    setSaveErr('')
     try { await api.addTask(initData, taskTitle.trim()); reload(); closeModal() }
-    catch { }
+    catch (e: unknown) { setSaveErr(e instanceof Error ? e.message : 'Помилка') }
     finally { setSaving(false) }
   }
 
   async function handleAddNote() {
     if (!noteText.trim()) return
     setSaving(true)
+    setSaveErr('')
     try { await api.addNote(initData, noteText.trim()); closeModal() }
-    catch { }
+    catch (e: unknown) { setSaveErr(e instanceof Error ? e.message : 'Помилка') }
     finally { setSaving(false) }
   }
 
   async function handleAddFood() {
     if (!foodName.trim() || !foodKcal) return
     setSaving(true)
+    setSaveErr('')
     try { await api.addFoodEntry(initData, foodName.trim(), parseInt(foodKcal)); reload(); closeModal() }
-    catch { }
+    catch (e: unknown) { setSaveErr(e instanceof Error ? e.message : 'Помилка') }
     finally { setSaving(false) }
   }
 
@@ -139,6 +145,10 @@ export function Today({ initData }: { initData: string }) {
             style={{ background: 'var(--bg)', borderTop: '1px solid var(--subtle)' }}
             onClick={e => e.stopPropagation()}
           >
+            {saveErr && (
+              <div className="font-mono text-xs" style={{ color: '#dc2626' }}>{saveErr}</div>
+            )}
+
             {modal === 'water' && (
               <>
                 <div className="font-condensed font-semibold text-base">💧 Додати воду</div>

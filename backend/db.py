@@ -88,12 +88,12 @@ def get_streak(user_id: str) -> int:
 
 def get_xp_today(user_id: str) -> int:
     """Total XP earned today across all sources."""
-    today = date.today().isoformat()
+    start = datetime.combine(date.today(), datetime.min.time(), tzinfo=timezone.utc).isoformat()
     res = (
         supabase.table("xp_events")
         .select("xp_amount")
         .eq("user_id", user_id)
-        .gte("created_at", today)
+        .gte("created_at", start)
         .execute()
     )
     return sum(e["xp_amount"] for e in res.data)
@@ -784,13 +784,13 @@ def get_user_stats(user_id: str) -> dict:
 
 
 def get_tasks_done_today(user_id: str) -> int:
-    today = date.today().isoformat()
+    start = datetime.combine(date.today(), datetime.min.time(), tzinfo=timezone.utc).isoformat()
     res = (
         supabase.table("tasks")
         .select("id")
         .eq("user_id", user_id)
         .eq("is_completed", True)
-        .gte("completed_at", today)
+        .gte("completed_at", start)
         .execute()
     )
     return len(res.data)

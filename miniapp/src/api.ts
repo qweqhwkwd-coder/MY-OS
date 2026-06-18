@@ -11,6 +11,10 @@ async function req<T>(path: string, initData: string, options?: RequestInit): Pr
   })
   if (!res.ok) {
     const body = await res.text().catch(() => '')
+    // Якщо сервер повернув HTML — VITE_API_URL вказує не туди (GitHub Pages замість Render)
+    if (body.trimStart().startsWith('<')) {
+      throw new Error(`Невірна адреса API (${res.status}). Перевір VITE_API_URL → має бути Render URL.`)
+    }
     throw new Error(`${res.status}: ${body || path}`)
   }
   return res.json()
