@@ -7,3 +7,10 @@ venv/
 miniapp/node_modules/
 miniapp/dist/
 miniapp/.env
+
+# Референсные фото и скриншоты (не коммитить)
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.gif
