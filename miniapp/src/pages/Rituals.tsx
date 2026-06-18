@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import type { Ritual } from '../api'
 
-export function Rituals({ initData }: { initData: string }) {
+export function Rituals({ initData, onDataChange }: { initData: string; onDataChange?: () => void }) {
   const [rituals, setRituals] = useState<Ritual[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
@@ -21,6 +21,7 @@ export function Rituals({ initData }: { initData: string }) {
     try {
       const res = await api.toggleRitual(initData, id)
       setRituals(prev => prev.map(r => r.id === id ? { ...r, done: res.done } : r))
+      onDataChange?.()
     } catch (e: unknown) {
       setToggleErr(e instanceof Error ? e.message : 'Помилка')
     } finally {

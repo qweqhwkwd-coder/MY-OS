@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import type { Task } from '../api'
 
-export function Tasks({ initData }: { initData: string }) {
+export function Tasks({ initData, onDataChange }: { initData: string; onDataChange?: () => void }) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
@@ -21,6 +21,7 @@ export function Tasks({ initData }: { initData: string }) {
     try {
       await api.completeTask(initData, id)
       setTasks(prev => prev.filter(t => t.id !== id))
+      onDataChange?.()
     } catch (e: unknown) {
       setCompleteErr(e instanceof Error ? e.message : 'Помилка')
     } finally {

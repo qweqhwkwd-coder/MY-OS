@@ -28,9 +28,10 @@ interface Props {
 export function NavGrid({ activeView, onNavigate }: Props) {
   return (
     <div className="grid grid-cols-3" style={{ borderBottom: '1px solid var(--subtle)' }}>
-      {MODULES.map(mod => {
+      {MODULES.map((mod, idx) => {
         const isActive = mod.id === activeView
         const isLocked = mod.locked
+        const isLastCol = (idx + 1) % 3 === 0
 
         return (
           <button
@@ -41,7 +42,7 @@ export function NavGrid({ activeView, onNavigate }: Props) {
             style={{
               borderTop: 'none',
               borderLeft: 'none',
-              borderRight: '1px solid var(--subtle)',
+              borderRight: isLastCol ? 'none' : '1px solid var(--subtle)',
               borderBottom: '1px solid var(--subtle)',
               background: isActive ? '#1a1a1a' : isLocked ? '#f2f0ec' : 'transparent',
               color: isActive ? '#f8f7f4' : isLocked ? '#bbb' : 'var(--ink)',

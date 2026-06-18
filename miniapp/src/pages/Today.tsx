@@ -11,7 +11,7 @@ const QUICK_BUTTONS: { id: Modal; icon: string; label: string }[] = [
   { id: 'food',  icon: '🍽', label: 'Їжу' },
 ]
 
-export function Today({ initData }: { initData: string }) {
+export function Today({ initData, onDataChange }: { initData: string; onDataChange?: () => void }) {
   const [data, setData] = useState<TodayData | null>(null)
   const [err, setErr] = useState('')
   const [modal, setModal] = useState<Modal>(null)
@@ -40,7 +40,7 @@ export function Today({ initData }: { initData: string }) {
   async function handleAddWater(amount: number) {
     setSaving(true)
     setSaveErr('')
-    try { await api.addWater(initData, amount); reload(); closeModal() }
+    try { await api.addWater(initData, amount); reload(); onDataChange?.(); closeModal() }
     catch (e: unknown) { setSaveErr(e instanceof Error ? e.message : 'Помилка') }
     finally { setSaving(false) }
   }
@@ -49,7 +49,7 @@ export function Today({ initData }: { initData: string }) {
     if (!taskTitle.trim()) return
     setSaving(true)
     setSaveErr('')
-    try { await api.addTask(initData, taskTitle.trim()); reload(); closeModal() }
+    try { await api.addTask(initData, taskTitle.trim()); reload(); onDataChange?.(); closeModal() }
     catch (e: unknown) { setSaveErr(e instanceof Error ? e.message : 'Помилка') }
     finally { setSaving(false) }
   }
@@ -58,7 +58,7 @@ export function Today({ initData }: { initData: string }) {
     if (!noteText.trim()) return
     setSaving(true)
     setSaveErr('')
-    try { await api.addNote(initData, noteText.trim()); closeModal() }
+    try { await api.addNote(initData, noteText.trim()); onDataChange?.(); closeModal() }
     catch (e: unknown) { setSaveErr(e instanceof Error ? e.message : 'Помилка') }
     finally { setSaving(false) }
   }
@@ -67,7 +67,7 @@ export function Today({ initData }: { initData: string }) {
     if (!foodName.trim() || !foodKcal) return
     setSaving(true)
     setSaveErr('')
-    try { await api.addFoodEntry(initData, foodName.trim(), parseInt(foodKcal)); reload(); closeModal() }
+    try { await api.addFoodEntry(initData, foodName.trim(), parseInt(foodKcal)); reload(); onDataChange?.(); closeModal() }
     catch (e: unknown) { setSaveErr(e instanceof Error ? e.message : 'Помилка') }
     finally { setSaving(false) }
   }
@@ -82,12 +82,12 @@ export function Today({ initData }: { initData: string }) {
     <div style={{ color: 'var(--ink)' }}>
       {/* Quick-add */}
       <div className="grid grid-cols-4" style={{ borderBottom: '1px solid var(--subtle)' }}>
-        {QUICK_BUTTONS.map(btn => (
+        {QUICK_BUTTONS.map((btn, idx) => (
           <button
             key={btn.id}
             onClick={() => setModal(btn.id)}
             className="flex flex-col items-center gap-1 py-4"
-            style={{ background: 'transparent', border: 'none', borderRight: '1px solid var(--subtle)', cursor: 'pointer' }}
+            style={{ background: 'transparent', border: 'none', borderRight: idx < QUICK_BUTTONS.length - 1 ? '1px solid var(--subtle)' : 'none', cursor: 'pointer' }}
           >
             <span style={{ fontSize: '20px', lineHeight: 1 }}>{btn.icon}</span>
             <span className="font-condensed text-xs" style={{ color: 'var(--muted)' }}>{btn.label}</span>

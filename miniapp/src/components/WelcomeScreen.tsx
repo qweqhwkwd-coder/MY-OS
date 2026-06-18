@@ -12,7 +12,7 @@ const QUOTES = [
 ]
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10)
+  return new Date().toLocaleDateString('sv')
 }
 
 export function shouldShowWelcome(): boolean {

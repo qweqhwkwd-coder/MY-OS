@@ -44,10 +44,12 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (initData) {
-      api.profile(initData).then(setProfile).catch(() => {})
-    }
+    if (initData) refreshProfile()
   }, [initData])
+
+  function refreshProfile() {
+    if (initData) api.profile(initData).then(setProfile).catch(() => {})
+  }
 
   if (!ready) return (
     <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--bg)' }}>
@@ -75,10 +77,10 @@ export default function App() {
 
   const page = (() => {
     switch (view) {
-      case 'today':   return <Today initData={initData} />
-      case 'water':   return <Water initData={initData} />
-      case 'rituals': return <Rituals initData={initData} />
-      case 'tasks':   return <Tasks initData={initData} />
+      case 'today':   return <Today initData={initData} onDataChange={refreshProfile} />
+      case 'water':   return <Water initData={initData} onDataChange={refreshProfile} />
+      case 'rituals': return <Rituals initData={initData} onDataChange={refreshProfile} />
+      case 'tasks':   return <Tasks initData={initData} onDataChange={refreshProfile} />
       case 'food':    return <Food initData={initData} />
     }
   })()
@@ -90,6 +92,15 @@ export default function App() {
       <div className="flex-1 overflow-y-auto">{page}</div>
       {profileOpen && profile && (
         <ProfileModal profile={profile} onClose={() => setProfileOpen(false)} />
+      )}
+      {profileOpen && !profile && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(26,26,26,0.8)' }}
+          onClick={() => setProfileOpen(false)}
+        >
+          <div className="font-mono text-sm" style={{ color: '#f8f7f4' }}>Профіль недоступний</div>
+        </div>
       )}
     </div>
   )

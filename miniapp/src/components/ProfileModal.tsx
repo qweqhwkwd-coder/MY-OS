@@ -1,5 +1,6 @@
 import type { ProfileData } from '../api'
 import { ProgressBar } from './ProgressBar'
+import { hpColor } from '../utils'
 
 const STATS_META = [
   { key: 'strength',   label: 'Сила' },
@@ -11,12 +12,6 @@ const STATS_META = [
   { key: 'finance',    label: 'Фінанси' },
   { key: 'intellect',  label: 'Інтелект' },
 ]
-
-function hpColor(hp: number): string {
-  if (hp > 60) return 'var(--hp-hi)'
-  if (hp >= 30) return 'var(--hp-mid)'
-  return 'var(--hp-lo)'
-}
 
 interface Props {
   profile: ProfileData

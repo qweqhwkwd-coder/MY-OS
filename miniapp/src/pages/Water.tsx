@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 
-export function Water({ initData }: { initData: string }) {
+export function Water({ initData, onDataChange }: { initData: string; onDataChange?: () => void }) {
   const [total, setTotal] = useState(0)
   const [goal, setGoal] = useState(2000)
   const [loading, setLoading] = useState(true)
@@ -19,6 +19,7 @@ export function Water({ initData }: { initData: string }) {
     try {
       const d = await api.addWater(initData, amount)
       setTotal(d.total)
+      onDataChange?.()
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : 'Помилка')
     } finally {
@@ -51,13 +52,13 @@ export function Water({ initData }: { initData: string }) {
       </div>
 
       <div className="grid grid-cols-3" style={{ borderBottom: '1px solid var(--subtle)' }}>
-        {[250, 500, 1000].map(ml => (
+        {[250, 500, 1000].map((ml, idx, arr) => (
           <button
             key={ml}
             onClick={() => addWater(ml)}
             disabled={saving}
             className="flex flex-col items-center py-5"
-            style={{ background: 'transparent', border: 'none', borderRight: '1px solid var(--subtle)', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
+            style={{ background: 'transparent', border: 'none', borderRight: idx < arr.length - 1 ? '1px solid var(--subtle)' : 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
           >
             <span style={{ fontSize: '24px', lineHeight: 1 }}>💧</span>
             <span className="font-mono text-xs mt-1" style={{ color: 'var(--muted)' }}>+{ml} мл</span>
