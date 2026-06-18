@@ -7,6 +7,7 @@ export function Rituals({ initData }: { initData: string }) {
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [toggleErr, setToggleErr] = useState('')
+  const [toggling, setToggling] = useState<string | null>(null)
 
   useEffect(() => {
     api.rituals(initData)
@@ -15,48 +16,75 @@ export function Rituals({ initData }: { initData: string }) {
   }, [initData])
 
   async function toggle(id: string) {
+    setToggling(id)
     setToggleErr('')
     try {
       const res = await api.toggleRitual(initData, id)
       setRituals(prev => prev.map(r => r.id === id ? { ...r, done: res.done } : r))
-    } catch (e) {
-      setToggleErr((e as Error).message || 'Помилка. Спробуй ще раз.')
+    } catch (e: unknown) {
+      setToggleErr(e instanceof Error ? e.message : 'Помилка')
+    } finally {
+      setToggling(null)
     }
   }
 
-  if (loading) return <div className="p-4 text-white/50">Завантаження...</div>
-  if (err) return <div className="p-4 text-red-400 text-sm">{err}</div>
+  if (loading) return <div className="p-4 font-mono text-xs" style={{ color: 'var(--muted)' }}>…</div>
+  if (err) return <div className="p-4 text-sm" style={{ color: '#dc2626' }}>{err}</div>
 
   const done = rituals.filter(r => r.done).length
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-xl font-bold">🔥 Ритуали</h1>
-        <span className="text-sm bg-white/10 px-3 py-1 rounded-full">{done}/{rituals.length}</span>
+    <div style={{ color: 'var(--ink)' }}>
+      <div className="px-4 py-2 font-mono text-xs flex justify-between" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
+        <span>РИТУАЛИ</span>
+        <span>{done}/{rituals.length}</span>
       </div>
-      {toggleErr && <div className="text-red-400 text-sm px-1">{toggleErr}</div>}
+
+      {toggleErr && (
+        <div className="px-4 py-2 text-xs" style={{ color: '#dc2626' }}>{toggleErr}</div>
+      )}
 
       {rituals.length === 0 && (
-        <div className="text-white/50 text-center py-8">
-          Ритуалів немає.<br />Додай через бот: /addritual Медитація
+        <div className="px-4 py-8 text-center font-condensed text-sm" style={{ color: 'var(--muted)' }}>
+          Немає ритуалів.<br />Додай через бот: /addritual Ранкова зарядка
         </div>
       )}
 
-      <div className="space-y-2">
+      <div>
         {rituals.map(r => (
           <button
             key={r.id}
             onClick={() => toggle(r.id)}
-            className={`w-full text-left rounded-2xl p-4 flex items-center justify-between transition-colors ${
-              r.done ? 'bg-orange-500/20 border border-orange-500/30' : 'bg-white/5 hover:bg-white/10'
-            }`}
+            disabled={toggling === r.id}
+            className="w-full flex items-center justify-between px-4 py-4 text-left"
+            style={{
+              background: r.done ? 'var(--subtle)' : 'transparent',
+              cursor: 'pointer',
+              border: 'none',
+              borderBottom: '1px solid var(--subtle)',
+              opacity: toggling === r.id ? 0.5 : 1,
+            }}
           >
             <div className="flex items-center gap-3">
-              <span className="text-2xl">{r.done ? '✅' : '⬜'}</span>
-              <span>{r.icon ? `${r.icon} ` : ''}{r.title}</span>
+              <div
+                className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{
+                  border: `2px solid ${r.done ? '#1a1a1a' : 'var(--muted)'}`,
+                  background: r.done ? '#1a1a1a' : 'transparent',
+                }}
+              >
+                {r.done && <span style={{ fontSize: '10px', color: '#f8f7f4' }}>✓</span>}
+              </div>
+              <span
+                className="font-condensed text-sm"
+                style={{ textDecoration: r.done ? 'line-through' : 'none', opacity: r.done ? 0.5 : 1 }}
+              >
+                {r.icon && `${r.icon} `}{r.title}
+              </span>
             </div>
-            <span className="text-sm text-white/40">{r.streak}/7</span>
+            {r.streak > 0 && (
+              <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{r.streak}🔥</span>
+            )}
           </button>
         ))}
       </div>

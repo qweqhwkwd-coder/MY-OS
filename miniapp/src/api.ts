@@ -33,6 +33,22 @@ export const api = {
   completeTask: (initData: string, id: string) =>
     req<{ done: boolean }>(`/api/tasks/${id}/complete`, initData, { method: 'POST' }),
   digest: (initData: string) => req<DigestData>('/api/digest', initData),
+  profile: (initData: string) => req<ProfileData>('/api/profile', initData),
+  addTask: (initData: string, title: string) =>
+    req<Task>('/api/tasks', initData, {
+      method: 'POST',
+      body: JSON.stringify({ title }),
+    }),
+  addNote: (initData: string, text: string) =>
+    req<{ id: string }>('/api/inbox', initData, {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    }),
+  addFoodEntry: (initData: string, food_name: string, kcal: number, grams?: number) =>
+    req<FoodEntry>('/api/food', initData, {
+      method: 'POST',
+      body: JSON.stringify({ food_name, kcal, grams }),
+    }),
 }
 
 export interface TodayData {
@@ -89,4 +105,19 @@ export interface DigestData {
   workouts: number
   spend_total: number
   xp_earned: number
+}
+
+export interface ProfileData {
+  name: string
+  level: number
+  xp_total: number
+  xp_today: number
+  streak: number
+  hp: number
+  rank: string
+  percentile: number
+  rank_xp_min: number
+  next_rank: string | null
+  next_rank_xp_min: number | null
+  stats: Record<string, number>
 }

@@ -1,64 +1,241 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import type { TodayData } from '../api'
-import { ProgressBar } from '../components/ProgressBar'
 
+type Modal = 'water' | 'task' | 'note' | 'food' | null
+
+const QUICK_BUTTONS: { id: Modal; icon: string; label: string }[] = [
+  { id: 'water', icon: '💧', label: 'Воду' },
+  { id: 'task',  icon: '✅', label: 'Задачу' },
+  { id: 'note',  icon: '📝', label: 'Нотатку' },
+  { id: 'food',  icon: '🍽', label: 'Їжу' },
+]
 
 export function Today({ initData }: { initData: string }) {
   const [data, setData] = useState<TodayData | null>(null)
   const [err, setErr] = useState('')
+  const [modal, setModal] = useState<Modal>(null)
+  const [saving, setSaving] = useState(false)
+  const [taskTitle, setTaskTitle] = useState('')
+  const [noteText, setNoteText] = useState('')
+  const [foodName, setFoodName] = useState('')
+  const [foodKcal, setFoodKcal] = useState('')
 
-  useEffect(() => {
-    api.today(initData)
-      .then(setData)
-      .catch((e: Error) => setErr(e.message))
-  }, [initData])
+  function reload() {
+    api.today(initData).then(setData).catch((e: Error) => setErr(e.message))
+  }
 
-  if (err) return <div className="p-4 text-red-400 text-sm break-all">{err}</div>
-  if (!data) return <div className="p-4 text-white/50">Завантаження...</div>
+  useEffect(() => { reload() }, [initData])
+
+  function closeModal() {
+    setModal(null)
+    setTaskTitle('')
+    setNoteText('')
+    setFoodName('')
+    setFoodKcal('')
+  }
+
+  async function handleAddWater(amount: number) {
+    setSaving(true)
+    try { await api.addWater(initData, amount); reload(); closeModal() }
+    catch { /* silent */ }
+    finally { setSaving(false) }
+  }
+
+  async function handleAddTask() {
+    if (!taskTitle.trim()) return
+    setSaving(true)
+    try { await api.addTask(initData, taskTitle.trim()); reload(); closeModal() }
+    catch { }
+    finally { setSaving(false) }
+  }
+
+  async function handleAddNote() {
+    if (!noteText.trim()) return
+    setSaving(true)
+    try { await api.addNote(initData, noteText.trim()); closeModal() }
+    catch { }
+    finally { setSaving(false) }
+  }
+
+  async function handleAddFood() {
+    if (!foodName.trim() || !foodKcal) return
+    setSaving(true)
+    try { await api.addFoodEntry(initData, foodName.trim(), parseInt(foodKcal)); reload(); closeModal() }
+    catch { }
+    finally { setSaving(false) }
+  }
+
+  if (err) return <div className="p-4 text-sm break-all" style={{ color: '#dc2626' }}>{err}</div>
+  if (!data) return <div className="p-4 font-mono text-xs" style={{ color: 'var(--muted)' }}>…</div>
 
   const waterPct = data.water_goal > 0 ? Math.round((data.water / data.water_goal) * 100) : 0
+  const ritualPct = data.rituals_total > 0 ? Math.round((data.rituals_done / data.rituals_total) * 100) : 0
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">📅 Сьогодні</h1>
-        <span className="text-sm bg-white/10 px-3 py-1 rounded-full">Рівень {data.level}</span>
+    <div style={{ color: 'var(--ink)' }}>
+      {/* Quick-add */}
+      <div className="grid grid-cols-4" style={{ borderBottom: '1px solid var(--subtle)' }}>
+        {QUICK_BUTTONS.map(btn => (
+          <button
+            key={btn.id}
+            onClick={() => setModal(btn.id)}
+            className="flex flex-col items-center gap-1 py-4"
+            style={{ background: 'transparent', border: 'none', borderRight: '1px solid var(--subtle)', cursor: 'pointer' }}
+          >
+            <span style={{ fontSize: '20px', lineHeight: 1 }}>{btn.icon}</span>
+            <span className="font-condensed text-xs" style={{ color: 'var(--muted)' }}>{btn.label}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Вода */}
-      <div className="bg-white/5 rounded-2xl p-4 space-y-2">
-        <div className="flex justify-between text-sm">
-          <span>💧 Вода</span>
-          <span>{data.water} / {data.water_goal} мл ({waterPct}%)</span>
-        </div>
-        <ProgressBar value={data.water} max={data.water_goal} color="bg-blue-400" />
+      {/* Section label */}
+      <div className="px-4 py-2 font-mono text-xs" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
+        СЬОГОДНІ
       </div>
 
-      {/* Ритуали */}
-      <div className="bg-white/5 rounded-2xl p-4">
-        <div className="flex justify-between">
-          <span>🔥 Ритуали</span>
-          <span className="font-bold">{data.rituals_done} / {data.rituals_total}</span>
+      {/* Digest rows */}
+      <div>
+        <div className="px-4 py-4 space-y-2" style={{ borderBottom: '1px solid var(--subtle)' }}>
+          <div className="flex items-center justify-between">
+            <span className="font-condensed text-sm">💧 Вода</span>
+            <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{data.water} / {data.water_goal} мл</span>
+          </div>
+          <div className="w-full h-1.5 rounded-full" style={{ background: 'var(--subtle)' }}>
+            <div className="h-1.5 rounded-full transition-all" style={{ width: `${waterPct}%`, background: '#3b82f6' }} />
+          </div>
         </div>
-        <ProgressBar value={data.rituals_done} max={data.rituals_total || 1} color="bg-orange-400" />
+
+        <div className="px-4 py-4 space-y-2" style={{ borderBottom: '1px solid var(--subtle)' }}>
+          <div className="flex items-center justify-between">
+            <span className="font-condensed text-sm">🔥 Ритуали</span>
+            <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{data.rituals_done} / {data.rituals_total}</span>
+          </div>
+          <div className="w-full h-1.5 rounded-full" style={{ background: 'var(--subtle)' }}>
+            <div className="h-1.5 rounded-full transition-all" style={{ width: `${ritualPct}%`, background: '#f97316' }} />
+          </div>
+        </div>
+
+        <div className="px-4 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--subtle)' }}>
+          <span className="font-condensed text-sm">✅ Завдання</span>
+          <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{data.tasks_done} виконано</span>
+        </div>
+
+        <div className="px-4 py-4 flex items-center justify-between">
+          <span className="font-condensed text-sm">🍽 Калорії</span>
+          <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{data.kcal} ккал</span>
+        </div>
       </div>
 
-      {/* Завдання */}
-      <div className="bg-white/5 rounded-2xl p-4">
-        <div className="flex justify-between">
-          <span>✅ Завдань виконано</span>
-          <span className="font-bold">{data.tasks_done}</span>
-        </div>
-      </div>
+      {/* Quick-add modal */}
+      {modal && (
+        <div
+          className="fixed inset-0 z-40 flex items-end"
+          style={{ background: 'rgba(26,26,26,0.6)' }}
+          onClick={closeModal}
+        >
+          <div
+            className="w-full p-6 space-y-4"
+            style={{ background: 'var(--bg)', borderTop: '1px solid var(--subtle)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {modal === 'water' && (
+              <>
+                <div className="font-condensed font-semibold text-base">💧 Додати воду</div>
+                <div className="grid grid-cols-3 gap-3">
+                  {[250, 500, 1000].map(ml => (
+                    <button
+                      key={ml}
+                      onClick={() => handleAddWater(ml)}
+                      disabled={saving}
+                      className="py-4 font-mono text-sm"
+                      style={{ border: '1px solid var(--subtle)', background: 'transparent', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
+                    >
+                      +{ml} мл
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
 
-      {/* Калорії */}
-      <div className="bg-white/5 rounded-2xl p-4">
-        <div className="flex justify-between">
-          <span>🍽 Калорії</span>
-          <span className="font-bold">{data.kcal} ккал</span>
+            {modal === 'task' && (
+              <>
+                <div className="font-condensed font-semibold text-base">✅ Нова задача</div>
+                <input
+                  autoFocus
+                  value={taskTitle}
+                  onChange={e => setTaskTitle(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAddTask()}
+                  placeholder="Назва задачі..."
+                  className="w-full px-0 py-3 font-condensed text-sm outline-none"
+                  style={{ background: 'transparent', borderBottom: '1px solid var(--ink)', color: 'var(--ink)', borderTop: 'none', borderLeft: 'none', borderRight: 'none' }}
+                />
+                <button
+                  onClick={handleAddTask}
+                  disabled={saving || !taskTitle.trim()}
+                  className="w-full py-3 font-condensed font-semibold text-sm"
+                  style={{ background: '#1a1a1a', color: '#f8f7f4', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
+                >
+                  Додати
+                </button>
+              </>
+            )}
+
+            {modal === 'note' && (
+              <>
+                <div className="font-condensed font-semibold text-base">📝 Нова нотатка</div>
+                <textarea
+                  autoFocus
+                  value={noteText}
+                  onChange={e => setNoteText(e.target.value)}
+                  placeholder="Запиши думку..."
+                  rows={3}
+                  className="w-full px-0 py-3 font-condensed text-sm outline-none resize-none"
+                  style={{ background: 'transparent', borderBottom: '1px solid var(--ink)', color: 'var(--ink)', borderTop: 'none', borderLeft: 'none', borderRight: 'none' }}
+                />
+                <button
+                  onClick={handleAddNote}
+                  disabled={saving || !noteText.trim()}
+                  className="w-full py-3 font-condensed font-semibold text-sm"
+                  style={{ background: '#1a1a1a', color: '#f8f7f4', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
+                >
+                  Зберегти
+                </button>
+              </>
+            )}
+
+            {modal === 'food' && (
+              <>
+                <div className="font-condensed font-semibold text-base">🍽 Їжа</div>
+                <input
+                  autoFocus
+                  value={foodName}
+                  onChange={e => setFoodName(e.target.value)}
+                  placeholder="Назва (Гречка, Яйця...)"
+                  className="w-full px-0 py-3 font-condensed text-sm outline-none"
+                  style={{ background: 'transparent', borderBottom: '1px solid var(--subtle)', color: 'var(--ink)', borderTop: 'none', borderLeft: 'none', borderRight: 'none' }}
+                />
+                <input
+                  value={foodKcal}
+                  onChange={e => setFoodKcal(e.target.value.replace(/\D/g, ''))}
+                  placeholder="Калорії (ккал)"
+                  inputMode="numeric"
+                  className="w-full px-0 py-3 font-mono text-sm outline-none"
+                  style={{ background: 'transparent', borderBottom: '1px solid var(--subtle)', color: 'var(--ink)', borderTop: 'none', borderLeft: 'none', borderRight: 'none' }}
+                />
+                <button
+                  onClick={handleAddFood}
+                  disabled={saving || !foodName.trim() || !foodKcal}
+                  className="w-full py-3 font-condensed font-semibold text-sm"
+                  style={{ background: '#1a1a1a', color: '#f8f7f4', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
+                >
+                  Додати
+                </button>
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

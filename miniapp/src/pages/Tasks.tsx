@@ -7,6 +7,7 @@ export function Tasks({ initData }: { initData: string }) {
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [completeErr, setCompleteErr] = useState('')
+  const [completing, setCompleting] = useState<string | null>(null)
 
   useEffect(() => {
     api.tasks(initData)
@@ -15,39 +16,55 @@ export function Tasks({ initData }: { initData: string }) {
   }, [initData])
 
   async function complete(id: string) {
+    setCompleting(id)
     setCompleteErr('')
     try {
       await api.completeTask(initData, id)
       setTasks(prev => prev.filter(t => t.id !== id))
-    } catch (e) {
-      setCompleteErr((e as Error).message || 'Помилка. Спробуй ще раз.')
+    } catch (e: unknown) {
+      setCompleteErr(e instanceof Error ? e.message : 'Помилка')
+    } finally {
+      setCompleting(null)
     }
   }
 
-  if (loading) return <div className="p-4 text-white/50">Завантаження...</div>
-  if (err) return <div className="p-4 text-red-400 text-sm">{err}</div>
+  if (loading) return <div className="p-4 font-mono text-xs" style={{ color: 'var(--muted)' }}>…</div>
+  if (err) return <div className="p-4 text-sm" style={{ color: '#dc2626' }}>{err}</div>
 
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-xl font-bold">✅ Завдання</h1>
-      {completeErr && <div className="text-red-400 text-sm px-1">{completeErr}</div>}
+    <div style={{ color: 'var(--ink)' }}>
+      <div className="px-4 py-2 font-mono text-xs flex justify-between" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
+        <span>ЗАВДАННЯ</span>
+        <span>{tasks.length}</span>
+      </div>
+
+      {completeErr && (
+        <div className="px-4 py-2 text-xs" style={{ color: '#dc2626' }}>{completeErr}</div>
+      )}
 
       {tasks.length === 0 && (
-        <div className="text-white/50 text-center py-8">
-          Активних завдань немає.<br />Додай через бот: /addtask Назва
+        <div className="px-4 py-8 text-center font-condensed text-sm" style={{ color: 'var(--muted)' }}>
+          Задач немає.<br />Додай через бот або кнопку «Задачу» на головній.
         </div>
       )}
 
-      <div className="space-y-2">
+      <div>
         {tasks.map(t => (
-          <button
+          <div
             key={t.id}
-            onClick={() => complete(t.id)}
-            className="w-full text-left rounded-2xl p-4 bg-white/5 hover:bg-white/10 flex items-center gap-3 transition-colors"
+            className="flex items-center justify-between px-4 py-4"
+            style={{ borderBottom: '1px solid var(--subtle)' }}
           >
-            <span className="text-2xl">⬜</span>
-            <span>{t.title}</span>
-          </button>
+            <span className="font-condensed text-sm flex-1 mr-3">{t.title}</span>
+            <button
+              onClick={() => complete(t.id)}
+              disabled={completing === t.id}
+              className="font-mono text-xs px-3 py-1"
+              style={{ border: '1px solid var(--ink)', background: 'transparent', color: 'var(--ink)', cursor: 'pointer', opacity: completing === t.id ? 0.4 : 1 }}
+            >
+              Готово
+            </button>
+          </div>
         ))}
       </div>
     </div>

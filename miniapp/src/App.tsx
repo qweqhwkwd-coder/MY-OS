@@ -1,30 +1,28 @@
 import { useState, useEffect } from 'react'
+import { api } from './api'
+import type { ProfileData } from './api'
+import { WelcomeScreen, shouldShowWelcome } from './components/WelcomeScreen'
+import { SysBar } from './components/SysBar'
+import { NavGrid } from './components/NavGrid'
+import { ProfileModal } from './components/ProfileModal'
 import { Today } from './pages/Today'
-import { Stats } from './pages/Stats'
 import { Water } from './pages/Water'
 import { Rituals } from './pages/Rituals'
 import { Tasks } from './pages/Tasks'
 import { Food } from './pages/Food'
 
-type Tab = 'today' | 'stats' | 'water' | 'rituals' | 'tasks' | 'food'
-
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'today', label: 'Сьогодні', icon: '📅' },
-  { id: 'stats', label: 'Стати', icon: '⚔️' },
-  { id: 'water', label: 'Вода', icon: '💧' },
-  { id: 'rituals', label: 'Ритуали', icon: '🔥' },
-  { id: 'tasks', label: 'Завдання', icon: '✅' },
-  { id: 'food', label: 'Їжа', icon: '🍽' },
-]
+type View = 'today' | 'water' | 'rituals' | 'tasks' | 'food'
 
 export default function App() {
-  const [tab, setTab] = useState<Tab>('today')
   const [initData, setInitData] = useState('')
   const [ready, setReady] = useState(false)
+  const [view, setView] = useState<View>('today')
+  const [profile, setProfile] = useState<ProfileData | null>(null)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [showWelcome, setShowWelcome] = useState(shouldShowWelcome())
 
   useEffect(() => {
     let mounted = true
-    // Чекаємо поки initData стане непорожнім (WebApp ініціалізується асинхронно)
     const check = setInterval(() => {
       const tg = window.Telegram?.WebApp
       if (tg?.initData) {
@@ -37,7 +35,6 @@ export default function App() {
         }
       }
     }, 50)
-    // Через 5 секунд здаємось (відкрито не в Telegram)
     const fallback = setTimeout(() => {
       clearInterval(check)
       window.Telegram?.WebApp?.ready()
@@ -46,61 +43,54 @@ export default function App() {
     return () => { mounted = false; clearInterval(check); clearTimeout(fallback) }
   }, [])
 
+  useEffect(() => {
+    if (initData) {
+      api.profile(initData).then(setProfile).catch(() => {})
+    }
+  }, [initData])
+
   if (!ready) return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-white/50">Завантаження...</div>
+    <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--bg)' }}>
+      <span className="font-mono text-sm" style={{ color: 'var(--muted)' }}>…</span>
     </div>
   )
+
   if (!initData) return (
-    <div className="flex flex-col items-center justify-center min-h-screen text-center p-8 gap-4">
-      <div className="text-4xl">🚀</div>
-      <div className="text-white font-bold text-lg">MY-OS</div>
-      <div className="text-white/50 text-sm">
-        Не вдалось отримати дані від Telegram.
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-screen text-center p-8 gap-4" style={{ background: 'var(--bg)' }}>
+      <div className="font-condensed font-bold text-2xl" style={{ color: 'var(--ink)' }}>MY-OS</div>
+      <div className="font-condensed text-sm" style={{ color: 'var(--muted)' }}>Відкрий через Telegram</div>
       <button
         onClick={() => window.location.reload()}
-        className="bg-blue-500 hover:bg-blue-400 px-6 py-3 rounded-2xl text-white font-bold"
+        className="px-6 py-3 font-condensed font-semibold text-sm"
+        style={{ background: '#1a1a1a', color: '#f8f7f4', border: 'none', cursor: 'pointer' }}
       >
         Спробувати ще раз
       </button>
     </div>
   )
 
+  if (showWelcome) return (
+    <WelcomeScreen onEnter={() => setShowWelcome(false)} streak={profile?.streak} />
+  )
+
   const page = (() => {
-    switch (tab) {
-      case 'today': return <Today initData={initData} />
-      case 'stats': return <Stats initData={initData} />
-      case 'water': return <Water initData={initData} />
+    switch (view) {
+      case 'today':   return <Today initData={initData} />
+      case 'water':   return <Water initData={initData} />
       case 'rituals': return <Rituals initData={initData} />
-      case 'tasks': return <Tasks initData={initData} />
-      case 'food': return <Food initData={initData} />
+      case 'tasks':   return <Tasks initData={initData} />
+      case 'food':    return <Food initData={initData} />
     }
   })()
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ background: 'var(--tg-theme-bg-color, #1a1a2e)' }}>
-      {/* Контент */}
-      <div className="flex-1 overflow-y-auto pb-20">
-        {page}
-      </div>
-
-      {/* Навігація знизу */}
-      <nav className="fixed bottom-0 left-0 right-0 flex border-t border-white/10"
-           style={{ background: 'var(--tg-theme-secondary-bg-color, #16213e)' }}>
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`flex-1 flex flex-col items-center py-2 gap-0.5 text-xs transition-colors ${
-              tab === t.id ? 'text-blue-400' : 'text-white/40'
-            }`}
-          >
-            <span className="text-lg leading-none">{t.icon}</span>
-            <span>{t.label}</span>
-          </button>
-        ))}
-      </nav>
+    <div className="flex flex-col min-h-screen" style={{ background: 'var(--bg)' }}>
+      <SysBar profile={profile} onProfileClick={() => setProfileOpen(true)} />
+      <NavGrid activeView={view} onNavigate={(v) => setView(v as View)} />
+      <div className="flex-1 overflow-y-auto">{page}</div>
+      {profileOpen && profile && (
+        <ProfileModal profile={profile} onClose={() => setProfileOpen(false)} />
+      )}
     </div>
   )
 }
