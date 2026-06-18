@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from config import settings
 from db import (
+    DEFAULT_WATER_GOAL,
     add_water,
     complete_task,
     get_food_today,
@@ -110,7 +111,7 @@ def api_stats(user: dict = Depends(get_current_user)):
 
 @router.get("/water")
 def api_water(user: dict = Depends(get_current_user)):
-    return {"total": get_water_today(user["id"]), "goal": user.get("water_goal") or 2000}
+    return {"total": get_water_today(user["id"]), "goal": user.get("water_goal") or DEFAULT_WATER_GOAL}
 
 
 class WaterIn(BaseModel):
@@ -124,7 +125,7 @@ def api_add_water(body: WaterIn, user: dict = Depends(get_current_user)):
     uid = user["id"]
     before = get_water_today(uid)
     total = add_water(uid, body.amount)
-    if before < (user.get("water_goal") or 2000) <= total:
+    if before < (user.get("water_goal") or DEFAULT_WATER_GOAL) <= total:
         add_xp(uid, "health", 2, "water")
     return {"total": total}
 
@@ -150,8 +151,8 @@ def api_rituals(user: dict = Depends(get_current_user)):
 @router.post("/rituals/{ritual_id}/toggle")
 def api_toggle_ritual(ritual_id: str, user: dict = Depends(get_current_user)):
     uid = user["id"]
-    now_done = toggle_ritual(ritual_id, uid)
-    if now_done:
+    now_done, xp_eligible = toggle_ritual(ritual_id, uid)
+    if xp_eligible:
         add_xp(uid, "discipline", 2, "rituals")
     return {"done": now_done}
 

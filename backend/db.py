@@ -4,6 +4,8 @@
 (полный доступ) — сложная авторизация не нужна.
 """
 
+DEFAULT_WATER_GOAL = 2000
+
 from datetime import date, datetime, timedelta, timezone
 
 from supabase import Client, create_client
@@ -64,7 +66,10 @@ def add_xp(user_id: str, stat: str, amount: int, source: str) -> None:
 
     rows = supabase.table("user_stats").select("*").eq("user_id", user_id).execute().data
     if not rows:
-        supabase.table("user_stats").insert({"user_id": user_id}).execute()
+        try:
+            supabase.table("user_stats").insert({"user_id": user_id}).execute()
+        except Exception:
+            pass  # concurrent insert already created the row
         rows = supabase.table("user_stats").select("*").eq("user_id", user_id).execute().data
     stats = rows[0]
     new_val = stats[stat] + amount
@@ -89,7 +94,7 @@ def get_water_today(user_id: str) -> int:
         .eq("date", today)
         .execute()
     )
-    return sum(r["amount_ml"] for r in res.data) if res.data else 0
+    return res.data[0]["amount_ml"] if res.data else 0
 
 
 def add_water(user_id: str, amount_ml: int) -> int:
@@ -171,20 +176,41 @@ def get_ritual_streaks(user_id: str) -> dict:
     return counts
 
 
-def toggle_ritual(ritual_id: str, user_id: str) -> bool:
-    """Переключает отметку за сегодня. Возвращает новое состояние (True = выполнен)."""
+def toggle_ritual(ritual_id: str, user_id: str) -> tuple[bool, bool]:
+    """Переключает отметку за сегодня.
+    Returns (new_done, xp_eligible).
+    xp_eligible=True только при первой отметке за день (защита от XP-фарма).
+    """
     today = date.today().isoformat()
-    if is_ritual_done_today(ritual_id, user_id):
-        supabase.table("ritual_logs").delete().eq("ritual_id", ritual_id).eq(
-            "user_id", user_id
-        ).eq("date", today).execute()
-        return False
-    supabase.table("ritual_logs").upsert(
-        {"ritual_id": ritual_id, "user_id": user_id, "date": today, "is_done": True},
-        on_conflict="ritual_id,user_id,date",
-    ).execute()
-    return True
+    res = (
+        supabase.table("ritual_logs")
+        .select("is_done")
+        .eq("ritual_id", ritual_id)
+        .eq("user_id", user_id)
+        .eq("date", today)
+        .execute()
+    )
+    existing = res.data[0] if res.data else None
 
+    if existing is None:
+        # Первый раз сегодня — вставляем и даём XP
+        supabase.table("ritual_logs").insert(
+            {"ritual_id": ritual_id, "user_id": user_id, "date": today, "is_done": True}
+        ).execute()
+        return True, True
+
+    if existing["is_done"]:
+        # Снимаем отметку — обновляем is_done=False, XP не трогаем
+        supabase.table("ritual_logs").update({"is_done": False}).eq(
+            "ritual_id", ritual_id
+        ).eq("user_id", user_id).eq("date", today).execute()
+        return False, False
+
+    # Ставим отметку повторно — XP уже выдан ранее
+    supabase.table("ritual_logs").update({"is_done": True}).eq(
+        "ritual_id", ritual_id
+    ).eq("user_id", user_id).eq("date", today).execute()
+    return True, False
 
 
 # --- Колесо баланса ----------------------------------------------------------

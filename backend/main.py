@@ -315,8 +315,8 @@ async def cb_ritual(callback: types.CallbackQuery):
     ritual_id = callback.data.split(":", 1)[1]
     user = ensure_user(callback.from_user.id, callback.from_user.full_name)
 
-    now_done = toggle_ritual(ritual_id, user["id"])
-    if now_done:
+    now_done, xp_eligible = toggle_ritual(ritual_id, user["id"])
+    if xp_eligible:
         add_xp(user["id"], "discipline", 2, "rituals")
 
     rituals = get_rituals(user["id"])
@@ -324,7 +324,12 @@ async def cb_ritual(callback: types.CallbackQuery):
     await callback.message.edit_text(
         rituals_view(rituals, done, streaks), reply_markup=rituals_keyboard(rituals, done)
     )
-    await callback.answer("Відмічено ✅ (+2 XP)" if now_done else "Знято")
+    if xp_eligible:
+        await callback.answer("Відмічено ✅ (+2 XP)")
+    elif now_done:
+        await callback.answer("Відмічено ✅")
+    else:
+        await callback.answer("Знято")
 
 
 STAT_LABELS = {
@@ -1051,7 +1056,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"^(https://qweqhwkwd-coder\.github\.io|null)$",
+    allow_origin_regex=r"^(https://qweqhwkwd-coder\.github\.io|null)$",  # null = Telegram native WebView sends Origin: null; known trade-off, acceptable for single-user
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type", "X-Telegram-Init-Data"],
 )

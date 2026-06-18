@@ -6,6 +6,7 @@ export function Rituals({ initData }: { initData: string }) {
   const [rituals, setRituals] = useState<Ritual[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
+  const [toggleErr, setToggleErr] = useState('')
 
   useEffect(() => {
     api.rituals(initData)
@@ -14,11 +15,12 @@ export function Rituals({ initData }: { initData: string }) {
   }, [initData])
 
   async function toggle(id: string) {
+    setToggleErr('')
     try {
       const res = await api.toggleRitual(initData, id)
       setRituals(prev => prev.map(r => r.id === id ? { ...r, done: res.done } : r))
-    } catch {
-      // ignore toggle errors silently
+    } catch (e) {
+      setToggleErr((e as Error).message || 'Помилка. Спробуй ще раз.')
     }
   }
 
@@ -33,6 +35,7 @@ export function Rituals({ initData }: { initData: string }) {
         <h1 className="text-xl font-bold">🔥 Ритуали</h1>
         <span className="text-sm bg-white/10 px-3 py-1 rounded-full">{done}/{rituals.length}</span>
       </div>
+      {toggleErr && <div className="text-red-400 text-sm px-1">{toggleErr}</div>}
 
       {rituals.length === 0 && (
         <div className="text-white/50 text-center py-8">

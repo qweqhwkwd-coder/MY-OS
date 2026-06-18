@@ -6,6 +6,7 @@ export function Tasks({ initData }: { initData: string }) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
+  const [completeErr, setCompleteErr] = useState('')
 
   useEffect(() => {
     api.tasks(initData)
@@ -14,11 +15,12 @@ export function Tasks({ initData }: { initData: string }) {
   }, [initData])
 
   async function complete(id: string) {
+    setCompleteErr('')
     try {
       await api.completeTask(initData, id)
       setTasks(prev => prev.filter(t => t.id !== id))
-    } catch {
-      // ignore complete errors silently
+    } catch (e) {
+      setCompleteErr((e as Error).message || 'Помилка. Спробуй ще раз.')
     }
   }
 
@@ -28,6 +30,7 @@ export function Tasks({ initData }: { initData: string }) {
   return (
     <div className="p-4 space-y-4">
       <h1 className="text-xl font-bold">✅ Завдання</h1>
+      {completeErr && <div className="text-red-400 text-sm px-1">{completeErr}</div>}
 
       {tasks.length === 0 && (
         <div className="text-white/50 text-center py-8">

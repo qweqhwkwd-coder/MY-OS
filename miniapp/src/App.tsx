@@ -23,6 +23,7 @@ export default function App() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
+    let mounted = true
     // Чекаємо поки initData стане непорожнім (WebApp ініціалізується асинхронно)
     const check = setInterval(() => {
       const tg = window.Telegram?.WebApp
@@ -30,17 +31,19 @@ export default function App() {
         clearInterval(check)
         tg.ready()
         tg.expand()
-        setInitData(tg.initData)
-        setReady(true)
+        if (mounted) {
+          setInitData(tg.initData)
+          setReady(true)
+        }
       }
     }, 50)
     // Через 5 секунд здаємось (відкрито не в Telegram)
     const fallback = setTimeout(() => {
       clearInterval(check)
       window.Telegram?.WebApp?.ready()
-      setReady(true)
+      if (mounted) setReady(true)
     }, 5000)
-    return () => { clearInterval(check); clearTimeout(fallback) }
+    return () => { mounted = false; clearInterval(check); clearTimeout(fallback) }
   }, [])
 
   if (!ready) return (
