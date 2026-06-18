@@ -20,10 +20,10 @@ export default function App() {
   const [view, setView] = useState<View>('today')
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [profileOpen, setProfileOpen] = useState(false)
-  const [showWelcome, setShowWelcome] = useState(shouldShowWelcome())
-  const [theme, setTheme] = useState<Theme>(() =>
-    (localStorage.getItem('theme') as Theme) || 'auto'
-  )
+  const [showWelcome, setShowWelcome] = useState(() => { try { return shouldShowWelcome() } catch { return false } })
+  const [theme, setTheme] = useState<Theme>(() => {
+    try { return (localStorage.getItem('theme') as Theme) || 'auto' } catch { return 'auto' }
+  })
 
   useEffect(() => {
     let mounted = true
@@ -52,15 +52,23 @@ export default function App() {
   }, [initData])
 
   useEffect(() => {
-    localStorage.setItem('theme', theme)
-    if (theme === 'auto') {
-      const mq = window.matchMedia('(prefers-color-scheme: dark)')
-      const apply = () => document.documentElement.setAttribute('data-theme', mq.matches ? 'dark' : 'light')
-      apply()
-      mq.addEventListener('change', apply)
-      return () => mq.removeEventListener('change', apply)
-    } else {
-      document.documentElement.setAttribute('data-theme', theme)
+    try { localStorage.setItem('theme', theme) } catch {}
+    try {
+      if (theme === 'auto') {
+        const mq = window.matchMedia?.('(prefers-color-scheme: dark)')
+        if (mq) {
+          const apply = () => document.documentElement.setAttribute('data-theme', mq.matches ? 'dark' : 'light')
+          apply()
+          mq.addEventListener('change', apply)
+          return () => mq.removeEventListener('change', apply)
+        } else {
+          document.documentElement.setAttribute('data-theme', 'light')
+        }
+      } else {
+        document.documentElement.setAttribute('data-theme', theme)
+      }
+    } catch {
+      document.documentElement.setAttribute('data-theme', 'light')
     }
   }, [theme])
 
