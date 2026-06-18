@@ -12,17 +12,26 @@ from pydantic import BaseModel
 from config import settings
 from db import (
     DEFAULT_WATER_GOAL,
+    RANKS,
+    STATS,
+    add_food,
+    add_inbox,
+    add_task,
     add_water,
+    calculate_hp,
     complete_task,
     get_food_today,
+    get_rank,
     get_rituals,
     get_rituals_done_today,
     get_ritual_streaks,
+    get_streak,
     get_tasks,
     get_tasks_done_today,
     get_user_stats,
     get_water_today,
     get_week_digest,
+    get_xp_today,
     ensure_user,
     toggle_ritual,
     add_xp,
@@ -179,3 +188,53 @@ def api_food(user: dict = Depends(get_current_user)):
 @router.get("/digest")
 def api_digest(user: dict = Depends(get_current_user)):
     return get_week_digest(user["id"])
+
+
+@router.get("/profile")
+def api_profile(user: dict = Depends(get_current_user)):
+    uid = user["id"]
+    stats = get_user_stats(uid)
+    avg_xp = sum(stats[s] for s in STATS) / 8
+    rank_data = get_rank(avg_xp)
+    hp = calculate_hp(uid)
+    xp_today = get_xp_today(uid)
+    streak = get_streak(uid)
+    return {
+        "name": user.get("name", ""),
+        "level": stats["level"],
+        "xp_total": int(sum(stats[s] for s in STATS)),
+        "xp_today": xp_today,
+        "streak": streak,
+        "hp": hp,
+        **rank_data,
+        "stats": {s: stats[s] for s in STATS},
+    }
+
+
+class TaskIn(BaseModel):
+    title: str
+
+
+@router.post("/tasks")
+def api_create_task(body: TaskIn, user: dict = Depends(get_current_user)):
+    return add_task(user["id"], body.title)
+
+
+class InboxIn(BaseModel):
+    text: str
+
+
+@router.post("/inbox")
+def api_add_inbox(body: InboxIn, user: dict = Depends(get_current_user)):
+    return add_inbox(user["id"], body.text)
+
+
+class FoodIn(BaseModel):
+    food_name: str
+    kcal: int
+    grams: int | None = None
+
+
+@router.post("/food")
+def api_add_food_entry(body: FoodIn, user: dict = Depends(get_current_user)):
+    return add_food(user["id"], body.food_name, body.kcal, body.grams)

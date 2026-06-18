@@ -29,6 +29,127 @@ STATS = (
 )
 
 
+# --- Ранговая система ---------------------------------------------------------
+
+RANKS = [
+    {"name": "Росток",   "min_xp": 0,    "pct": 10},
+    {"name": "Камень",   "min_xp": 200,  "pct": 25},
+    {"name": "Залізо",   "min_xp": 500,  "pct": 42},
+    {"name": "Бронза",   "min_xp": 900,  "pct": 57},
+    {"name": "Срібло",   "min_xp": 1400, "pct": 71},
+    {"name": "Золото",   "min_xp": 2000, "pct": 83},
+    {"name": "Кристал",  "min_xp": 2800, "pct": 92},
+    {"name": "Легенда",  "min_xp": 3700, "pct": 97},
+    {"name": "Архонт",   "min_xp": 4500, "pct": 99},
+    {"name": "Божество", "min_xp": 4900, "pct": 99},
+]
+
+
+def get_rank(avg_xp: float) -> dict:
+    """Returns rank info for given average XP across all 8 stats."""
+    current = RANKS[0]
+    for r in RANKS:
+        if avg_xp >= r["min_xp"]:
+            current = r
+        else:
+            break
+    idx = RANKS.index(current)
+    next_rank = RANKS[idx + 1] if idx + 1 < len(RANKS) else None
+    return {
+        "rank": current["name"],
+        "percentile": current["pct"],
+        "rank_xp_min": current["min_xp"],
+        "next_rank": next_rank["name"] if next_rank else None,
+        "next_rank_xp_min": next_rank["min_xp"] if next_rank else None,
+    }
+
+
+def get_streak(user_id: str) -> int:
+    """Consecutive days (counting today) with at least 1 ritual done."""
+    streak = 0
+    today = date.today()
+    for i in range(30):
+        day = (today - timedelta(days=i)).isoformat()
+        res = (
+            supabase.table("ritual_logs")
+            .select("id")
+            .eq("user_id", user_id)
+            .eq("date", day)
+            .eq("is_done", True)
+            .limit(1)
+            .execute()
+        )
+        if res.data:
+            streak += 1
+        else:
+            break
+    return streak
+
+
+def get_xp_today(user_id: str) -> int:
+    """Total XP earned today across all sources."""
+    today = date.today().isoformat()
+    res = (
+        supabase.table("xp_events")
+        .select("xp_amount")
+        .eq("user_id", user_id)
+        .gte("created_at", today)
+        .execute()
+    )
+    return sum(e["xp_amount"] for e in res.data)
+
+
+def calculate_hp(user_id: str) -> int:
+    """Recalculate HP from last 3 days. Saves result to user_stats. Returns 0–100."""
+    today = date.today()
+    water_goal = DEFAULT_WATER_GOAL
+
+    user_row = supabase.table("users").select("water_goal").eq("id", user_id).execute()
+    if user_row.data:
+        water_goal = user_row.data[0].get("water_goal") or DEFAULT_WATER_GOAL
+
+    rituals = get_rituals(user_id)
+    total_rituals = len(rituals)
+
+    water_pcts, ritual_pcts, sleep_pcts, food_pcts = [], [], [], []
+    for i in range(3):
+        day = (today - timedelta(days=i)).isoformat()
+
+        w = supabase.table("water_logs").select("amount_ml").eq("user_id", user_id).eq("date", day).execute()
+        water_ml = w.data[0]["amount_ml"] if w.data else 0
+        water_pcts.append(min(100, round(water_ml / water_goal * 100)))
+
+        if total_rituals > 0:
+            done = (
+                supabase.table("ritual_logs")
+                .select("id")
+                .eq("user_id", user_id)
+                .eq("date", day)
+                .eq("is_done", True)
+                .execute()
+            )
+            ritual_pcts.append(min(100, round(len(done.data) / total_rituals * 100)))
+        else:
+            ritual_pcts.append(0)
+
+        sl = supabase.table("sleep_logs").select("duration_min").eq("user_id", user_id).eq("date", day).execute()
+        duration = sl.data[0]["duration_min"] if sl.data else 0
+        sleep_pcts.append(min(100, round(duration / 480 * 100)))
+
+        f = supabase.table("food_logs").select("kcal").eq("user_id", user_id).eq("date", day).execute()
+        kcal = sum(e["kcal"] for e in f.data if e.get("kcal"))
+        food_pcts.append(min(100, round(kcal / 2000 * 100)))
+
+    hp = round(
+        (sum(water_pcts) / 3) * 0.30
+        + (sum(ritual_pcts) / 3) * 0.40
+        + (sum(sleep_pcts) / 3) * 0.20
+        + (sum(food_pcts) / 3) * 0.10
+    )
+    supabase.table("user_stats").update({"hp": hp}).eq("user_id", user_id).execute()
+    return hp
+
+
 # --- Пользователь -------------------------------------------------------------
 
 def get_user_by_tg(telegram_id: int) -> dict | None:
