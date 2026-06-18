@@ -10,6 +10,19 @@
   --hp-hi: #16a34a;
   --hp-mid: #d97706;
   --hp-lo: #dc2626;
+  --locked-bg: #f2f0ec;
+  --locked-text: #bbbbbb;
+}
+
+[data-theme="dark"] {
+  --bg: #141414;
+  --ink: #f0efec;
+  --muted: #666666;
+  --subtle: rgba(240, 239, 236, 0.08);
+  --accent: #818cf8;
+  --accent-light: #c7d2fe;
+  --locked-bg: #1e1e1e;
+  --locked-text: #444444;
 }
 
 * {

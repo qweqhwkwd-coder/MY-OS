@@ -194,7 +194,7 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
                   onClick={handleAddTask}
                   disabled={saving || !taskTitle.trim()}
                   className="w-full py-3 font-condensed font-semibold text-sm"
-                  style={{ background: '#1a1a1a', color: '#f8f7f4', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
+                  style={{ background: 'var(--ink)', color: 'var(--bg)', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
                 >
                   Додати
                 </button>
@@ -217,7 +217,7 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
                   onClick={handleAddNote}
                   disabled={saving || !noteText.trim()}
                   className="w-full py-3 font-condensed font-semibold text-sm"
-                  style={{ background: '#1a1a1a', color: '#f8f7f4', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
+                  style={{ background: 'var(--ink)', color: 'var(--bg)', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
                 >
                   Зберегти
                 </button>
@@ -247,7 +247,7 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
                   onClick={handleAddFood}
                   disabled={saving || !foodName.trim() || !foodKcal}
                   className="w-full py-3 font-condensed font-semibold text-sm"
-                  style={{ background: '#1a1a1a', color: '#f8f7f4', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
+                  style={{ background: 'var(--ink)', color: 'var(--bg)', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
                 >
                   Додати
                 </button>

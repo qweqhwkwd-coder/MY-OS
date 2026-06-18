@@ -70,11 +70,11 @@ export function Rituals({ initData, onDataChange }: { initData: string; onDataCh
               <div
                 className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
                 style={{
-                  border: `2px solid ${r.done ? '#1a1a1a' : 'var(--muted)'}`,
-                  background: r.done ? '#1a1a1a' : 'transparent',
+                  border: `2px solid ${r.done ? 'var(--ink)' : 'var(--muted)'}`,
+                  background: r.done ? 'var(--ink)' : 'transparent',
                 }}
               >
-                {r.done && <span style={{ fontSize: '10px', color: '#f8f7f4' }}>✓</span>}
+                {r.done && <span style={{ fontSize: '10px', color: 'var(--bg)' }}>✓</span>}
               </div>
               <span
                 className="font-condensed text-sm"

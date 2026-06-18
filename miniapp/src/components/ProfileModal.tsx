@@ -1,6 +1,15 @@
+import { useState } from 'react'
 import type { ProfileData } from '../api'
 import { ProgressBar } from './ProgressBar'
 import { hpColor } from '../utils'
+
+export type Theme = 'light' | 'dark' | 'auto'
+
+const THEME_OPTIONS: { value: Theme; icon: string; label: string }[] = [
+  { value: 'light', icon: '☀️', label: 'Світла' },
+  { value: 'dark',  icon: '🌙', label: 'Темна' },
+  { value: 'auto',  icon: '◐',  label: 'Авто' },
+]
 
 const STATS_META = [
   { key: 'strength',   label: 'Сила' },
@@ -16,9 +25,12 @@ const STATS_META = [
 interface Props {
   profile: ProfileData
   onClose: () => void
+  theme: Theme
+  onThemeChange: (t: Theme) => void
 }
 
-export function ProfileModal({ profile, onClose }: Props) {
+export function ProfileModal({ profile, onClose, theme, onThemeChange }: Props) {
+  const [view, setView] = useState<'profile' | 'settings'>('profile')
   const xpInLevel = profile.xp_total % 100
   const xpToNext = 100 - xpInLevel
 
@@ -37,17 +49,69 @@ export function ProfileModal({ profile, onClose }: Props) {
         className="flex items-center justify-between px-4 py-3"
         style={{ background: '#1a1a1a', color: '#f8f7f4', borderBottom: '1px solid rgba(248,247,244,0.1)' }}
       >
-        <span className="font-condensed font-semibold text-base">Профіль</span>
-        <button
-          onClick={onClose}
-          className="font-mono text-sm"
-          style={{ color: 'rgba(248,247,244,0.5)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
-        >
-          ✕
-        </button>
+        {view === 'settings' ? (
+          <button
+            onClick={() => setView('profile')}
+            className="font-mono text-xs"
+            style={{ color: 'rgba(248,247,244,0.5)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0' }}
+          >
+            ← Профіль
+          </button>
+        ) : (
+          <span className="font-condensed font-semibold text-base">Профіль</span>
+        )}
+        <div className="flex items-center gap-2">
+          {view === 'profile' && (
+            <button
+              onClick={() => setView('settings')}
+              className="font-mono text-sm"
+              style={{ color: 'rgba(248,247,244,0.5)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
+              aria-label="Налаштування"
+            >
+              ⚙️
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="font-mono text-sm"
+            style={{ color: 'rgba(248,247,244,0.5)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      {view === 'settings' && (
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-4 py-2 font-mono text-xs" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
+            ТЕМА ОФОРМЛЕННЯ
+          </div>
+          {THEME_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => onThemeChange(opt.value)}
+              className="w-full flex items-center justify-between px-4 py-4 text-left"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                borderBottom: '1px solid var(--subtle)',
+                cursor: 'pointer',
+                color: 'var(--ink)',
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <span style={{ fontSize: '18px', lineHeight: 1, width: '24px', textAlign: 'center' }}>{opt.icon}</span>
+                <span className="font-condensed text-sm">{opt.label}</span>
+              </div>
+              {theme === opt.value && (
+                <span className="font-mono text-xs" style={{ color: 'var(--accent)' }}>✓</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {view === 'profile' && <div className="flex-1 overflow-y-auto">
         {/* Hero */}
         <div className="px-4 py-5" style={{ borderBottom: '1px solid var(--subtle)' }}>
           <div className="flex items-center gap-3">
@@ -137,7 +201,7 @@ export function ProfileModal({ profile, onClose }: Props) {
             )
           })}
         </div>
-      </div>
+      </div>}
     </div>
   )
 }

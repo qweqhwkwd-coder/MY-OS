@@ -44,8 +44,8 @@ export function NavGrid({ activeView, onNavigate }: Props) {
               borderLeft: 'none',
               borderRight: isLastCol ? 'none' : '1px solid var(--subtle)',
               borderBottom: '1px solid var(--subtle)',
-              background: isActive ? '#1a1a1a' : isLocked ? '#f2f0ec' : 'transparent',
-              color: isActive ? '#f8f7f4' : isLocked ? '#bbb' : 'var(--ink)',
+              background: isActive ? 'var(--ink)' : isLocked ? 'var(--locked-bg)' : 'transparent',
+              color: isActive ? 'var(--bg)' : isLocked ? 'var(--locked-text)' : 'var(--ink)',
               cursor: isLocked ? 'default' : 'pointer',
               minHeight: '72px',
               outline: 'none',
@@ -53,7 +53,7 @@ export function NavGrid({ activeView, onNavigate }: Props) {
           >
             <span
               className="font-mono text-xs leading-none"
-              style={{ color: isActive ? 'rgba(248,247,244,0.4)' : isLocked ? '#ccc' : 'var(--muted)' }}
+              style={{ color: isActive ? 'var(--bg)' : isLocked ? 'var(--locked-text)' : 'var(--muted)', opacity: isActive ? 0.45 : 1 }}
             >
               {mod.num}
             </span>

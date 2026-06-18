@@ -5,6 +5,7 @@ import { WelcomeScreen, shouldShowWelcome } from './components/WelcomeScreen'
 import { SysBar } from './components/SysBar'
 import { NavGrid } from './components/NavGrid'
 import { ProfileModal } from './components/ProfileModal'
+import type { Theme } from './components/ProfileModal'
 import { Today } from './pages/Today'
 import { Water } from './pages/Water'
 import { Rituals } from './pages/Rituals'
@@ -20,6 +21,9 @@ export default function App() {
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [profileOpen, setProfileOpen] = useState(false)
   const [showWelcome, setShowWelcome] = useState(shouldShowWelcome())
+  const [theme, setTheme] = useState<Theme>(() =>
+    (localStorage.getItem('theme') as Theme) || 'auto'
+  )
 
   useEffect(() => {
     let mounted = true
@@ -46,6 +50,19 @@ export default function App() {
   useEffect(() => {
     if (initData) refreshProfile()
   }, [initData])
+
+  useEffect(() => {
+    localStorage.setItem('theme', theme)
+    if (theme === 'auto') {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)')
+      const apply = () => document.documentElement.setAttribute('data-theme', mq.matches ? 'dark' : 'light')
+      apply()
+      mq.addEventListener('change', apply)
+      return () => mq.removeEventListener('change', apply)
+    } else {
+      document.documentElement.setAttribute('data-theme', theme)
+    }
+  }, [theme])
 
   function refreshProfile() {
     if (initData) api.profile(initData).then(setProfile).catch(() => {})
@@ -91,7 +108,12 @@ export default function App() {
       <NavGrid activeView={view} onNavigate={(v) => setView(v as View)} />
       <div className="flex-1 overflow-y-auto">{page}</div>
       {profileOpen && profile && (
-        <ProfileModal profile={profile} onClose={() => setProfileOpen(false)} />
+        <ProfileModal
+          profile={profile}
+          onClose={() => setProfileOpen(false)}
+          theme={theme}
+          onThemeChange={setTheme}
+        />
       )}
       {profileOpen && !profile && (
         <div
