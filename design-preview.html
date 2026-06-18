@@ -3,597 +3,286 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MY-OS — Design Preview v2</title>
+<title>MY-OS — Design Preview v3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #e2dfd9; font-family: 'IBM Plex Sans', sans-serif; padding: 40px 20px 80px; }
+.page-header { text-align: center; margin-bottom: 40px; }
+.page-header h1 { font-family:'IBM Plex Sans Condensed',sans-serif; font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#888; }
 
-body {
-  background: #e2dfd9;
-  font-family: 'IBM Plex Sans', sans-serif;
-  padding: 48px 24px 80px;
-}
-.page-header {
-  text-align: center;
-  margin-bottom: 48px;
-}
-.page-header h1 {
-  font-family: 'IBM Plex Sans Condensed', sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #888;
-}
+.screens { display:flex; gap:24px; justify-content:center; flex-wrap:wrap; align-items:flex-start; }
+.screen-wrap { display:flex; flex-direction:column; align-items:center; gap:10px; }
+.screen-label { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#999; letter-spacing:.08em; text-transform:uppercase; }
+.phone { width:320px; overflow:hidden; border:1.5px solid #1a1a1a; background:#f8f7f4; box-shadow:4px 4px 0 #1a1a1a; }
 
-.screens {
-  display: flex;
-  gap: 28px;
-  justify-content: center;
-  flex-wrap: wrap;
-  align-items: flex-start;
-}
-.screen-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-.screen-label {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  color: #999;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.phone {
-  width: 320px;
-  overflow: hidden;
-  border: 1.5px solid #1a1a1a;
-  background: #f8f7f4;
-  box-shadow: 4px 4px 0 #1a1a1a;
-}
-
-/* ══ TOKENS ══
-   bg:      #f8f7f4
-   ink:     #1a1a1a
-   muted:   #999
-   subtle:  rgba(26,26,26,0.08)
-   accent:  #4338ca  — XP/RPG only
-   hp-hi:   #166534  — HP high
-   hp-lo:   #991b1b  — HP low
-*/
-
-/* ── system bar ── */
+/* ── sys-bar ── */
 .sys-bar {
-  background: #1a1a1a;
-  padding: 5px 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  background:#1a1a1a;
+  padding:5px 12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
-.sb-item { display: flex; flex-direction: column; align-items: center; gap: 1px; }
-.sb-val {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px; font-weight: 600; color: #fff; line-height: 1;
+.sb-left { display:flex; gap:12px; align-items:center; }
+.sb-item { display:flex; flex-direction:column; align-items:center; gap:1px; }
+.sb-val { font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#fff; line-height:1; }
+.sb-val.xp { color:#818cf8; }
+.sb-val.hp { color:#4ade80; }
+.sb-key { font-family:'IBM Plex Mono',monospace; font-size:7px; color:#444; letter-spacing:.07em; text-transform:uppercase; }
+.sb-div { width:1px; height:20px; background:#2a2a2a; }
+
+/* profile avatar button */
+.profile-btn {
+  width:30px; height:30px;
+  border:1.5px solid #333;
+  background:#2a2a2a;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px;
+  cursor:pointer;
+  flex-shrink:0;
 }
-.sb-val.xp { color: #818cf8; }
-.sb-val.hp-hi { color: #4ade80; }
-.sb-val.hp-lo { color: #f87171; }
-.sb-key {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 7.5px; color: #444;
-  letter-spacing: 0.07em; text-transform: uppercase;
-}
-.sb-div { width: 1px; height: 22px; background: #2a2a2a; }
 
 /* ── nav grid ── */
 .nav-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  border-bottom: 1.5px solid #1a1a1a;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  border-bottom:1.5px solid #1a1a1a;
 }
 .nc {
-  border-right: 1px solid #1a1a1a;
-  border-bottom: 1px solid #1a1a1a;
-  padding: 7px 9px 6px;
-  background: #f8f7f4;
+  border-right:1px solid #1a1a1a;
+  border-bottom:1px solid #1a1a1a;
+  padding:7px 9px 6px;
+  background:#f8f7f4;
+  cursor:pointer;
 }
-.nc:nth-child(3n) { border-right: none; }
-.nc:nth-child(4), .nc:nth-child(5), .nc:nth-child(6) { border-bottom: none; }
-.nc.on { background: #1a1a1a; }
-.nc-num {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 8px; color: #ccc; line-height: 1;
-}
-.nc.on .nc-num { color: #444; }
-.nc-name {
-  font-family: 'IBM Plex Sans Condensed', sans-serif;
-  font-size: 12px; font-weight: 600; color: #1a1a1a; line-height: 1.1;
-}
-.nc.on .nc-name { color: #fff; }
+.nc:nth-child(3n) { border-right:none; }
+.nc:nth-last-child(-n+3) { border-bottom:none; }
+.nc.on { background:#1a1a1a; }
+.nc.locked { background:#f2f0ec; cursor:default; }
+.nc-num { font-family:'IBM Plex Mono',monospace; font-size:8px; color:#ccc; line-height:1; }
+.nc.on .nc-num { color:#444; }
+.nc.locked .nc-num { color:#ddd; }
+.nc-name { font-family:'IBM Plex Sans Condensed',sans-serif; font-size:12px; font-weight:600; color:#1a1a1a; line-height:1.1; }
+.nc.on .nc-name { color:#fff; }
+.nc.locked .nc-name { color:#bbb; }
+.nc-lock { font-size:8px; float:right; margin-top:-1px; color:#ccc; }
 
 /* ── page title ── */
-.ptitle {
-  padding: 12px 14px 10px;
-  border-bottom: 1px solid rgba(26,26,26,0.1);
-  font-family: 'IBM Plex Sans Condensed', sans-serif;
-  font-size: 26px; font-weight: 700; color: #1a1a1a;
-  line-height: 1; letter-spacing: -0.01em;
-}
+.ptitle { padding:12px 14px 10px; border-bottom:1px solid rgba(26,26,26,.1); font-family:'IBM Plex Sans Condensed',sans-serif; font-size:26px; font-weight:700; color:#1a1a1a; line-height:1; }
 
-/* ── hairline row ── */
-.hrow {
-  padding: 10px 14px;
-  border-bottom: 1px solid rgba(26,26,26,0.08);
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 10px;
-}
-.hrow:last-child { border-bottom: none; }
-.hl { font-family: 'IBM Plex Sans Condensed', sans-serif; font-size: 12px; font-weight: 500; color: #888; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 4px; }
-.hbar { height: 2px; background: rgba(26,26,26,0.08); }
-.hbar-fill { height: 100%; background: #1a1a1a; }
-.hbar-fill.xp { background: #4338ca; }
-.hval { font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 600; color: #1a1a1a; line-height: 1; text-align: right; }
-.hsub { font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; color: #bbb; margin-top: 2px; text-align: right; }
+/* ── quick add ── */
+.quick-add { padding:10px 14px; border-bottom:1px solid rgba(26,26,26,.1); }
+.qa-label { font-family:'IBM Plex Mono',monospace; font-size:8px; color:#bbb; letter-spacing:.1em; text-transform:uppercase; margin-bottom:6px; }
+.qa-buttons { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; }
+.qa-btn { padding:8px 4px; border:1px solid rgba(26,26,26,.15); background:#fff; display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; }
+.qa-icon { font-size:14px; line-height:1; }
+.qa-text { font-family:'IBM Plex Sans Condensed',sans-serif; font-size:9px; font-weight:600; color:#1a1a1a; letter-spacing:.03em; text-transform:uppercase; text-align:center; }
 
+/* ── summary rows ── */
+.hrow { padding:9px 14px; border-bottom:1px solid rgba(26,26,26,.07); display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; }
+.hrow:last-child { border-bottom:none; }
+.hl { font-family:'IBM Plex Sans Condensed',sans-serif; font-size:11px; font-weight:500; color:#888; letter-spacing:.05em; text-transform:uppercase; margin-bottom:4px; }
+.hbar { height:2px; background:rgba(26,26,26,.08); }
+.hbar-fill { height:100%; background:#1a1a1a; }
+.hval { font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600; color:#1a1a1a; text-align:right; line-height:1; }
+.hsub { font-family:'IBM Plex Mono',monospace; font-size:8px; color:#bbb; margin-top:2px; text-align:right; }
 
-/* ════════════════ SCREEN 1: WELCOME ════════════════ */
-.welcome {
-  background: #1a1a1a;
-  min-height: 580px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 0;
-}
-.welcome-top {
-  padding: 28px 22px 0;
-}
-.welcome-logo {
-  font-family: 'IBM Plex Sans Condensed', sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: #444;
-  margin-bottom: 60px;
-}
-.welcome-quote {
-  font-family: 'IBM Plex Sans Condensed', sans-serif;
-  font-size: 22px;
-  font-weight: 600;
-  font-style: italic;
-  color: #fff;
-  line-height: 1.35;
-  letter-spacing: -0.01em;
-}
-.welcome-author {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  color: #444;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-top: 14px;
-}
-.welcome-bottom {
-  padding: 0 22px 32px;
-}
-.welcome-divider {
-  height: 1px;
-  background: #2a2a2a;
-  margin-bottom: 20px;
-}
-.welcome-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 20px;
-}
-.welcome-date {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  color: #555;
-  letter-spacing: 0.08em;
-}
-.welcome-streak {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  color: #555;
-  letter-spacing: 0.08em;
-}
-.welcome-btn {
-  width: 100%;
-  padding: 14px;
-  background: #fff;
-  border: none;
-  font-family: 'IBM Plex Sans Condensed', sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #1a1a1a;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.welcome-btn-arrow {
-  font-size: 18px;
-}
+/* ════ WELCOME ════ */
+.welcome { background:#1a1a1a; min-height:540px; display:flex; flex-direction:column; justify-content:space-between; }
+.w-top { padding:26px 20px 0; }
+.w-logo { font-family:'IBM Plex Sans Condensed',sans-serif; font-size:10px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#333; margin-bottom:52px; }
+.w-quote { font-family:'IBM Plex Sans Condensed',sans-serif; font-size:21px; font-weight:600; font-style:italic; color:#fff; line-height:1.4; letter-spacing:-.01em; }
+.w-author { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#444; letter-spacing:.1em; text-transform:uppercase; margin-top:14px; }
+.w-bottom { padding:0 20px 28px; }
+.w-div { height:1px; background:#2a2a2a; margin-bottom:16px; }
+.w-meta { display:flex; justify-content:space-between; margin-bottom:16px; }
+.w-meta-txt { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#444; letter-spacing:.07em; }
+.w-btn { width:100%; padding:13px; background:#fff; border:none; font-family:'IBM Plex Sans Condensed',sans-serif; font-size:14px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:#1a1a1a; display:flex; justify-content:space-between; cursor:pointer; }
 
-/* ════════════════ SCREEN 2: HOME ════════════════ */
-.quick-add {
-  padding: 10px 14px;
-  border-bottom: 1px solid rgba(26,26,26,0.1);
-}
-.qa-label {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 8.5px;
-  color: #bbb;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-bottom: 7px;
-}
-.qa-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 5px;
-}
-.qa-btn {
-  padding: 8px 10px;
-  border: 1px solid rgba(26,26,26,0.15);
-  background: #fff;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-}
-.qa-btn-icon { font-size: 13px; line-height: 1; }
-.qa-btn-text {
-  font-family: 'IBM Plex Sans Condensed', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  color: #1a1a1a;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
+/* ════ PROFILE ════ */
+.prof-hero { padding:14px; border-bottom:1px solid rgba(26,26,26,.1); display:flex; align-items:center; gap:12px; }
+.prof-avatar { width:48px; height:48px; border:1.5px solid #1a1a1a; background:#1a1a1a; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+.prof-name { font-family:'IBM Plex Sans Condensed',sans-serif; font-size:20px; font-weight:700; color:#1a1a1a; line-height:1; margin-bottom:2px; }
+.prof-sub { font-family:'IBM Plex Mono',monospace; font-size:8.5px; color:#999; letter-spacing:.07em; text-transform:uppercase; }
+.prof-lv { font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#4338ca; border:1px solid #4338ca; padding:3px 8px; margin-left:auto; flex-shrink:0; }
 
-/* ════════════════ SCREEN 3: CHARACTER ════════════════ */
-.char-hero {
-  padding: 12px 14px 10px;
-  border-bottom: 1px solid rgba(26,26,26,0.1);
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-.char-avatar {
-  width: 44px; height: 44px;
-  border: 1.5px solid #1a1a1a;
-  background: #1a1a1a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
-}
-.char-info { flex: 1; }
-.char-name {
-  font-family: 'IBM Plex Sans Condensed', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  color: #1a1a1a;
-  line-height: 1;
-  margin-bottom: 2px;
-}
-.char-sub {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px;
-  color: #999;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
-.char-lv-badge {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  font-weight: 600;
-  color: #4338ca;
-  border: 1px solid #4338ca;
-  padding: 3px 8px;
-  letter-spacing: 0.04em;
-  flex-shrink: 0;
-  align-self: center;
-}
+.hp-row { padding:10px 14px; border-bottom:1px solid rgba(26,26,26,.1); }
+.hp-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:5px; }
+.hp-lbl { font-family:'IBM Plex Mono',monospace; font-size:8.5px; color:#888; letter-spacing:.1em; text-transform:uppercase; }
+.hp-num { font-family:'IBM Plex Mono',monospace; font-size:18px; font-weight:600; color:#166534; line-height:1; }
+.hp-bg { height:6px; background:rgba(26,26,26,.08); }
+.hp-fill { height:100%; background:#16a34a; }
+.hp-hint { font-family:'IBM Plex Mono',monospace; font-size:8px; color:#bbb; margin-top:4px; letter-spacing:.03em; }
 
-/* HP bar */
-.hp-section {
-  padding: 10px 14px;
-  border-bottom: 1px solid rgba(26,26,26,0.1);
-}
-.hp-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 5px;
-}
-.hp-label {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px;
-  color: #888;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.hp-val {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 1;
-}
-.hp-val.hi { color: #166534; }
-.hp-val.mid { color: #92400e; }
-.hp-bar-bg {
-  height: 6px;
-  background: rgba(26,26,26,0.08);
-  position: relative;
-}
-.hp-bar-fill {
-  height: 100%;
-  transition: width 0.3s;
-}
-.hp-fill-hi { background: #16a34a; width: 78%; }
-.hp-fill-mid { background: #d97706; width: 45%; }
-.hp-hint {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 8px;
-  color: #bbb;
-  margin-top: 4px;
-  letter-spacing: 0.05em;
-}
+.xp-row { padding:10px 14px; border-bottom:1px solid rgba(26,26,26,.1); background:rgba(67,56,202,.03); }
 
-/* stat rows */
-.stat-section {
-  padding: 8px 14px;
-  border-bottom: 1px solid rgba(26,26,26,0.1);
-}
-.stat-section-title {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 8.5px;
-  color: #bbb;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-bottom: 8px;
-}
-.stat-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-  border-bottom: 1px solid rgba(26,26,26,0.05);
-}
-.stat-row:last-child { border-bottom: none; }
-.stat-name {
-  font-family: 'IBM Plex Sans Condensed', sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  color: #333;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.stat-bar-wrap { width: 70px; }
-.stat-bar-bg { height: 2px; background: rgba(26,26,26,0.08); }
-.stat-bar-fill { height: 100%; background: #1a1a1a; }
-.stat-lv {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  color: #bbb;
-  white-space: nowrap;
-}
+.stats-section { padding:8px 14px; }
+.stats-title { font-family:'IBM Plex Mono',monospace; font-size:8px; color:#bbb; letter-spacing:.1em; text-transform:uppercase; margin-bottom:7px; }
+.stat-r { display:grid; grid-template-columns:1fr 60px auto; align-items:center; gap:6px; padding:3px 0; border-bottom:1px solid rgba(26,26,26,.05); }
+.stat-r:last-child { border-bottom:none; }
+.stat-n { font-family:'IBM Plex Sans Condensed',sans-serif; font-size:11px; font-weight:500; color:#333; text-transform:uppercase; letter-spacing:.04em; }
+.stat-b { height:2px; background:rgba(26,26,26,.08); }
+.stat-bf { height:100%; background:#1a1a1a; }
+.stat-l { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#bbb; white-space:nowrap; }
 </style>
 </head>
 <body>
-<div class="page-header"><h1>MY-OS · Design Preview v2</h1></div>
+
+<div class="page-header"><h1>MY-OS · Design Preview v3</h1></div>
 
 <div class="screens">
 
-  <!-- ══════ SCREEN 1: WELCOME ══════ -->
+  <!-- ══ WELCOME ══ -->
   <div class="screen-wrap">
-    <div class="screen-label">Вхід · Привітання</div>
+    <div class="screen-label">Привітання</div>
     <div class="phone">
       <div class="welcome">
-        <div class="welcome-top">
-          <div class="welcome-logo">MY-OS · v1.0</div>
-          <div class="welcome-quote">
-            «Почни робити необхідне,<br>
-            потім — можливе,<br>
-            і раптом ти робиш<br>
-            неможливе.»
+        <div class="w-top">
+          <div class="w-logo">MY-OS · v1.0</div>
+          <div class="w-quote">
+            «Почни робити<br>необхідне, потім —<br>можливе, і раптом<br>ти робиш неможливе.»
           </div>
-          <div class="welcome-author">— Франциск Ассізький</div>
+          <div class="w-author">— Франциск Ассізький</div>
         </div>
-        <div class="welcome-bottom">
-          <div class="welcome-divider"></div>
-          <div class="welcome-meta">
-            <div class="welcome-date">СР · 18 ЧЕРВНЯ 2026</div>
-            <div class="welcome-streak">5-ДЕННИЙ СТРІК 🔥</div>
+        <div class="w-bottom">
+          <div class="w-div"></div>
+          <div class="w-meta">
+            <div class="w-meta-txt">СР · 18 ЧЕРВНЯ 2026</div>
+            <div class="w-meta-txt">СТРІК 5 ДНІВ 🔥</div>
           </div>
-          <div class="welcome-btn">
-            <span>Відкрити систему</span>
-            <span class="welcome-btn-arrow">→</span>
-          </div>
+          <div class="w-btn"><span>Відкрити систему</span><span>→</span></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ══════ SCREEN 2: HOME ══════ -->
+  <!-- ══ ГОЛОВНА — повна сітка ══ -->
   <div class="screen-wrap">
-    <div class="screen-label">01 · Головна</div>
+    <div class="screen-label">Головна · повна сітка</div>
     <div class="phone">
+      <!-- sys-bar з профілем праворуч -->
       <div class="sys-bar">
-        <div class="sb-item"><div class="sb-val hp-hi">78</div><div class="sb-key">HP</div></div>
-        <div class="sb-div"></div>
-        <div class="sb-item"><div class="sb-val xp">lv 3</div><div class="sb-key">рівень</div></div>
-        <div class="sb-div"></div>
-        <div class="sb-item"><div class="sb-val xp">+14</div><div class="sb-key">xp сьогодні</div></div>
-        <div class="sb-div"></div>
-        <div class="sb-item"><div class="sb-val">5🔥</div><div class="sb-key">стрік</div></div>
+        <div class="sb-left">
+          <div class="sb-item"><div class="sb-val hp">78</div><div class="sb-key">HP</div></div>
+          <div class="sb-div"></div>
+          <div class="sb-item"><div class="sb-val xp">lv 3</div><div class="sb-key">рівень</div></div>
+          <div class="sb-div"></div>
+          <div class="sb-item"><div class="sb-val xp">+14</div><div class="sb-key">xp</div></div>
+          <div class="sb-div"></div>
+          <div class="sb-item"><div class="sb-val">5🔥</div><div class="sb-key">стрік</div></div>
+        </div>
+        <!-- Профіль — окрема кнопка -->
+        <div class="profile-btn">⚔️</div>
       </div>
 
+      <!-- сітка всіх модулів -->
       <div class="nav-grid">
-        <div class="nc on"><div class="nc-num">01</div><div class="nc-name">🏠 дім</div></div>
-        <div class="nc"><div class="nc-num">02</div><div class="nc-name">персонаж</div></div>
-        <div class="nc"><div class="nc-num">03</div><div class="nc-name">вода</div></div>
-        <div class="nc"><div class="nc-num">04</div><div class="nc-name">ритуали</div></div>
-        <div class="nc"><div class="nc-num">05</div><div class="nc-name">завдання</div></div>
-        <div class="nc"><div class="nc-num">06</div><div class="nc-name">їжа</div></div>
+        <div class="nc on"><div class="nc-num">01</div><div class="nc-name">Сьогодні</div></div>
+        <div class="nc"><div class="nc-num">02</div><div class="nc-name">Вода</div></div>
+        <div class="nc"><div class="nc-num">03</div><div class="nc-name">Ритуали</div></div>
+        <div class="nc"><div class="nc-num">04</div><div class="nc-name">Завдання</div></div>
+        <div class="nc"><div class="nc-num">05</div><div class="nc-name">Їжа</div></div>
+        <div class="nc locked"><div class="nc-num">06</div><div class="nc-name">Сон<span class="nc-lock">🔒</span></div></div>
+        <div class="nc locked"><div class="nc-num">07</div><div class="nc-name">Фінанси<span class="nc-lock">🔒</span></div></div>
+        <div class="nc locked"><div class="nc-num">08</div><div class="nc-name">Цілі<span class="nc-lock">🔒</span></div></div>
+        <div class="nc locked"><div class="nc-num">09</div><div class="nc-name">Щоденник<span class="nc-lock">🔒</span></div></div>
+        <div class="nc locked"><div class="nc-num">10</div><div class="nc-name">Ідеї<span class="nc-lock">🔒</span></div></div>
+        <div class="nc locked"><div class="nc-num">11</div><div class="nc-name">Зустрічі<span class="nc-lock">🔒</span></div></div>
+        <div class="nc locked"><div class="nc-num">12</div><div class="nc-name">Дайджест<span class="nc-lock">🔒</span></div></div>
       </div>
 
       <!-- Quick add -->
       <div class="quick-add">
         <div class="qa-label">Швидко додати</div>
         <div class="qa-buttons">
-          <div class="qa-btn">
-            <span class="qa-btn-icon">💧</span>
-            <span class="qa-btn-text">+ Воду</span>
-          </div>
-          <div class="qa-btn">
-            <span class="qa-btn-icon">✅</span>
-            <span class="qa-btn-text">+ Задачу</span>
-          </div>
-          <div class="qa-btn">
-            <span class="qa-btn-icon">📝</span>
-            <span class="qa-btn-text">+ Нотатку</span>
-          </div>
-          <div class="qa-btn">
-            <span class="qa-btn-icon">🍽</span>
-            <span class="qa-btn-text">+ Їжу</span>
-          </div>
+          <div class="qa-btn"><div class="qa-icon">💧</div><div class="qa-text">Воду</div></div>
+          <div class="qa-btn"><div class="qa-icon">✅</div><div class="qa-text">Задачу</div></div>
+          <div class="qa-btn"><div class="qa-icon">📝</div><div class="qa-text">Нотатку</div></div>
+          <div class="qa-btn"><div class="qa-icon">🍽</div><div class="qa-text">Їжу</div></div>
         </div>
       </div>
 
-      <!-- Daily summary rows -->
+      <!-- Дайджест дня -->
       <div class="hrow">
-        <div>
-          <div class="hl">Вода</div>
-          <div class="hbar"><div class="hbar-fill" style="width:62%"></div></div>
-        </div>
+        <div><div class="hl">Вода</div><div class="hbar"><div class="hbar-fill" style="width:62%"></div></div></div>
         <div><div class="hval">1240</div><div class="hsub">з 2000 мл</div></div>
       </div>
       <div class="hrow">
-        <div>
-          <div class="hl">Ритуали</div>
-          <div class="hbar"><div class="hbar-fill" style="width:75%"></div></div>
-        </div>
+        <div><div class="hl">Ритуали</div><div class="hbar"><div class="hbar-fill" style="width:75%"></div></div></div>
         <div><div class="hval">3/4</div><div class="hsub">75%</div></div>
       </div>
       <div class="hrow">
-        <div>
-          <div class="hl">Завдання</div>
-          <div class="hbar"><div class="hbar-fill" style="width:40%"></div></div>
-        </div>
+        <div><div class="hl">Завдання</div><div class="hbar"><div class="hbar-fill" style="width:40%"></div></div></div>
         <div><div class="hval">2</div><div class="hsub">виконано</div></div>
       </div>
       <div class="hrow">
-        <div>
-          <div class="hl">Калорії</div>
-          <div class="hbar"><div class="hbar-fill" style="width:55%"></div></div>
-        </div>
+        <div><div class="hl">Калорії</div><div class="hbar"><div class="hbar-fill" style="width:55%"></div></div></div>
         <div><div class="hval">1100</div><div class="hsub">з 2000</div></div>
       </div>
     </div>
   </div>
 
-  <!-- ══════ SCREEN 3: CHARACTER ══════ -->
+  <!-- ══ ПРОФІЛЬ (окреме вікно) ══ -->
   <div class="screen-wrap">
-    <div class="screen-label">02 · Персонаж</div>
+    <div class="screen-label">Профіль · ⚔️ кнопка</div>
     <div class="phone">
       <div class="sys-bar">
-        <div class="sb-item"><div class="sb-val hp-hi">78</div><div class="sb-key">HP</div></div>
-        <div class="sb-div"></div>
-        <div class="sb-item"><div class="sb-val xp">lv 3</div><div class="sb-key">рівень</div></div>
-        <div class="sb-div"></div>
-        <div class="sb-item"><div class="sb-val xp">+14</div><div class="sb-key">xp сьогодні</div></div>
-        <div class="sb-div"></div>
-        <div class="sb-item"><div class="sb-val">5🔥</div><div class="sb-key">стрік</div></div>
+        <div class="sb-left">
+          <div class="sb-item"><div class="sb-val hp">78</div><div class="sb-key">HP</div></div>
+          <div class="sb-div"></div>
+          <div class="sb-item"><div class="sb-val xp">lv 3</div><div class="sb-key">рівень</div></div>
+          <div class="sb-div"></div>
+          <div class="sb-item"><div class="sb-val xp">+14</div><div class="sb-key">xp</div></div>
+          <div class="sb-div"></div>
+          <div class="sb-item"><div class="sb-val">5🔥</div><div class="sb-key">стрік</div></div>
+        </div>
+        <div class="profile-btn" style="background:#333; border-color:#555;">⚔️</div>
       </div>
 
-      <div class="nav-grid">
-        <div class="nc"><div class="nc-num">01</div><div class="nc-name">🏠 дім</div></div>
-        <div class="nc on"><div class="nc-num">02</div><div class="nc-name">персонаж</div></div>
-        <div class="nc"><div class="nc-num">03</div><div class="nc-name">вода</div></div>
-        <div class="nc"><div class="nc-num">04</div><div class="nc-name">ритуали</div></div>
-        <div class="nc"><div class="nc-num">05</div><div class="nc-name">завдання</div></div>
-        <div class="nc"><div class="nc-num">06</div><div class="nc-name">їжа</div></div>
+      <!-- герой профілю -->
+      <div class="prof-hero">
+        <div class="prof-avatar">⚔️</div>
+        <div>
+          <div class="prof-name">Олексій</div>
+          <div class="prof-sub">my-os · 840 xp · 5-денний стрік</div>
+        </div>
+        <div class="prof-lv">LV 3</div>
       </div>
 
-      <!-- Character hero -->
-      <div class="char-hero">
-        <div class="char-avatar">⚔️</div>
-        <div class="char-info">
-          <div class="char-name">Олексій</div>
-          <div class="char-sub">840 XP · Дисциплінований</div>
+      <!-- HP -->
+      <div class="hp-row">
+        <div class="hp-head">
+          <div class="hp-lbl">HP · Здоров'я</div>
+          <div class="hp-num">78 / 100</div>
         </div>
-        <div class="char-lv-badge">LV 3</div>
+        <div class="hp-bg"><div class="hp-fill" style="width:78%"></div></div>
+        <div class="hp-hint">▲ +3 вчора — вода ✓ · ритуали 3/4 · сон ✓</div>
       </div>
 
-      <!-- HP bar — my addition -->
-      <div class="hp-section">
-        <div class="hp-header">
-          <div class="hp-label">HP · Здоров'я</div>
-          <div class="hp-val hi">78 / 100</div>
+      <!-- XP -->
+      <div class="xp-row">
+        <div class="hp-head">
+          <div class="hp-lbl" style="color:#4338ca">XP · До рівня 4</div>
+          <div class="hp-num" style="color:#4338ca; font-size:14px">840 / 1000</div>
         </div>
-        <div class="hp-bar-bg"><div class="hp-bar-fill hp-fill-hi"></div></div>
-        <div class="hp-hint">▲ +3 за вчора — вода, ритуали, сон</div>
+        <div class="hp-bg"><div class="hp-fill" style="width:84%; background:#4338ca"></div></div>
+        <div class="hp-hint" style="color:#a5b4fc">залишилось 160 xp</div>
       </div>
 
-      <!-- XP to next level -->
-      <div class="hp-section" style="background:rgba(67,56,202,0.04); border-color:rgba(67,56,202,0.15)">
-        <div class="hp-header">
-          <div class="hp-label" style="color:#4338ca">XP · прогрес рівня</div>
-          <div class="hp-val" style="color:#4338ca; font-size:14px">840 / 1000</div>
-        </div>
-        <div class="hp-bar-bg"><div class="hp-bar-fill" style="background:#4338ca; width:84%"></div></div>
-        <div class="hp-hint" style="color:#a5b4fc">160 XP до рівня 4</div>
-      </div>
-
-      <!-- Characteristics -->
-      <div class="stat-section">
-        <div class="stat-section-title">Характеристики</div>
-        <div class="stat-row">
-          <div class="stat-name">💪 Сила</div>
-          <div class="stat-bar-wrap"><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:30%"></div></div></div>
-          <div class="stat-lv">lv2 · 30xp</div>
-        </div>
-        <div class="stat-row">
-          <div class="stat-name">🔥 Дисципліна</div>
-          <div class="stat-bar-wrap"><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:72%"></div></div></div>
-          <div class="stat-lv">lv4 · 72xp</div>
-        </div>
-        <div class="stat-row">
-          <div class="stat-name">❤️ Здоров'я</div>
-          <div class="stat-bar-wrap"><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:58%"></div></div></div>
-          <div class="stat-lv">lv3 · 58xp</div>
-        </div>
-        <div class="stat-row">
-          <div class="stat-name">🥗 Харчування</div>
-          <div class="stat-bar-wrap"><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:45%"></div></div></div>
-          <div class="stat-lv">lv2 · 45xp</div>
-        </div>
-        <div class="stat-row">
-          <div class="stat-name">🧘 Рефлексія</div>
-          <div class="stat-bar-wrap"><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:20%"></div></div></div>
-          <div class="stat-lv">lv1 · 20xp</div>
-        </div>
-        <div class="stat-row">
-          <div class="stat-name">🧠 Інтелект</div>
-          <div class="stat-bar-wrap"><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:35%"></div></div></div>
-          <div class="stat-lv">lv2 · 35xp</div>
-        </div>
+      <!-- Характеристики -->
+      <div class="stats-section">
+        <div class="stats-title">Характеристики</div>
+        <div class="stat-r"><div class="stat-n">💪 Сила</div><div class="stat-b"><div class="stat-bf" style="width:30%"></div></div><div class="stat-l">lv2·30xp</div></div>
+        <div class="stat-r"><div class="stat-n">🏃 Витривалість</div><div class="stat-b"><div class="stat-bf" style="width:18%"></div></div><div class="stat-l">lv1·18xp</div></div>
+        <div class="stat-r"><div class="stat-n">🔥 Дисципліна</div><div class="stat-b"><div class="stat-bf" style="width:72%"></div></div><div class="stat-l">lv4·72xp</div></div>
+        <div class="stat-r"><div class="stat-n">❤️ Здоров'я</div><div class="stat-b"><div class="stat-bf" style="width:58%"></div></div><div class="stat-l">lv3·58xp</div></div>
+        <div class="stat-r"><div class="stat-n">🥗 Харчування</div><div class="stat-b"><div class="stat-bf" style="width:45%"></div></div><div class="stat-l">lv2·45xp</div></div>
+        <div class="stat-r"><div class="stat-n">🧘 Рефлексія</div><div class="stat-b"><div class="stat-bf" style="width:20%"></div></div><div class="stat-l">lv1·20xp</div></div>
+        <div class="stat-r"><div class="stat-n">💰 Фінанси</div><div class="stat-b"><div class="stat-bf" style="width:10%"></div></div><div class="stat-l">lv1·10xp</div></div>
+        <div class="stat-r"><div class="stat-n">🧠 Інтелект</div><div class="stat-b"><div class="stat-bf" style="width:35%"></div></div><div class="stat-l">lv2·35xp</div></div>
       </div>
     </div>
   </div>
