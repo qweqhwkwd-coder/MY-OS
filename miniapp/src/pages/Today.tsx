@@ -5,10 +5,10 @@ import type { TodayData } from '../api'
 type Modal = 'water' | 'task' | 'note' | 'food' | null
 
 const QUICK_BUTTONS: { id: Modal; icon: string; label: string }[] = [
-  { id: 'water', icon: '💧', label: 'Воду' },
-  { id: 'task',  icon: '✅', label: 'Задачу' },
-  { id: 'note',  icon: '📝', label: 'Нотатку' },
-  { id: 'food',  icon: '🍽', label: 'Їжу' },
+  { id: 'water', icon: '💧', label: 'ВОДУ' },
+  { id: 'task',  icon: '✅', label: 'ЗАДАЧУ' },
+  { id: 'note',  icon: '📋', label: 'НОТАТКУ' },
+  { id: 'food',  icon: '🍽', label: 'ЇЖУ' },
 ]
 
 export function Today({ initData, onDataChange }: { initData: string; onDataChange?: () => void }) {
@@ -81,6 +81,9 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
   return (
     <div style={{ color: 'var(--ink)' }}>
       {/* Quick-add */}
+      <div className="px-4 py-2 font-mono text-xs" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
+        ШВИДКО ДОДАТИ
+      </div>
       <div className="grid grid-cols-4" style={{ borderBottom: '1px solid var(--subtle)' }}>
         {QUICK_BUTTONS.map((btn, idx) => (
           <button
@@ -95,41 +98,48 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
         ))}
       </div>
 
-      {/* Section label */}
-      <div className="px-4 py-2 font-mono text-xs" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
-        СЬОГОДНІ
-      </div>
-
       {/* Digest rows */}
       <div>
-        <div className="px-4 py-4 space-y-2" style={{ borderBottom: '1px solid var(--subtle)' }}>
-          <div className="flex items-center justify-between">
-            <span className="font-condensed text-sm">💧 Вода</span>
-            <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{data.water} / {data.water_goal} мл</span>
+        <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--subtle)' }}>
+          <div className="flex items-baseline justify-between mb-2">
+            <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>ВОДА</span>
+            <div className="text-right">
+              <span className="font-condensed font-bold text-xl">{data.water}</span>
+              <span className="font-mono text-xs ml-1" style={{ color: 'var(--muted)' }}>з {data.water_goal} мл</span>
+            </div>
           </div>
-          <div className="w-full h-1.5 rounded-full" style={{ background: 'var(--subtle)' }}>
-            <div className="h-1.5 rounded-full transition-all" style={{ width: `${waterPct}%`, background: '#3b82f6' }} />
-          </div>
-        </div>
-
-        <div className="px-4 py-4 space-y-2" style={{ borderBottom: '1px solid var(--subtle)' }}>
-          <div className="flex items-center justify-between">
-            <span className="font-condensed text-sm">🔥 Ритуали</span>
-            <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{data.rituals_done} / {data.rituals_total}</span>
-          </div>
-          <div className="w-full h-1.5 rounded-full" style={{ background: 'var(--subtle)' }}>
-            <div className="h-1.5 rounded-full transition-all" style={{ width: `${ritualPct}%`, background: '#f97316' }} />
+          <div className="w-full h-1 rounded-full" style={{ background: 'var(--subtle)' }}>
+            <div className="h-1 rounded-full transition-all" style={{ width: `${waterPct}%`, background: '#3b82f6' }} />
           </div>
         </div>
 
-        <div className="px-4 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--subtle)' }}>
-          <span className="font-condensed text-sm">✅ Завдання</span>
-          <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{data.tasks_done} виконано</span>
+        <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--subtle)' }}>
+          <div className="flex items-baseline justify-between mb-2">
+            <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>РИТУАЛИ</span>
+            <div className="text-right">
+              <span className="font-condensed font-bold text-xl">{data.rituals_done}/{data.rituals_total}</span>
+              <span className="font-mono text-xs ml-1" style={{ color: 'var(--muted)' }}>{ritualPct}%</span>
+            </div>
+          </div>
+          <div className="w-full h-1 rounded-full" style={{ background: 'var(--subtle)' }}>
+            <div className="h-1 rounded-full transition-all" style={{ width: `${ritualPct}%`, background: '#f97316' }} />
+          </div>
         </div>
 
-        <div className="px-4 py-4 flex items-center justify-between">
-          <span className="font-condensed text-sm">🍽 Калорії</span>
-          <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{data.kcal} ккал</span>
+        <div className="px-4 py-4 flex items-baseline justify-between" style={{ borderBottom: '1px solid var(--subtle)' }}>
+          <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>ЗАВДАННЯ</span>
+          <div className="text-right">
+            <span className="font-condensed font-bold text-xl">{data.tasks_done}</span>
+            <span className="font-mono text-xs ml-1" style={{ color: 'var(--muted)' }}>виконано</span>
+          </div>
+        </div>
+
+        <div className="px-4 py-4 flex items-baseline justify-between">
+          <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>КАЛОРІЇ</span>
+          <div className="text-right">
+            <span className="font-condensed font-bold text-xl">{data.kcal}</span>
+            <span className="font-mono text-xs ml-1" style={{ color: 'var(--muted)' }}>ккал</span>
+          </div>
         </div>
       </div>
 
