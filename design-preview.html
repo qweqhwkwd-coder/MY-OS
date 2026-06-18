@@ -6,612 +6,824 @@
 <title>MY-OS — Design Preview</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+/* ─── reset ─── */
 * { margin: 0; padding: 0; box-sizing: border-box; }
+
 body {
-  background: #0c0c0c;
-  font-family: 'Inter', -apple-system, sans-serif;
-  padding: 40px 16px 60px;
-  min-height: 100vh;
+  background: #e8e5e0;
+  font-family: 'IBM Plex Sans', sans-serif;
+  padding: 48px 24px 80px;
 }
-.page-title {
-  color: #fff;
+
+.page-header {
   text-align: center;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin-bottom: 6px;
-}
-.page-sub {
-  color: #555;
-  text-align: center;
-  font-size: 14px;
   margin-bottom: 48px;
 }
-.variants {
+.page-header h1 {
+  font-family: 'IBM Plex Sans Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #666;
+}
+
+/* ─── phone frame ─── */
+.screens {
   display: flex;
-  gap: 32px;
+  gap: 28px;
   justify-content: center;
   flex-wrap: wrap;
   align-items: flex-start;
 }
-.variant { width: 340px; }
-.variant-label {
-  color: #666;
-  font-size: 11px;
-  text-align: center;
-  margin-bottom: 10px;
+.screen-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.screen-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: #999;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-.variant-desc {
-  color: #444;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 12px;
-  line-height: 1.5;
 }
 .phone {
-  border-radius: 28px;
+  width: 340px;
+  border-radius: 0;
   overflow: hidden;
-  border: 1.5px solid #2a2a2a;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  border: 1.5px solid #1a1a1a;
+  background: #f8f7f4;
+  box-shadow: 4px 4px 0 #1a1a1a;
 }
 
+/* ══════════════════════════════════════════
+   DESIGN TOKENS
+   bg:      #f8f7f4  (warm white)
+   surface: #ffffff
+   border:  #1a1a1a
+   text:    #1a1a1a
+   muted:   #888
+   accent:  #4338ca  (indigo — RPG only)
+   display: IBM Plex Sans Condensed
+   data:    IBM Plex Mono
+══════════════════════════════════════════ */
 
-/* ══════════════════════════════════════════════════
-   A — GRIMOIRE
-   Palette: amber-gold on warm near-black
-   Type: JetBrains Mono (data) + Crimson Pro (labels)
-   Signature: XP bars as glowing rune-marks
-══════════════════════════════════════════════════ */
-.grim {
-  background: #13100a;
-  font-family: 'Inter', sans-serif;
-  color: #e8d9b8;
-}
-.grim-top {
-  padding: 18px 16px 14px;
-  border-bottom: 1px solid #2a2010;
+/* ─── system status bar (my addition) ─── */
+.sys-bar {
+  background: #1a1a1a;
+  padding: 6px 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-.grim-title {
-  font-family: 'Crimson Pro', Georgia, serif;
-  font-size: 20px;
-  font-weight: 600;
-  color: #e8d9b8;
-  letter-spacing: 0.01em;
-}
-.grim-lv {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: #c9970a;
-  background: rgba(201,151,10,0.1);
-  border: 1px solid rgba(201,151,10,0.25);
-  padding: 3px 9px;
-  border-radius: 4px;
-  letter-spacing: 0.05em;
-}
-.grim-body {
-  padding: 14px 16px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.grim-row {
-  background: rgba(201,151,10,0.04);
-  border: 1px solid #2a2010;
-  border-radius: 10px;
-  padding: 12px 14px;
-}
-.grim-row-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 8px;
-}
-.grim-row-name {
-  font-family: 'Crimson Pro', serif;
-  font-size: 14px;
-  color: #c4a96a;
-  font-style: italic;
-}
-.grim-row-val {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  color: #e8d9b8;
-  letter-spacing: -0.02em;
-}
-.grim-track {
-  height: 3px;
-  background: #1e1a10;
-  border-radius: 99px;
-  overflow: hidden;
-  position: relative;
-}
-.grim-fill {
-  height: 100%;
-  border-radius: 99px;
-  position: relative;
-}
-.grim-fill::after {
-  content: '';
-  position: absolute;
-  right: 0; top: -2px;
-  width: 6px; height: 7px;
-  border-radius: 50%;
-  background: currentColor;
-  box-shadow: 0 0 6px currentColor, 0 0 12px currentColor;
-}
-.gf-water  { background: #5ba4c4; color: #5ba4c4; width: 62%; }
-.gf-ritual { background: #c9970a; color: #c9970a; width: 75%; }
-.gf-task   { background: #6ab07a; color: #6ab07a; width: 40%; }
-.gf-food   { background: #c06020; color: #c06020; width: 55%; }
-.grim-hint {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: #4a3d20;
-  margin-top: 5px;
-  letter-spacing: 0.03em;
-}
-.grim-nav {
-  display: flex;
-  border-top: 1px solid #1e1a10;
-}
-.grim-nav-item {
-  flex: 1;
-  padding: 9px 0 7px;
-  text-align: center;
-  color: #3a3020;
-  font-size: 8px;
-  font-family: 'JetBrains Mono', monospace;
+.sys-bar-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  gap: 1px;
 }
-.grim-nav-item.active { color: #c9970a; }
-.grim-icon { font-size: 16px; line-height: 1; }
-
-
-/* ══════════════════════════════════════════════════
-   B — ATHLETIC HUD
-   Palette: near-black grid, electric per-module
-   Type: Inter tight + tabular nums
-   Signature: sharp-corner tiles, stat numbers large
-══════════════════════════════════════════════════ */
-.hud {
-  background: #070b11;
-  font-family: 'Inter', sans-serif;
-  color: #e2e8f0;
-}
-.hud-top {
-  padding: 16px 14px 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-.hud-title {
+.sys-bar-val {
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 13px;
   font-weight: 600;
-  color: #94a3b8;
+  color: #ffffff;
+  line-height: 1;
+}
+.sys-bar-val.accent { color: #818cf8; }
+.sys-bar-key {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8px;
+  color: #555;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.hud-date {
-  font-size: 12px;
-  color: #334155;
-  font-variant-numeric: tabular-nums;
+.sys-bar-divider {
+  width: 1px;
+  height: 24px;
+  background: #333;
 }
-.hud-lv-row {
-  padding: 8px 14px;
+
+/* ─── grid navigation ─── */
+.nav-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-bottom: 1.5px solid #1a1a1a;
+}
+.nav-cell {
+  border-right: 1px solid #1a1a1a;
+  border-bottom: 1px solid #1a1a1a;
+  padding: 8px 10px 7px;
+  cursor: pointer;
+  background: #f8f7f4;
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  gap: 1px;
 }
-.hud-lv-num {
-  font-size: 28px;
-  font-weight: 800;
+.nav-cell:nth-child(3n) { border-right: none; }
+.nav-cell:nth-child(4),
+.nav-cell:nth-child(5),
+.nav-cell:nth-child(6) { border-bottom: none; }
+.nav-cell.active {
+  background: #1a1a1a;
+}
+.nav-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  color: #bbb;
   line-height: 1;
-  color: #e2e8f0;
-  letter-spacing: -0.04em;
-  font-variant-numeric: tabular-nums;
 }
-.hud-lv-label {
-  font-size: 11px;
-  color: #475569;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  line-height: 1.3;
+.nav-cell.active .nav-num { color: #555; }
+.nav-name {
+  font-family: 'IBM Plex Sans Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  line-height: 1.1;
 }
-.hud-body {
-  padding: 4px 14px 14px;
+.nav-cell.active .nav-name { color: #ffffff; }
+
+/* ─── page content ─── */
+.page-content {
+  padding: 0;
+}
+
+/* page title */
+.page-title-row {
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid rgba(26,26,26,0.1);
+}
+.page-title-text {
+  font-family: 'IBM Plex Sans Condensed', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+/* ─────────── SCREEN 1: СЬОГОДНІ ─────────── */
+.today-meta {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(26,26,26,0.1);
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 8px 16px;
 }
-.hud-tile {
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.02);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.hud-tile-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.07em;
+.meta-field {}
+.meta-key {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+  color: #aaa;
+  margin-bottom: 2px;
 }
-.hud-tile-val {
-  font-size: 22px;
-  font-weight: 800;
+.meta-val {
+  font-family: 'IBM Plex Sans Condensed', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
   line-height: 1;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
 }
-.hud-tile-sub {
-  font-size: 10px;
-  color: #475569;
-  margin-top: -2px;
-}
-.hud-bar-bg {
-  height: 2px;
-  background: rgba(255,255,255,0.06);
-  border-radius: 99px;
-  overflow: hidden;
-  margin-top: 4px;
-}
-.hud-bar-fill { height: 100%; border-radius: 99px; }
-.hb-water  { color: #38bdf8; }
-.hb-water .hud-tile-val  { color: #38bdf8; }
-.hb-water .hud-bar-fill  { background: #38bdf8; width: 62%; }
-.hb-ritual { color: #fb923c; }
-.hb-ritual .hud-tile-val { color: #fb923c; }
-.hb-ritual .hud-bar-fill { background: #fb923c; width: 75%; }
-.hb-task   { color: #4ade80; }
-.hb-task .hud-tile-val   { color: #4ade80; }
-.hb-task .hud-bar-fill   { background: #4ade80; width: 40%; }
-.hb-food   { color: #facc15; }
-.hb-food .hud-tile-val   { color: #facc15; }
-.hb-food .hud-bar-fill   { background: #facc15; width: 55%; }
-.hud-nav {
-  display: flex;
-  border-top: 1px solid rgba(255,255,255,0.05);
-}
-.hud-nav-item {
-  flex: 1;
-  padding: 9px 0 7px;
-  text-align: center;
-  color: #1e293b;
-  font-size: 7.5px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-.hud-nav-item.active { color: #38bdf8; }
-.hud-icon { font-size: 16px; line-height: 1; }
+.meta-val.rpg { color: #4338ca; }
 
-
-/* ══════════════════════════════════════════════════
-   C — PAPER QUEST
-   Palette: warm paper (#faf6ef) + ink dark
-   Type: DM Serif Display (headings) + Inter (body)
-   Signature: stamp-like module badges + ink lines
-══════════════════════════════════════════════════ */
-.paper {
-  background: #faf6ef;
-  font-family: 'Inter', sans-serif;
-  color: #1a1410;
-}
-.paper-top {
-  padding: 20px 18px 14px;
-  border-bottom: 2px solid #1a1410;
-}
-.paper-eyebrow {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: #9c8464;
-  margin-bottom: 4px;
-}
-.paper-title {
-  font-family: 'DM Serif Display', 'Crimson Pro', Georgia, serif;
-  font-size: 26px;
-  line-height: 1.1;
-  color: #1a1410;
-  letter-spacing: -0.02em;
-}
-.paper-title em {
-  font-style: italic;
-  color: #7a5c35;
-}
-.paper-body {
-  padding: 14px 18px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-.paper-item {
-  padding: 12px 0;
-  border-bottom: 1px solid rgba(26,20,16,0.1);
+.today-rows {}
+.today-row {
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(26,26,26,0.08);
   display: grid;
   grid-template-columns: 1fr auto;
+  align-items: center;
   gap: 12px;
-  align-items: center;
 }
-.paper-item:last-child { border-bottom: none; }
-.paper-item-left {}
-.paper-stamp {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+.today-row:last-child { border-bottom: none; }
+.row-left {}
+.row-label {
+  font-family: 'IBM Plex Sans Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #888;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
-  padding: 2px 7px;
-  border-radius: 3px;
   margin-bottom: 5px;
-  border: 1.5px solid currentColor;
 }
-.stamp-water  { color: #2563eb; border-color: #2563eb; background: rgba(37,99,235,0.05); }
-.stamp-ritual { color: #92400e; border-color: #92400e; background: rgba(146,64,14,0.05); }
-.stamp-task   { color: #166534; border-color: #166534; background: rgba(22,101,52,0.05); }
-.stamp-food   { color: #7c2d12; border-color: #7c2d12; background: rgba(124,45,18,0.05); }
-.paper-item-name {
-  font-family: 'DM Serif Display', serif;
-  font-size: 15px;
-  color: #1a1410;
-  margin-bottom: 4px;
-}
-.paper-track {
-  height: 3px;
-  background: rgba(26,20,16,0.08);
-  border-radius: 0;
-  overflow: hidden;
+.row-bar-bg {
+  height: 2px;
+  background: rgba(26,26,26,0.08);
   width: 100%;
-  margin-top: 2px;
 }
-.paper-fill { height: 100%; }
-.pf-water  { background: #2563eb; width: 62%; }
-.pf-ritual { background: #92400e; width: 75%; }
-.pf-task   { background: #166534; width: 40%; }
-.pf-food   { background: #7c2d12; width: 55%; }
-.paper-item-right {
+.row-bar-fill { height: 100%; background: #1a1a1a; }
+.row-bar-fill.rpg-fill { background: #4338ca; }
+.row-right {
   text-align: right;
   white-space: nowrap;
 }
-.paper-val {
-  font-family: 'JetBrains Mono', monospace;
+.row-val {
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 16px;
-  font-weight: 700;
-  color: #1a1410;
+  font-weight: 600;
+  color: #1a1a1a;
   line-height: 1;
 }
-.paper-pct {
-  font-size: 10px;
-  color: #9c8464;
+.row-val.rpg { color: #4338ca; }
+.row-sub {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  color: #bbb;
   margin-top: 2px;
 }
-.paper-nav {
-  display: flex;
-  border-top: 2px solid #1a1410;
-  background: #f0ebe0;
+
+/* ─────────── SCREEN 2: РИТУАЛИ ─────────── */
+.ritual-grid {
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
-.paper-nav-item {
-  flex: 1;
-  padding: 9px 0 7px;
-  text-align: center;
-  color: #c4b49a;
-  font-size: 7.5px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  font-weight: 700;
-  letter-spacing: 0.07em;
+.ritual-card {
+  border: 1px solid rgba(26,26,26,0.15);
+  padding: 10px;
+  background: #fff;
+  position: relative;
+}
+.ritual-card.done {
+  background: #f8f7f4;
+  border-color: #1a1a1a;
+}
+.ritual-close {
+  position: absolute;
+  top: 6px; right: 8px;
+  font-size: 9px;
+  color: #ccc;
+}
+.ritual-name {
+  font-family: 'IBM Plex Sans Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
   text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
+  padding-right: 12px;
+  line-height: 1.2;
 }
-.paper-nav-item.active { color: #1a1410; }
-.paper-icon { font-size: 16px; line-height: 1; }
+.ritual-streak-bar {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+.streak-dot {
+  height: 3px;
+  flex: 1;
+  background: rgba(26,26,26,0.1);
+}
+.streak-dot.filled { background: #1a1a1a; }
+.streak-dot.filled.rpg { background: #4338ca; }
+.ritual-streak-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  color: #bbb;
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+}
+.ritual-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.ritual-btn {
+  padding: 5px 0;
+  font-family: 'IBM Plex Sans Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  border: 1px solid rgba(26,26,26,0.2);
+  cursor: pointer;
+  color: #888;
+  background: transparent;
+}
+.ritual-btn.yes {
+  background: #1a1a1a;
+  color: #fff;
+  border-color: #1a1a1a;
+}
+.ritual-checkmark {
+  font-size: 18px;
+  color: #1a1a1a;
+  margin: 4px 0 8px;
+}
+.ritual-xp-badge {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  color: #4338ca;
+  border: 1px solid #4338ca;
+  padding: 1px 5px;
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+}
+
+/* ─────────── SCREEN 3: ВОДА ─────────── */
+.water-hero {
+  padding: 20px 14px 16px;
+  border-bottom: 1px solid rgba(26,26,26,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+.water-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 52px;
+  font-weight: 600;
+  color: #1a1a1a;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.water-unit {
+  font-family: 'IBM Plex Sans Condensed', sans-serif;
+  font-size: 13px;
+  color: #aaa;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.water-goal-row {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: #aaa;
+  margin-bottom: 10px;
+}
+.water-goal-bar {
+  height: 2px;
+  background: rgba(26,26,26,0.1);
+  width: 100%;
+  position: relative;
+}
+.water-goal-fill {
+  height: 100%;
+  width: 62%;
+  background: #1a1a1a;
+}
+
+.water-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  border-top: 1px solid rgba(26,26,26,0.1);
+}
+.water-btn {
+  padding: 14px 0;
+  text-align: center;
+  border-right: 1px solid rgba(26,26,26,0.1);
+  cursor: pointer;
+}
+.water-btn:last-child { border-right: none; }
+.water-btn-val {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  line-height: 1;
+}
+.water-btn-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  color: #bbb;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.water-log {
+  padding: 10px 14px;
+  border-top: 1px solid rgba(26,26,26,0.1);
+}
+.water-log-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  color: #bbb;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.water-log-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(26,26,26,0.05);
+}
+.water-log-row:last-child { border-bottom: none; }
+.water-log-time {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: #aaa;
+}
+.water-log-amt {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.water-xp-notice {
+  margin: 0 14px 10px;
+  padding: 8px 10px;
+  border: 1px solid #4338ca;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.water-xp-text {
+  font-family: 'IBM Plex Sans Condensed', sans-serif;
+  font-size: 12px;
+  color: #4338ca;
+  font-weight: 600;
+}
+.water-xp-val {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: #4338ca;
+  font-weight: 600;
+}
 </style>
 </head>
 <body>
 
-<div class="page-title">MY-OS — Три дизайн-напрямки</div>
-<p class="page-sub">Відкрий в браузері, оціни кожен і скажи який подобається.</p>
+<div class="page-header">
+  <h1>MY-OS · Design Direction</h1>
+</div>
 
-<div class="variants">
+<div class="screens">
 
-  <!-- ══ A: GRIMOIRE ══ -->
-  <div class="variant">
-    <div class="variant-label">A — Grimoire</div>
+  <!-- ══ SCREEN 1: СЬОГОДНІ ══ -->
+  <div class="screen-wrap">
+    <div class="screen-label">01 · Сьогодні</div>
     <div class="phone">
-      <div class="grim">
-        <div class="grim-top">
-          <div class="grim-title">Хроніки дня</div>
-          <div class="grim-lv">LV 3</div>
+      <!-- System status bar — my addition -->
+      <div class="sys-bar">
+        <div class="sys-bar-item">
+          <div class="sys-bar-val accent">3</div>
+          <div class="sys-bar-key">рівень</div>
         </div>
-        <div class="grim-body">
-          <div class="grim-row">
-            <div class="grim-row-top">
-              <div class="grim-row-name">💧 Вода</div>
-              <div class="grim-row-val">1240 / 2000</div>
-            </div>
-            <div class="grim-track"><div class="grim-fill gf-water"></div></div>
-            <div class="grim-hint">62% · +2 XP при досягненні</div>
+        <div class="sys-bar-divider"></div>
+        <div class="sys-bar-item">
+          <div class="sys-bar-val accent">+14</div>
+          <div class="sys-bar-key">XP сьогодні</div>
+        </div>
+        <div class="sys-bar-divider"></div>
+        <div class="sys-bar-item">
+          <div class="sys-bar-val">5</div>
+          <div class="sys-bar-key">стрік днів</div>
+        </div>
+        <div class="sys-bar-divider"></div>
+        <div class="sys-bar-item">
+          <div class="sys-bar-val">СР</div>
+          <div class="sys-bar-key">18.06</div>
+        </div>
+      </div>
+
+      <!-- Nav grid -->
+      <div class="nav-grid">
+        <div class="nav-cell active">
+          <div class="nav-num">01</div>
+          <div class="nav-name">сьогодні</div>
+        </div>
+        <div class="nav-cell">
+          <div class="nav-num">02</div>
+          <div class="nav-name">стати</div>
+        </div>
+        <div class="nav-cell">
+          <div class="nav-num">03</div>
+          <div class="nav-name">вода</div>
+        </div>
+        <div class="nav-cell">
+          <div class="nav-num">04</div>
+          <div class="nav-name">ритуали</div>
+        </div>
+        <div class="nav-cell">
+          <div class="nav-num">05</div>
+          <div class="nav-name">завдання</div>
+        </div>
+        <div class="nav-cell">
+          <div class="nav-num">06</div>
+          <div class="nav-name">їжа</div>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <!-- Meta block (inspired by ref screen 3) -->
+        <div class="today-meta">
+          <div class="meta-field">
+            <div class="meta-key">система</div>
+            <div class="meta-val">my-os v1</div>
           </div>
-          <div class="grim-row">
-            <div class="grim-row-top">
-              <div class="grim-row-name">🔥 Ритуали</div>
-              <div class="grim-row-val">3 / 4</div>
-            </div>
-            <div class="grim-track"><div class="grim-fill gf-ritual"></div></div>
-            <div class="grim-hint">75% · +6 XP зароблено</div>
+          <div class="meta-field">
+            <div class="meta-key">загальний xp</div>
+            <div class="meta-val rpg">840 xp</div>
           </div>
-          <div class="grim-row">
-            <div class="grim-row-top">
-              <div class="grim-row-name">✅ Завдання</div>
-              <div class="grim-row-val">2 виконано</div>
-            </div>
-            <div class="grim-track"><div class="grim-fill gf-task"></div></div>
-            <div class="grim-hint">сьогодні · +6 XP</div>
+          <div class="meta-field">
+            <div class="meta-key">формат</div>
+            <div class="meta-val">tg webapp</div>
           </div>
-          <div class="grim-row">
-            <div class="grim-row-top">
-              <div class="grim-row-name">🍽 Харчування</div>
-              <div class="grim-row-val">1100 ккал</div>
-            </div>
-            <div class="grim-track"><div class="grim-fill gf-food"></div></div>
-            <div class="grim-hint">55% · ціль 2000</div>
+          <div class="meta-field">
+            <div class="meta-key">наступний рівень</div>
+            <div class="meta-val rpg">−160 xp</div>
           </div>
         </div>
-        <div class="grim-nav">
-          <div class="grim-nav-item active"><div class="grim-icon">📅</div>День</div>
-          <div class="grim-nav-item"><div class="grim-icon">⚔️</div>Стати</div>
-          <div class="grim-nav-item"><div class="grim-icon">💧</div>Вода</div>
-          <div class="grim-nav-item"><div class="grim-icon">🔥</div>Ритуали</div>
-          <div class="grim-nav-item"><div class="grim-icon">✅</div>Задачі</div>
-          <div class="grim-nav-item"><div class="grim-icon">🍽</div>Їжа</div>
+
+        <!-- Daily rows -->
+        <div class="today-rows">
+          <div class="today-row">
+            <div class="row-left">
+              <div class="row-label">вода</div>
+              <div class="row-bar-bg"><div class="row-bar-fill" style="width:62%"></div></div>
+            </div>
+            <div class="row-right">
+              <div class="row-val">1240</div>
+              <div class="row-sub">з 2000 мл · 62%</div>
+            </div>
+          </div>
+          <div class="today-row">
+            <div class="row-left">
+              <div class="row-label">ритуали</div>
+              <div class="row-bar-bg"><div class="row-bar-fill" style="width:75%"></div></div>
+            </div>
+            <div class="row-right">
+              <div class="row-val">3/4</div>
+              <div class="row-sub">75% дня</div>
+            </div>
+          </div>
+          <div class="today-row">
+            <div class="row-left">
+              <div class="row-label">завдання</div>
+              <div class="row-bar-bg"><div class="row-bar-fill" style="width:40%"></div></div>
+            </div>
+            <div class="row-right">
+              <div class="row-val">2</div>
+              <div class="row-sub">виконано</div>
+            </div>
+          </div>
+          <div class="today-row">
+            <div class="row-left">
+              <div class="row-label">калорії</div>
+              <div class="row-bar-bg"><div class="row-bar-fill" style="width:55%"></div></div>
+            </div>
+            <div class="row-right">
+              <div class="row-val">1100</div>
+              <div class="row-sub">з 2000 ккал</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-    <div class="variant-desc">Тепло-коричневий фон · Amber/gold акцент<br>Serif + mono шрифт · Магічний кодекс</div>
   </div>
 
-  <!-- ══ B: ATHLETIC HUD ══ -->
-  <div class="variant">
-    <div class="variant-label">B — Athletic HUD</div>
+  <!-- ══ SCREEN 2: РИТУАЛИ ══ -->
+  <div class="screen-wrap">
+    <div class="screen-label">04 · Ритуали</div>
     <div class="phone">
-      <div class="hud">
-        <div class="hud-top">
-          <div class="hud-title">Сьогодні</div>
-          <div class="hud-date">СР 18 ЧЕРВ</div>
+      <div class="sys-bar">
+        <div class="sys-bar-item">
+          <div class="sys-bar-val accent">3</div>
+          <div class="sys-bar-key">рівень</div>
         </div>
-        <div class="hud-lv-row">
-          <div class="hud-lv-num">3</div>
-          <div class="hud-lv-label">рівень<br>840 XP</div>
+        <div class="sys-bar-divider"></div>
+        <div class="sys-bar-item">
+          <div class="sys-bar-val accent">+14</div>
+          <div class="sys-bar-key">XP сьогодні</div>
         </div>
-        <div class="hud-body">
-          <div class="hud-tile hb-water">
-            <div class="hud-tile-label">💧 Вода</div>
-            <div class="hud-tile-val">1240</div>
-            <div class="hud-tile-sub">з 2000 мл</div>
-            <div class="hud-bar-bg"><div class="hud-bar-fill"></div></div>
-          </div>
-          <div class="hud-tile hb-ritual">
-            <div class="hud-tile-label">🔥 Ритуали</div>
-            <div class="hud-tile-val">3/4</div>
-            <div class="hud-tile-sub">75% сьогодні</div>
-            <div class="hud-bar-bg"><div class="hud-bar-fill"></div></div>
-          </div>
-          <div class="hud-tile hb-task">
-            <div class="hud-tile-label">✅ Завдання</div>
-            <div class="hud-tile-val">2</div>
-            <div class="hud-tile-sub">виконано</div>
-            <div class="hud-bar-bg"><div class="hud-bar-fill"></div></div>
-          </div>
-          <div class="hud-tile hb-food">
-            <div class="hud-tile-label">🍽 Калорії</div>
-            <div class="hud-tile-val">1100</div>
-            <div class="hud-tile-sub">з 2000 ккал</div>
-            <div class="hud-bar-bg"><div class="hud-bar-fill"></div></div>
-          </div>
+        <div class="sys-bar-divider"></div>
+        <div class="sys-bar-item">
+          <div class="sys-bar-val">5</div>
+          <div class="sys-bar-key">стрік днів</div>
         </div>
-        <div class="hud-nav">
-          <div class="hud-nav-item active"><div class="hud-icon">📅</div>День</div>
-          <div class="hud-nav-item"><div class="hud-icon">⚔️</div>Стати</div>
-          <div class="hud-nav-item"><div class="hud-icon">💧</div>Вода</div>
-          <div class="hud-nav-item"><div class="hud-icon">🔥</div>Ритуали</div>
-          <div class="hud-nav-item"><div class="hud-icon">✅</div>Задачі</div>
-          <div class="hud-nav-item"><div class="hud-icon">🍽</div>Їжа</div>
+        <div class="sys-bar-divider"></div>
+        <div class="sys-bar-item">
+          <div class="sys-bar-val">СР</div>
+          <div class="sys-bar-key">18.06</div>
+        </div>
+      </div>
+
+      <div class="nav-grid">
+        <div class="nav-cell">
+          <div class="nav-num">01</div>
+          <div class="nav-name">сьогодні</div>
+        </div>
+        <div class="nav-cell">
+          <div class="nav-num">02</div>
+          <div class="nav-name">стати</div>
+        </div>
+        <div class="nav-cell">
+          <div class="nav-num">03</div>
+          <div class="nav-name">вода</div>
+        </div>
+        <div class="nav-cell active">
+          <div class="nav-num">04</div>
+          <div class="nav-name">ритуали</div>
+        </div>
+        <div class="nav-cell">
+          <div class="nav-num">05</div>
+          <div class="nav-name">завдання</div>
+        </div>
+        <div class="nav-cell">
+          <div class="nav-num">06</div>
+          <div class="nav-name">їжа</div>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <div class="page-title-row">
+          <div class="page-title-text">ритуали</div>
+        </div>
+
+        <div class="ritual-grid">
+          <!-- done ritual -->
+          <div class="ritual-card done">
+            <div class="ritual-close">×</div>
+            <div class="ritual-name">Біг · Run-Day</div>
+            <div class="ritual-xp-badge">+2 XP</div>
+            <div class="ritual-streak-bar">
+              <div class="streak-dot filled rpg"></div>
+              <div class="streak-dot filled rpg"></div>
+              <div class="streak-dot filled rpg"></div>
+              <div class="streak-dot"></div>
+              <div class="streak-dot"></div>
+              <div class="streak-dot"></div>
+              <div class="streak-dot"></div>
+            </div>
+            <div class="ritual-streak-label">STREAK 3 / 7</div>
+            <div class="ritual-checkmark">✓</div>
+          </div>
+
+          <!-- pending ritual -->
+          <div class="ritual-card">
+            <div class="ritual-close">×</div>
+            <div class="ritual-name">Вітаміни</div>
+            <div style="height:18px"></div>
+            <div class="ritual-streak-bar">
+              <div class="streak-dot filled"></div>
+              <div class="streak-dot filled"></div>
+              <div class="streak-dot filled"></div>
+              <div class="streak-dot filled"></div>
+              <div class="streak-dot filled"></div>
+              <div class="streak-dot"></div>
+              <div class="streak-dot"></div>
+            </div>
+            <div class="ritual-streak-label">STREAK 5 / 7</div>
+            <div class="ritual-btns">
+              <div class="ritual-btn yes">ТАК</div>
+              <div class="ritual-btn">НІ</div>
+            </div>
+          </div>
+
+          <!-- pending ritual -->
+          <div class="ritual-card">
+            <div class="ritual-close">×</div>
+            <div class="ritual-name">Медитація</div>
+            <div style="height:18px"></div>
+            <div class="ritual-streak-bar">
+              <div class="streak-dot filled"></div>
+              <div class="streak-dot filled"></div>
+              <div class="streak-dot filled"></div>
+              <div class="streak-dot filled"></div>
+              <div class="streak-dot filled"></div>
+              <div class="streak-dot"></div>
+              <div class="streak-dot"></div>
+            </div>
+            <div class="ritual-streak-label">STREAK 5 / 7</div>
+            <div class="ritual-btns">
+              <div class="ritual-btn yes">ТАК</div>
+              <div class="ritual-btn">НІ</div>
+            </div>
+          </div>
+
+          <!-- done ritual -->
+          <div class="ritual-card done">
+            <div class="ritual-close">×</div>
+            <div class="ritual-name">Дихання</div>
+            <div class="ritual-xp-badge">+2 XP</div>
+            <div class="ritual-streak-bar">
+              <div class="streak-dot filled rpg"></div>
+              <div class="streak-dot filled rpg"></div>
+              <div class="streak-dot filled rpg"></div>
+              <div class="streak-dot filled rpg"></div>
+              <div class="streak-dot filled rpg"></div>
+              <div class="streak-dot"></div>
+              <div class="streak-dot"></div>
+            </div>
+            <div class="ritual-streak-label">STREAK 5 / 7</div>
+            <div class="ritual-checkmark">✓</div>
+          </div>
         </div>
       </div>
     </div>
-    <div class="variant-desc">Майже-чорний фон · Плитки 2×2<br>Electric-кольори по модулю · Цифри крупно</div>
   </div>
 
-  <!-- ══ C: PAPER QUEST ══ -->
-  <div class="variant">
-    <div class="variant-label">C — Paper Quest</div>
+  <!-- ══ SCREEN 3: ВОДА ══ -->
+  <div class="screen-wrap">
+    <div class="screen-label">03 · Вода</div>
     <div class="phone">
-      <div class="paper">
-        <div class="paper-top">
-          <div class="paper-eyebrow">Персональний журнал</div>
-          <div class="paper-title">Сьогодні —<br><em>середа</em></div>
+      <div class="sys-bar">
+        <div class="sys-bar-item">
+          <div class="sys-bar-val accent">3</div>
+          <div class="sys-bar-key">рівень</div>
         </div>
-        <div class="paper-body">
-          <div class="paper-item">
-            <div class="paper-item-left">
-              <div class="paper-stamp stamp-water">💧 Вода</div>
-              <div class="paper-item-name">Гідрація</div>
-              <div class="paper-track"><div class="paper-fill pf-water"></div></div>
-            </div>
-            <div class="paper-item-right">
-              <div class="paper-val">1240</div>
-              <div class="paper-pct">з 2000 мл</div>
-            </div>
+        <div class="sys-bar-divider"></div>
+        <div class="sys-bar-item">
+          <div class="sys-bar-val accent">+14</div>
+          <div class="sys-bar-key">XP сьогодні</div>
+        </div>
+        <div class="sys-bar-divider"></div>
+        <div class="sys-bar-item">
+          <div class="sys-bar-val">5</div>
+          <div class="sys-bar-key">стрік днів</div>
+        </div>
+        <div class="sys-bar-divider"></div>
+        <div class="sys-bar-item">
+          <div class="sys-bar-val">СР</div>
+          <div class="sys-bar-key">18.06</div>
+        </div>
+      </div>
+
+      <div class="nav-grid">
+        <div class="nav-cell">
+          <div class="nav-num">01</div>
+          <div class="nav-name">сьогодні</div>
+        </div>
+        <div class="nav-cell">
+          <div class="nav-num">02</div>
+          <div class="nav-name">стати</div>
+        </div>
+        <div class="nav-cell active">
+          <div class="nav-num">03</div>
+          <div class="nav-name">вода</div>
+        </div>
+        <div class="nav-cell">
+          <div class="nav-num">04</div>
+          <div class="nav-name">ритуали</div>
+        </div>
+        <div class="nav-cell">
+          <div class="nav-num">05</div>
+          <div class="nav-name">завдання</div>
+        </div>
+        <div class="nav-cell">
+          <div class="nav-num">06</div>
+          <div class="nav-name">їжа</div>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <!-- Big number hero -->
+        <div class="water-hero">
+          <div>
+            <div class="water-num">1240</div>
+            <div class="water-goal-row">ціль — 2000 мл · 62%</div>
+            <div class="water-goal-bar"><div class="water-goal-fill"></div></div>
           </div>
-          <div class="paper-item">
-            <div class="paper-item-left">
-              <div class="paper-stamp stamp-ritual">🔥 Ритуали</div>
-              <div class="paper-item-name">Звички дня</div>
-              <div class="paper-track"><div class="paper-fill pf-ritual"></div></div>
-            </div>
-            <div class="paper-item-right">
-              <div class="paper-val">3/4</div>
-              <div class="paper-pct">75%</div>
-            </div>
-          </div>
-          <div class="paper-item">
-            <div class="paper-item-left">
-              <div class="paper-stamp stamp-task">✅ Задачі</div>
-              <div class="paper-item-name">Виконано</div>
-              <div class="paper-track"><div class="paper-fill pf-task"></div></div>
-            </div>
-            <div class="paper-item-right">
-              <div class="paper-val">2</div>
-              <div class="paper-pct">сьогодні</div>
-            </div>
-          </div>
-          <div class="paper-item">
-            <div class="paper-item-left">
-              <div class="paper-stamp stamp-food">🍽 Їжа</div>
-              <div class="paper-item-name">Калорії</div>
-              <div class="paper-track"><div class="paper-fill pf-food"></div></div>
-            </div>
-            <div class="paper-item-right">
-              <div class="paper-val">1100</div>
-              <div class="paper-pct">з 2000</div>
-            </div>
+          <div class="water-unit">мл</div>
+        </div>
+
+        <!-- XP notice — my addition -->
+        <div style="padding: 10px 14px 4px">
+          <div class="water-xp-notice">
+            <div class="water-xp-text">до цілі залишилось 760 мл</div>
+            <div class="water-xp-val">+2 XP</div>
           </div>
         </div>
-        <div class="paper-nav">
-          <div class="paper-nav-item active"><div class="paper-icon">📅</div>День</div>
-          <div class="paper-nav-item"><div class="paper-icon">⚔️</div>Стати</div>
-          <div class="paper-nav-item"><div class="paper-icon">💧</div>Вода</div>
-          <div class="paper-nav-item"><div class="paper-icon">🔥</div>Ритуали</div>
-          <div class="paper-nav-item"><div class="paper-icon">✅</div>Задачі</div>
-          <div class="paper-nav-item"><div class="paper-icon">🍽</div>Їжа</div>
+
+        <!-- Add buttons -->
+        <div class="water-btns">
+          <div class="water-btn">
+            <div class="water-btn-val">+250</div>
+            <div class="water-btn-label">мл</div>
+          </div>
+          <div class="water-btn">
+            <div class="water-btn-val">+500</div>
+            <div class="water-btn-label">мл</div>
+          </div>
+          <div class="water-btn">
+            <div class="water-btn-val">+1000</div>
+            <div class="water-btn-label">мл</div>
+          </div>
+        </div>
+
+        <!-- Log -->
+        <div class="water-log">
+          <div class="water-log-title">Сьогодні</div>
+          <div class="water-log-row">
+            <div class="water-log-time">09:14</div>
+            <div class="water-log-amt">+500 мл</div>
+          </div>
+          <div class="water-log-row">
+            <div class="water-log-time">11:32</div>
+            <div class="water-log-amt">+250 мл</div>
+          </div>
+          <div class="water-log-row">
+            <div class="water-log-time">14:05</div>
+            <div class="water-log-amt">+490 мл</div>
+          </div>
         </div>
       </div>
     </div>
-    <div class="variant-desc">Бежевий папір · Чорнильна типографіка<br>DM Serif + Mono · Щоденник пригод</div>
   </div>
 
 </div>
