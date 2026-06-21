@@ -49,7 +49,8 @@ my-os-mvp/
 ├── miniapp/               # React 19 + Vite + Tailwind, статика на GitHub Pages
 └── db/migrations/
     ├── 001_mvp_schema.sql
-    ├── 003..013_*.sql      # по одному модулю на файл (002 на диске нет, см. database.md)
+    ├── 002_add_stats.sql    # +health/finance/intellect/hp (восстановлен, см. database.md)
+    ├── 003..013_*.sql       # по одному модулю на файл
     └── 014_atomic_xp_increment.sql
 ```
 
