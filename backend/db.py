@@ -175,7 +175,12 @@ def ensure_user(telegram_id: int, name: str) -> dict:
 # --- RPG ----------------------------------------------------------------------
 
 def add_xp(user_id: str, stat: str, amount: int, source: str) -> None:
-    """Начисляет XP в характеристику, логирует событие и пересчитывает уровень."""
+    """Начисляет XP в характеристику, логирует событие и пересчитывает уровень.
+
+    Прирост стата и level считаются атомарно в БД (increment_user_stat,
+    миграция 014) — read-modify-write в Python терял XP при параллельных
+    начислениях (бот + Mini App одновременно).
+    """
     supabase.table("xp_events").insert(
         {
             "user_id": user_id,
@@ -185,22 +190,10 @@ def add_xp(user_id: str, stat: str, amount: int, source: str) -> None:
         }
     ).execute()
 
-    rows = supabase.table("user_stats").select("*").eq("user_id", user_id).execute().data
-    if not rows:
-        try:
-            supabase.table("user_stats").insert({"user_id": user_id}).execute()
-        except Exception:
-            pass  # concurrent insert already created the row
-        rows = supabase.table("user_stats").select("*").eq("user_id", user_id).execute().data
-    stats = rows[0]
-    new_val = stats[stat] + amount
-
-    total = sum(stats[s] for s in STATS) - stats[stat] + new_val
-    level = total // 100
-
-    supabase.table("user_stats").update(
-        {stat: new_val, "level": level}
-    ).eq("user_id", user_id).execute()
+    supabase.rpc(
+        "increment_user_stat",
+        {"p_user_id": user_id, "p_stat": stat, "p_amount": amount},
+    ).execute()
 
 
 # --- Вода ---------------------------------------------------------------------
