@@ -8,6 +8,13 @@ as $$
 declare
   result user_stats;
 begin
+  if p_stat not in (
+    'strength', 'endurance', 'nutrition', 'discipline',
+    'reflection', 'health', 'finance', 'intellect'
+  ) then
+    raise exception 'increment_user_stat: unknown stat "%"', p_stat;
+  end if;
+
   insert into user_stats (user_id) values (p_user_id)
   on conflict (user_id) do nothing;
 

@@ -325,22 +325,13 @@ def toggle_ritual(ritual_id: str, user_id: str) -> tuple[bool, bool]:
     Начисление XP происходит здесь же — раньше оба вызывающих (бот и API)
     дублировали `if xp_eligible: add_xp(...)` по отдельности.
 
-    Проверяет, что ritual_id принадлежит user_id, ПЕРЕД тем как создавать
-    лог/начислять XP — иначе можно было отметить (и фармить XP за) чужой
-    ritual_id. Сейчас неэксплуатируемо (один юзер, ritual_id — uuid), но
-    это условие исчезает с появлением второго пользователя.
+    Принадлежность ritual_id проверяется только перед ПЕРВОЙ отметкой за день
+    (перед insert) — иначе можно было создать лог (и фармить XP) под чужой
+    ritual_id. Повторные тогглы в тот же день её не повторяют: раз лог уже
+    существует, значит принадлежность была проверена при его создании.
+    Сейчас неэксплуатируемо (один юзер, ritual_id — uuid), но это условие
+    исчезает с появлением второго пользователя.
     """
-    owned = (
-        supabase.table("rituals")
-        .select("id")
-        .eq("id", ritual_id)
-        .eq("user_id", user_id)
-        .limit(1)
-        .execute()
-    )
-    if not owned.data:
-        return False, False
-
     today = date.today().isoformat()
     res = (
         supabase.table("ritual_logs")
@@ -353,6 +344,17 @@ def toggle_ritual(ritual_id: str, user_id: str) -> tuple[bool, bool]:
     existing = res.data[0] if res.data else None
 
     if existing is None:
+        owned = (
+            supabase.table("rituals")
+            .select("id")
+            .eq("id", ritual_id)
+            .eq("user_id", user_id)
+            .limit(1)
+            .execute()
+        )
+        if not owned.data:
+            return False, False
+
         # Первый раз сегодня — вставляем и даём XP
         supabase.table("ritual_logs").insert(
             {"ritual_id": ritual_id, "user_id": user_id, "date": today, "is_done": True}
