@@ -1072,7 +1072,7 @@ async def telegram_webhook(
     request: Request,
     x_telegram_bot_api_secret_token: str = Header(default=""),
 ):
-    if x_telegram_bot_api_secret_token != WEBHOOK_SECRET:
+    if not secrets.compare_digest(x_telegram_bot_api_secret_token, WEBHOOK_SECRET):
         return Response(status_code=403)
     update = Update.model_validate(await request.json(), context={"bot": bot})
     await dp.feed_update(bot, update)
