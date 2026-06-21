@@ -21,6 +21,7 @@ from db import (
     calculate_hp,
     complete_task,
     delete_ritual_by_id,
+    delete_task_by_id,
     get_food_today,
     get_rank,
     get_rituals,
@@ -35,6 +36,7 @@ from db import (
     get_xp_today,
     ensure_user,
     rename_ritual,
+    rename_task,
     toggle_ritual,
 )
 
@@ -193,6 +195,26 @@ def api_complete_task(task_id: str, user: dict = Depends(get_current_user)):
     uid = user["id"]
     done = complete_task(task_id, uid)
     return {"done": done}
+
+
+class TaskRenameIn(BaseModel):
+    title: str
+
+
+@router.patch("/tasks/{task_id}")
+def api_rename_task(task_id: str, body: TaskRenameIn, user: dict = Depends(get_current_user)):
+    ok = rename_task(task_id, user["id"], body.title)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return {"ok": True}
+
+
+@router.delete("/tasks/{task_id}")
+def api_delete_task(task_id: str, user: dict = Depends(get_current_user)):
+    ok = delete_task_by_id(task_id, user["id"])
+    if not ok:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return {"ok": True}
 
 
 @router.get("/food")

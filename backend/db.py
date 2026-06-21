@@ -768,6 +768,28 @@ def delete_task_by_title(user_id: str, title: str) -> bool:
     return bool(res.data)
 
 
+def rename_task(task_id: str, user_id: str, title: str) -> bool:
+    res = (
+        supabase.table("tasks")
+        .update({"title": title})
+        .eq("id", task_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return bool(res.data)
+
+
+def delete_task_by_id(task_id: str, user_id: str) -> bool:
+    res = (
+        supabase.table("tasks")
+        .delete()
+        .eq("id", task_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return bool(res.data)
+
+
 def get_transactions_today(user_id: str) -> list[dict]:
     return (
         supabase.table("transactions")
