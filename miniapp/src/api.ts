@@ -53,6 +53,34 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ food_name, kcal, grams }),
     }),
+  renameRitual: (initData: string, id: string, title: string) =>
+    req<{ ok: boolean }>(`/api/rituals/${id}`, initData, {
+      method: 'PATCH',
+      body: JSON.stringify({ title }),
+    }),
+  deleteRitual: (initData: string, id: string) =>
+    req<{ ok: boolean }>(`/api/rituals/${id}`, initData, { method: 'DELETE' }),
+  renameTask: (initData: string, id: string, title: string) =>
+    req<{ ok: boolean }>(`/api/tasks/${id}`, initData, {
+      method: 'PATCH',
+      body: JSON.stringify({ title }),
+    }),
+  deleteTask: (initData: string, id: string) =>
+    req<{ ok: boolean }>(`/api/tasks/${id}`, initData, { method: 'DELETE' }),
+  inbox: (initData: string) => req<InboxItem[]>('/api/inbox', initData),
+  inboxToTask: (initData: string, id: string) =>
+    req<Task>(`/api/inbox/${id}/to-task`, initData, { method: 'POST' }),
+  inboxToDiary: (initData: string, id: string) =>
+    req<{ id: string }>(`/api/inbox/${id}/to-diary`, initData, { method: 'POST' }),
+  inboxToIdea: (initData: string, id: string) =>
+    req<{ id: string }>(`/api/inbox/${id}/to-idea`, initData, { method: 'POST' }),
+  inboxToMeeting: (initData: string, id: string, date: string, time?: string) =>
+    req<{ id: string }>(`/api/inbox/${id}/to-meeting`, initData, {
+      method: 'POST',
+      body: JSON.stringify({ date, time }),
+    }),
+  deleteInboxItem: (initData: string, id: string) =>
+    req<{ ok: boolean }>(`/api/inbox/${id}`, initData, { method: 'DELETE' }),
 }
 
 export interface TodayData {
@@ -97,6 +125,12 @@ export interface Task {
   id: string
   title: string
   is_completed: boolean
+}
+
+export interface InboxItem {
+  id: string
+  text: string
+  created_at: string
 }
 
 export interface DigestData {
