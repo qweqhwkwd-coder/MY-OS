@@ -66,20 +66,22 @@ def get_rank(avg_xp: float) -> dict:
 
 def get_streak(user_id: str) -> int:
     """Consecutive days (counting today) with at least 1 ritual done."""
-    streak = 0
     today = date.today()
+    start = (today - timedelta(days=29)).isoformat()
+    res = (
+        supabase.table("ritual_logs")
+        .select("date")
+        .eq("user_id", user_id)
+        .eq("is_done", True)
+        .gte("date", start)
+        .execute()
+    )
+    done_days = {row["date"] for row in res.data}
+
+    streak = 0
     for i in range(30):
         day = (today - timedelta(days=i)).isoformat()
-        res = (
-            supabase.table("ritual_logs")
-            .select("id")
-            .eq("user_id", user_id)
-            .eq("date", day)
-            .eq("is_done", True)
-            .limit(1)
-            .execute()
-        )
-        if res.data:
+        if day in done_days:
             streak += 1
         else:
             break
@@ -99,46 +101,65 @@ def get_xp_today(user_id: str) -> int:
     return sum(e["xp_amount"] for e in res.data)
 
 
-def calculate_hp(user_id: str) -> int:
-    """Recalculate HP from last 3 days. Saves result to user_stats. Returns 0–100."""
-    today = date.today()
-    water_goal = DEFAULT_WATER_GOAL
+def calculate_hp(user_id: str, water_goal: int | None = None) -> int:
+    """Recalculate HP from last 3 days. Saves result to user_stats. Returns 0–100.
 
-    user_row = supabase.table("users").select("water_goal").eq("id", user_id).execute()
-    if user_row.data:
-        water_goal = user_row.data[0].get("water_goal") or DEFAULT_WATER_GOAL
+    Один запрос на таблицу за весь 3-дневный диапазон вместо одного запроса
+    на (таблица × день) — раньше это было до 12 последовательных запросов.
+    `water_goal` можно передать от вызывающего кода (он обычно уже есть),
+    иначе функция сама подтянет его из таблицы users.
+    """
+    today = date.today()
+    if water_goal is None:
+        user_row = supabase.table("users").select("water_goal").eq("id", user_id).execute()
+        water_goal = user_row.data[0].get("water_goal") if user_row.data else None
+    water_goal = water_goal or DEFAULT_WATER_GOAL
 
     rituals = get_rituals(user_id)
     total_rituals = len(rituals)
+
+    start = (today - timedelta(days=2)).isoformat()
+
+    water_by_day = {
+        r["date"]: r["amount_ml"]
+        for r in supabase.table("water_logs").select("date,amount_ml")
+        .eq("user_id", user_id).gte("date", start).execute().data
+    }
+
+    ritual_done_by_day: dict[str, int] = {}
+    for r in (
+        supabase.table("ritual_logs").select("date")
+        .eq("user_id", user_id).eq("is_done", True).gte("date", start).execute().data
+    ):
+        ritual_done_by_day[r["date"]] = ritual_done_by_day.get(r["date"], 0) + 1
+
+    sleep_by_day = {
+        r["date"]: r["duration_min"]
+        for r in supabase.table("sleep_logs").select("date,duration_min")
+        .eq("user_id", user_id).gte("date", start).execute().data
+    }
+
+    kcal_by_day: dict[str, float] = {}
+    for r in (
+        supabase.table("food_logs").select("date,kcal")
+        .eq("user_id", user_id).gte("date", start).execute().data
+    ):
+        if r.get("kcal"):
+            kcal_by_day[r["date"]] = kcal_by_day.get(r["date"], 0) + r["kcal"]
 
     water_pcts, ritual_pcts, sleep_pcts, food_pcts = [], [], [], []
     for i in range(3):
         day = (today - timedelta(days=i)).isoformat()
 
-        w = supabase.table("water_logs").select("amount_ml").eq("user_id", user_id).eq("date", day).execute()
-        water_ml = w.data[0]["amount_ml"] if w.data else 0
-        water_pcts.append(min(100, round(water_ml / water_goal * 100)))
+        water_pcts.append(min(100, round(water_by_day.get(day, 0) / water_goal * 100)))
 
         if total_rituals > 0:
-            done = (
-                supabase.table("ritual_logs")
-                .select("id")
-                .eq("user_id", user_id)
-                .eq("date", day)
-                .eq("is_done", True)
-                .execute()
-            )
-            ritual_pcts.append(min(100, round(len(done.data) / total_rituals * 100)))
+            ritual_pcts.append(min(100, round(ritual_done_by_day.get(day, 0) / total_rituals * 100)))
         else:
             ritual_pcts.append(0)
 
-        sl = supabase.table("sleep_logs").select("duration_min").eq("user_id", user_id).eq("date", day).execute()
-        duration = sl.data[0]["duration_min"] if sl.data else 0
-        sleep_pcts.append(min(100, round(duration / 480 * 100)))
-
-        f = supabase.table("food_logs").select("kcal").eq("user_id", user_id).eq("date", day).execute()
-        kcal = sum(e["kcal"] for e in f.data if e.get("kcal"))
-        food_pcts.append(min(100, round(kcal / 2000 * 100)))
+        sleep_pcts.append(min(100, round(sleep_by_day.get(day, 0) / 480 * 100)))
+        food_pcts.append(min(100, round(kcal_by_day.get(day, 0) / 2000 * 100)))
 
     hp = round(
         (sum(water_pcts) / 3) * 0.30

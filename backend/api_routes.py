@@ -196,7 +196,7 @@ def api_profile(user: dict = Depends(get_current_user)):
     stats = get_user_stats(uid)
     avg_xp = sum(stats[s] for s in STATS) / 8
     rank_data = get_rank(avg_xp)
-    hp = calculate_hp(uid)
+    hp = calculate_hp(uid, user.get("water_goal"))
     xp_today = get_xp_today(uid)
     streak = get_streak(uid)
     return {
