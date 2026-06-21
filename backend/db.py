@@ -734,6 +734,28 @@ def delete_ritual_by_title(user_id: str, title: str) -> bool:
     return bool(res.data)
 
 
+def rename_ritual(ritual_id: str, user_id: str, title: str) -> bool:
+    res = (
+        supabase.table("rituals")
+        .update({"title": title})
+        .eq("id", ritual_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return bool(res.data)
+
+
+def delete_ritual_by_id(ritual_id: str, user_id: str) -> bool:
+    res = (
+        supabase.table("rituals")
+        .update({"is_active": False})
+        .eq("id", ritual_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return bool(res.data)
+
+
 def delete_task_by_title(user_id: str, title: str) -> bool:
     res = (
         supabase.table("tasks")

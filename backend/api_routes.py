@@ -20,6 +20,7 @@ from db import (
     add_water,
     calculate_hp,
     complete_task,
+    delete_ritual_by_id,
     get_food_today,
     get_rank,
     get_rituals,
@@ -33,6 +34,7 @@ from db import (
     get_week_digest,
     get_xp_today,
     ensure_user,
+    rename_ritual,
     toggle_ritual,
 )
 
@@ -159,6 +161,26 @@ def api_toggle_ritual(ritual_id: str, user: dict = Depends(get_current_user)):
     uid = user["id"]
     now_done, _xp_eligible = toggle_ritual(ritual_id, uid)
     return {"done": now_done}
+
+
+class RitualRenameIn(BaseModel):
+    title: str
+
+
+@router.patch("/rituals/{ritual_id}")
+def api_rename_ritual(ritual_id: str, body: RitualRenameIn, user: dict = Depends(get_current_user)):
+    ok = rename_ritual(ritual_id, user["id"], body.title)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Ritual not found")
+    return {"ok": True}
+
+
+@router.delete("/rituals/{ritual_id}")
+def api_delete_ritual(ritual_id: str, user: dict = Depends(get_current_user)):
+    ok = delete_ritual_by_id(ritual_id, user["id"])
+    if not ok:
+        raise HTTPException(status_code=404, detail="Ritual not found")
+    return {"ok": True}
 
 
 @router.get("/tasks")
