@@ -23,6 +23,12 @@ export function ActionSheet({ open, onClose, items }: Props) {
     }
   }, [open])
 
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
+
   if (!open) return null
 
   function handleClick(idx: number, item: ActionSheetItem) {
