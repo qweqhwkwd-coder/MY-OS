@@ -197,6 +197,24 @@ def tasks_keyboard(tasks: list[dict]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
+def inbox_view(items: list[dict]) -> str:
+    if not items:
+        return "📥 Inbox порожній.\nБудь-яке повідомлення без команди потрапляє сюди."
+    lines = [f"📥 Inbox ({len(items)} шт.):\n"]
+    for item in items:
+        lines.append(f"• {item['text']}")
+    lines.append("\nНатисни щоб відмітити опрацьованим:")
+    return "\n".join(lines)
+
+
+def inbox_keyboard(items: list[dict]) -> InlineKeyboardMarkup:
+    rows = [
+        [InlineKeyboardButton(text=f"✅ {item['text'][:40]}", callback_data=f"inbox:{item['id']}")]
+        for item in items
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
 def _sum_kcal(entries: list[dict]) -> int:
     """Сума ккал; None-значення пропускаємо, 0 — рахуємо."""
     return int(sum(e["kcal"] for e in entries if e.get("kcal") is not None))
@@ -531,16 +549,10 @@ async def cb_balance(callback: types.CallbackQuery):
 async def cmd_inbox(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     items = get_inbox(user["id"])
-    if not items:
-        await message.answer("📥 Inbox порожній.\nБудь-яке повідомлення без команди потрапляє сюди.")
-        return
-    lines = [f"📥 Inbox ({len(items)} шт.):\n"]
-    rows = []
-    for item in items:
-        lines.append(f"• {item['text']}")
-        rows.append([InlineKeyboardButton(text=f"✅ {item['text'][:40]}", callback_data=f"inbox:{item['id']}")])
-    lines.append("\nНатисни щоб відмітити опрацьованим:")
-    await message.answer("\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await message.answer(
+        inbox_view(items),
+        reply_markup=inbox_keyboard(items) if items else None,
+    )
 
 
 @dp.callback_query(F.data.startswith("inbox:"))
@@ -549,17 +561,10 @@ async def cb_inbox(callback: types.CallbackQuery):
     user = ensure_user(callback.from_user.id, callback.from_user.full_name)
     clear_inbox_item(item_id, user["id"])
     items = get_inbox(user["id"])
-    if not items:
-        await callback.message.edit_text("📥 Inbox порожній.")
-        await callback.answer("Опрацьовано")
-        return
-    lines = [f"📥 Inbox ({len(items)} шт.):\n"]
-    rows = []
-    for item in items:
-        lines.append(f"• {item['text']}")
-        rows.append([InlineKeyboardButton(text=f"✅ {item['text'][:40]}", callback_data=f"inbox:{item['id']}")])
-    lines.append("\nНатисни щоб відмітити опрацьованим:")
-    await callback.message.edit_text("\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await callback.message.edit_text(
+        inbox_view(items),
+        reply_markup=inbox_keyboard(items) if items else None,
+    )
     await callback.answer("Опрацьовано")
 
 
