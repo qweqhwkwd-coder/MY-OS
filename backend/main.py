@@ -271,13 +271,9 @@ async def cb_water(callback: types.CallbackQuery):
     user = ensure_user(callback.from_user.id, callback.from_user.full_name)
     goal = user.get("water_goal") or DEFAULT_WATER_GOAL
 
-    before = get_water_today(user["id"])
-    total = add_water(user["id"], amount)
+    total, xp_granted = add_water(user["id"], amount, goal)
 
-    note = ""
-    if before < goal <= total:
-        add_xp(user["id"], "health", 2, "water")
-        note = "\n\n🎉 Ціль по воді виконана! +2 XP до Здоров'я"
+    note = "\n\n🎉 Ціль по воді виконана! +2 XP до Здоров'я" if xp_granted else ""
 
     await callback.message.edit_text(
         water_view(total, goal) + note, reply_markup=water_keyboard()
@@ -318,8 +314,6 @@ async def cb_ritual(callback: types.CallbackQuery):
     user = ensure_user(callback.from_user.id, callback.from_user.full_name)
 
     now_done, xp_eligible = toggle_ritual(ritual_id, user["id"])
-    if xp_eligible:
-        add_xp(user["id"], "discipline", 2, "rituals")
 
     rituals = get_rituals(user["id"])
     done, streaks = _ritual_state(user["id"], rituals)
@@ -453,8 +447,6 @@ async def cb_task(callback: types.CallbackQuery):
     user = ensure_user(callback.from_user.id, callback.from_user.full_name)
 
     done = complete_task(task_id, user["id"])
-    if done:
-        add_xp(user["id"], "discipline", 3, "tasks")
 
     tasks = get_tasks(user["id"])
     await callback.message.edit_text(

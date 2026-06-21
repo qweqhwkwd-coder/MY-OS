@@ -232,15 +232,22 @@ def get_water_today(user_id: str) -> int:
     return res.data[0]["amount_ml"] if res.data else 0
 
 
-def add_water(user_id: str, amount_ml: int) -> int:
-    """Добавляет воду к сегодняшней сумме, возвращает новый итог за день."""
+def add_water(user_id: str, amount_ml: int, goal: int | None = None) -> tuple[int, bool]:
+    """Добавляет воду к сегодняшней сумме. Returns (new_total, xp_granted).
+    XP начисляется здесь же при первом пересечении дневной цели за день —
+    раньше оба вызывающих (бот и API) дублировали эту проверку по отдельности.
+    """
     today = date.today().isoformat()
-    new_total = get_water_today(user_id) + amount_ml
+    before = get_water_today(user_id)
+    new_total = before + amount_ml
     supabase.table("water_logs").upsert(
         {"user_id": user_id, "date": today, "amount_ml": new_total},
         on_conflict="user_id,date",
     ).execute()
-    return new_total
+    xp_granted = bool(goal) and before < goal <= new_total
+    if xp_granted:
+        add_xp(user_id, "health", 2, "water")
+    return new_total, xp_granted
 
 
 # --- Ритуалы ------------------------------------------------------------------
@@ -315,6 +322,8 @@ def toggle_ritual(ritual_id: str, user_id: str) -> tuple[bool, bool]:
     """Переключает отметку за сегодня.
     Returns (new_done, xp_eligible).
     xp_eligible=True только при первой отметке за день (защита от XP-фарма).
+    Начисление XP происходит здесь же — раньше оба вызывающих (бот и API)
+    дублировали `if xp_eligible: add_xp(...)` по отдельности.
     """
     today = date.today().isoformat()
     res = (
@@ -332,6 +341,7 @@ def toggle_ritual(ritual_id: str, user_id: str) -> tuple[bool, bool]:
         supabase.table("ritual_logs").insert(
             {"ritual_id": ritual_id, "user_id": user_id, "date": today, "is_done": True}
         ).execute()
+        add_xp(user_id, "discipline", 2, "rituals")
         return True, True
 
     if existing["is_done"]:
@@ -887,7 +897,7 @@ def delete_task(task_id: str, user_id: str) -> bool:
 
 
 def complete_task(task_id: str, user_id: str) -> bool:
-    """Помечает задачу выполненной. Возвращает True если задача найдена и обновлена."""
+    """Помечает задачу выполненной и начисляет XP. Возвращает True если задача найдена и обновлена."""
     res = (
         supabase.table("tasks")
         .update({"is_completed": True, "completed_at": datetime.now(timezone.utc).isoformat()})
@@ -896,4 +906,7 @@ def complete_task(task_id: str, user_id: str) -> bool:
         .eq("is_completed", False)
         .execute()
     )
-    return bool(res.data)
+    done = bool(res.data)
+    if done:
+        add_xp(user_id, "discipline", 3, "tasks")
+    return done

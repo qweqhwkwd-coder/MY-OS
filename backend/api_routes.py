@@ -34,7 +34,6 @@ from db import (
     get_xp_today,
     ensure_user,
     toggle_ritual,
-    add_xp,
 )
 
 router = APIRouter(prefix="/api")
@@ -132,10 +131,8 @@ def api_add_water(body: WaterIn, user: dict = Depends(get_current_user)):
     if body.amount not in (250, 500, 1000):
         raise HTTPException(status_code=400, detail="amount must be 250, 500 or 1000")
     uid = user["id"]
-    before = get_water_today(uid)
-    total = add_water(uid, body.amount)
-    if before < (user.get("water_goal") or DEFAULT_WATER_GOAL) <= total:
-        add_xp(uid, "health", 2, "water")
+    goal = user.get("water_goal") or DEFAULT_WATER_GOAL
+    total, _xp_granted = add_water(uid, body.amount, goal)
     return {"total": total}
 
 
@@ -160,9 +157,7 @@ def api_rituals(user: dict = Depends(get_current_user)):
 @router.post("/rituals/{ritual_id}/toggle")
 def api_toggle_ritual(ritual_id: str, user: dict = Depends(get_current_user)):
     uid = user["id"]
-    now_done, xp_eligible = toggle_ritual(ritual_id, uid)
-    if xp_eligible:
-        add_xp(uid, "discipline", 2, "rituals")
+    now_done, _xp_eligible = toggle_ritual(ritual_id, uid)
     return {"done": now_done}
 
 
@@ -175,8 +170,6 @@ def api_tasks(user: dict = Depends(get_current_user)):
 def api_complete_task(task_id: str, user: dict = Depends(get_current_user)):
     uid = user["id"]
     done = complete_task(task_id, uid)
-    if done:
-        add_xp(uid, "discipline", 3, "tasks")
     return {"done": done}
 
 
