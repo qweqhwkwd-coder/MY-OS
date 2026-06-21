@@ -686,12 +686,17 @@ def get_transactions_week(user_id: str) -> list[dict]:
     )
 
 
+def _ilike_escape(value: str) -> str:
+    """Escapes %, _ and \\ so ilike() matches the literal string, not a wildcard pattern."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def delete_ritual_by_title(user_id: str, title: str) -> bool:
     res = (
         supabase.table("rituals")
         .update({"is_active": False})
         .eq("user_id", user_id)
-        .ilike("title", title)
+        .ilike("title", _ilike_escape(title))
         .eq("is_active", True)
         .execute()
     )
@@ -703,7 +708,7 @@ def delete_task_by_title(user_id: str, title: str) -> bool:
         supabase.table("tasks")
         .delete()
         .eq("user_id", user_id)
-        .ilike("title", title)
+        .ilike("title", _ilike_escape(title))
         .eq("is_completed", False)
         .execute()
     )
