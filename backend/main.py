@@ -51,6 +51,7 @@ from db import (
     STATS,
     BALANCE_FIELDS,
     BALANCE_LABELS,
+    DEFAULT_WATER_GOAL,
     add_diary_entry,
     add_food,
     add_goal,
@@ -258,8 +259,9 @@ async def on_start(message: types.Message):
 async def cmd_water(message: types.Message):
     user = ensure_user(message.from_user.id, message.from_user.full_name)
     total = get_water_today(user["id"])
+    goal = user.get("water_goal") or DEFAULT_WATER_GOAL
     await message.answer(
-        water_view(total, user["water_goal"]), reply_markup=water_keyboard()
+        water_view(total, goal), reply_markup=water_keyboard()
     )
 
 
@@ -267,7 +269,7 @@ async def cmd_water(message: types.Message):
 async def cb_water(callback: types.CallbackQuery):
     amount = int(callback.data.split(":")[1])
     user = ensure_user(callback.from_user.id, callback.from_user.full_name)
-    goal = user["water_goal"]
+    goal = user.get("water_goal") or DEFAULT_WATER_GOAL
 
     before = get_water_today(user["id"])
     total = add_water(user["id"], amount)
@@ -350,7 +352,7 @@ async def cmd_today(message: types.Message):
     uid = user["id"]
 
     water = get_water_today(uid)
-    goal = user["water_goal"]
+    goal = user.get("water_goal") or DEFAULT_WATER_GOAL
     rituals = get_rituals(uid)
     done_set = get_rituals_done_today(uid)
     rituals_done = sum(1 for r in rituals if r["id"] in done_set)
