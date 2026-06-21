@@ -20,6 +20,7 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
   const [taskTitle, setTaskTitle] = useState('')
   const [noteText, setNoteText] = useState('')
   const [foodName, setFoodName] = useState('')
+  const [foodGrams, setFoodGrams] = useState('')
   const [foodKcal, setFoodKcal] = useState('')
 
   function reload() {
@@ -34,6 +35,7 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
     setTaskTitle('')
     setNoteText('')
     setFoodName('')
+    setFoodGrams('')
     setFoodKcal('')
   }
 
@@ -67,7 +69,10 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
     if (!foodName.trim() || !foodKcal) return
     setSaving(true)
     setSaveErr('')
-    try { await api.addFoodEntry(initData, foodName.trim(), parseInt(foodKcal)); reload(); onDataChange?.(); closeModal() }
+    try {
+      await api.addFoodEntry(initData, foodName.trim(), parseInt(foodKcal), foodGrams ? parseInt(foodGrams) : undefined)
+      reload(); onDataChange?.(); closeModal()
+    }
     catch (e: unknown) { setSaveErr(e instanceof Error ? e.message : 'Помилка') }
     finally { setSaving(false) }
   }
@@ -233,6 +238,14 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
                   onChange={e => setFoodName(e.target.value)}
                   placeholder="Назва (Гречка, Яйця...)"
                   className="w-full px-0 py-3 font-condensed text-sm outline-none"
+                  style={{ background: 'transparent', borderBottom: '1px solid var(--subtle)', color: 'var(--ink)', borderTop: 'none', borderLeft: 'none', borderRight: 'none' }}
+                />
+                <input
+                  value={foodGrams}
+                  onChange={e => setFoodGrams(e.target.value.replace(/\D/g, ''))}
+                  placeholder="Грами (за бажанням)"
+                  inputMode="numeric"
+                  className="w-full px-0 py-3 font-mono text-sm outline-none"
                   style={{ background: 'transparent', borderBottom: '1px solid var(--subtle)', color: 'var(--ink)', borderTop: 'none', borderLeft: 'none', borderRight: 'none' }}
                 />
                 <input
