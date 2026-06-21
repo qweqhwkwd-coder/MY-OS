@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import json
 import time
-from urllib.parse import parse_qsl, unquote
+from urllib.parse import parse_qsl
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
@@ -45,7 +45,7 @@ def verify_init_data(init_data: str) -> dict:
     if not init_data:
         raise HTTPException(status_code=401, detail="No init data")
 
-    parsed = dict(parse_qsl(unquote(init_data), keep_blank_values=True))
+    parsed = dict(parse_qsl(init_data, keep_blank_values=True))
     received_hash = parsed.pop("hash", None)
     if not received_hash:
         raise HTTPException(status_code=401, detail="No hash in init data")
