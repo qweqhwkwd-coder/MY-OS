@@ -807,7 +807,12 @@ def get_user_stats(user_id: str) -> dict:
         .data
     )
     if not rows:
-        supabase.table("user_stats").insert({"user_id": user_id}).execute()
+        # Атомарный get-or-create через тот же RPC, что и add_xp (миграция 014):
+        # insert ... on conflict do nothing внутри одной транзакции Postgres,
+        # без гонки и без try/except, который раньше глушил любые ошибки.
+        supabase.rpc(
+            "increment_user_stat", {"p_user_id": user_id, "p_stat": "strength", "p_amount": 0}
+        ).execute()
         rows = supabase.table("user_stats").select("*").eq("user_id", user_id).execute().data
     return rows[0]
 
