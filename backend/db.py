@@ -324,7 +324,23 @@ def toggle_ritual(ritual_id: str, user_id: str) -> tuple[bool, bool]:
     xp_eligible=True только при первой отметке за день (защита от XP-фарма).
     Начисление XP происходит здесь же — раньше оба вызывающих (бот и API)
     дублировали `if xp_eligible: add_xp(...)` по отдельности.
+
+    Проверяет, что ritual_id принадлежит user_id, ПЕРЕД тем как создавать
+    лог/начислять XP — иначе можно было отметить (и фармить XP за) чужой
+    ritual_id. Сейчас неэксплуатируемо (один юзер, ritual_id — uuid), но
+    это условие исчезает с появлением второго пользователя.
     """
+    owned = (
+        supabase.table("rituals")
+        .select("id")
+        .eq("id", ritual_id)
+        .eq("user_id", user_id)
+        .limit(1)
+        .execute()
+    )
+    if not owned.data:
+        return False, False
+
     today = date.today().isoformat()
     res = (
         supabase.table("ritual_logs")
