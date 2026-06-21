@@ -641,17 +641,6 @@ def get_last_weights(user_id: str, limit: int = 5) -> list[dict]:
 
 # --- Дневник ------------------------------------------------------------------
 
-def delete_ritual(ritual_id: str, user_id: str) -> bool:
-    res = (
-        supabase.table("rituals")
-        .update({"is_active": False})
-        .eq("id", ritual_id)
-        .eq("user_id", user_id)
-        .execute()
-    )
-    return bool(res.data)
-
-
 def get_diary_entries(user_id: str, limit: int = 10) -> list[dict]:
     return (
         supabase.table("diary_entries")
@@ -845,17 +834,6 @@ def get_food_today(user_id: str) -> list[dict]:
     )
 
 
-def delete_food(food_id: str, user_id: str) -> bool:
-    res = (
-        supabase.table("food_logs")
-        .delete()
-        .eq("id", food_id)
-        .eq("user_id", user_id)
-        .execute()
-    )
-    return bool(res.data)
-
-
 def add_food(user_id: str, food_name: str, kcal: int, grams: int | None = None) -> dict:
     today = date.today().isoformat()
     return (
@@ -888,17 +866,6 @@ def add_task(user_id: str, title: str) -> dict:
         .execute()
         .data[0]
     )
-
-
-def delete_task(task_id: str, user_id: str) -> bool:
-    res = (
-        supabase.table("tasks")
-        .delete()
-        .eq("id", task_id)
-        .eq("user_id", user_id)
-        .execute()
-    )
-    return bool(res.data)
 
 
 def complete_task(task_id: str, user_id: str) -> bool:
