@@ -429,6 +429,53 @@ def clear_inbox_item(item_id: str, user_id: str) -> None:
     supabase.table("inbox_items").update({"is_handled": True}).eq("id", item_id).eq("user_id", user_id).execute()
 
 
+def _get_inbox_text(item_id: str, user_id: str) -> str | None:
+    res = (
+        supabase.table("inbox_items")
+        .select("text")
+        .eq("id", item_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return res.data[0]["text"] if res.data else None
+
+
+def inbox_to_task(item_id: str, user_id: str) -> dict | None:
+    text = _get_inbox_text(item_id, user_id)
+    if text is None:
+        return None
+    task = add_task(user_id, text)
+    clear_inbox_item(item_id, user_id)
+    return task
+
+
+def inbox_to_diary(item_id: str, user_id: str) -> dict | None:
+    text = _get_inbox_text(item_id, user_id)
+    if text is None:
+        return None
+    entry = add_diary_entry(user_id, text)
+    clear_inbox_item(item_id, user_id)
+    return entry
+
+
+def inbox_to_idea(item_id: str, user_id: str) -> dict | None:
+    text = _get_inbox_text(item_id, user_id)
+    if text is None:
+        return None
+    idea = add_idea(user_id, text)
+    clear_inbox_item(item_id, user_id)
+    return idea
+
+
+def inbox_to_meeting(item_id: str, user_id: str, meeting_date: str, meeting_time: str | None = None) -> dict | None:
+    text = _get_inbox_text(item_id, user_id)
+    if text is None:
+        return None
+    meeting = add_meeting(user_id, text, meeting_date, meeting_time)
+    clear_inbox_item(item_id, user_id)
+    return meeting
+
+
 # --- Дайджест ----------------------------------------------------------------
 
 def get_week_digest(user_id: str) -> dict:
@@ -734,6 +781,28 @@ def delete_ritual_by_title(user_id: str, title: str) -> bool:
     return bool(res.data)
 
 
+def rename_ritual(ritual_id: str, user_id: str, title: str) -> bool:
+    res = (
+        supabase.table("rituals")
+        .update({"title": title})
+        .eq("id", ritual_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return bool(res.data)
+
+
+def delete_ritual_by_id(ritual_id: str, user_id: str) -> bool:
+    res = (
+        supabase.table("rituals")
+        .update({"is_active": False})
+        .eq("id", ritual_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return bool(res.data)
+
+
 def delete_task_by_title(user_id: str, title: str) -> bool:
     res = (
         supabase.table("tasks")
@@ -741,6 +810,28 @@ def delete_task_by_title(user_id: str, title: str) -> bool:
         .eq("user_id", user_id)
         .ilike("title", _ilike_escape(title))
         .eq("is_completed", False)
+        .execute()
+    )
+    return bool(res.data)
+
+
+def rename_task(task_id: str, user_id: str, title: str) -> bool:
+    res = (
+        supabase.table("tasks")
+        .update({"title": title})
+        .eq("id", task_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return bool(res.data)
+
+
+def delete_task_by_id(task_id: str, user_id: str) -> bool:
+    res = (
+        supabase.table("tasks")
+        .delete()
+        .eq("id", task_id)
+        .eq("user_id", user_id)
         .execute()
     )
     return bool(res.data)

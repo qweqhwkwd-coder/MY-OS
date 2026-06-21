@@ -18,6 +18,7 @@ const MODULES: Module[] = [
   { id: 'ideas',   num: '10', label: 'Ідеї',      locked: true  },
   { id: 'meet',    num: '11', label: 'Зустрічі',  locked: true  },
   { id: 'digest',  num: '12', label: 'Дайджест',  locked: true  },
+  { id: 'notes',   num: '13', label: 'Нотатки',   locked: false },
 ]
 
 interface Props {

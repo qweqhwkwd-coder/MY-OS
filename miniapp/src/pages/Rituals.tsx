@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import type { Ritual } from '../api'
+import { ActionSheet } from '../components/ActionSheet'
 
 export function Rituals({ initData, onDataChange }: { initData: string; onDataChange?: () => void }) {
   const [rituals, setRituals] = useState<Ritual[]>([])
@@ -8,6 +9,9 @@ export function Rituals({ initData, onDataChange }: { initData: string; onDataCh
   const [err, setErr] = useState('')
   const [toggleErr, setToggleErr] = useState('')
   const [toggling, setToggling] = useState<string | null>(null)
+  const [menuId, setMenuId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editValue, setEditValue] = useState('')
 
   useEffect(() => {
     api.rituals(initData)
@@ -29,10 +33,42 @@ export function Rituals({ initData, onDataChange }: { initData: string; onDataCh
     }
   }
 
+  function startRename(r: Ritual) {
+    setMenuId(null)
+    setEditingId(r.id)
+    setEditValue(r.title)
+  }
+
+  async function submitRename() {
+    if (!editingId || !editValue.trim()) { setEditingId(null); return }
+    const id = editingId
+    const title = editValue.trim()
+    try {
+      await api.renameRitual(initData, id, title)
+      setRituals(prev => prev.map(r => r.id === id ? { ...r, title } : r))
+    } catch (e: unknown) {
+      setToggleErr(e instanceof Error ? e.message : 'Помилка')
+    } finally {
+      setEditingId(null)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    setMenuId(null)
+    try {
+      await api.deleteRitual(initData, id)
+      setRituals(prev => prev.filter(r => r.id !== id))
+      onDataChange?.()
+    } catch (e: unknown) {
+      setToggleErr(e instanceof Error ? e.message : 'Помилка')
+    }
+  }
+
   if (loading) return <div className="p-4 font-mono text-xs" style={{ color: 'var(--muted)' }}>…</div>
   if (err) return <div className="p-4 text-sm" style={{ color: '#dc2626' }}>{err}</div>
 
   const done = rituals.filter(r => r.done).length
+  const menuRitual = rituals.find(r => r.id === menuId) ?? null
 
   return (
     <div style={{ color: 'var(--ink)' }}>
@@ -53,42 +89,66 @@ export function Rituals({ initData, onDataChange }: { initData: string; onDataCh
 
       <div>
         {rituals.map(r => (
-          <button
+          <div
             key={r.id}
-            onClick={() => toggle(r.id)}
-            disabled={toggling === r.id}
-            className="w-full flex items-center justify-between px-4 py-4 text-left"
+            className="flex items-center justify-between px-4 py-4"
             style={{
               background: r.done ? 'var(--subtle)' : 'transparent',
-              cursor: 'pointer',
-              border: 'none',
               borderBottom: '1px solid var(--subtle)',
               opacity: toggling === r.id ? 0.5 : 1,
             }}
           >
-            <div className="flex items-center gap-3">
-              <div
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <button
+                onClick={() => toggle(r.id)}
+                disabled={toggling === r.id}
                 className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
                 style={{
                   border: `2px solid ${r.done ? 'var(--ink)' : 'var(--muted)'}`,
                   background: r.done ? 'var(--ink)' : 'transparent',
+                  cursor: 'pointer',
                 }}
               >
                 {r.done && <span style={{ fontSize: '10px', color: 'var(--bg)' }}>✓</span>}
-              </div>
-              <span
-                className="font-condensed text-sm"
-                style={{ textDecoration: r.done ? 'line-through' : 'none', opacity: r.done ? 0.5 : 1 }}
-              >
-                {r.icon && `${r.icon} `}{r.title}
-              </span>
+              </button>
+              {editingId === r.id ? (
+                <input
+                  autoFocus
+                  value={editValue}
+                  onChange={e => setEditValue(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && submitRename()}
+                  onBlur={submitRename}
+                  className="font-condensed text-sm outline-none flex-1"
+                  style={{ background: 'transparent', borderBottom: '1px solid var(--ink)', color: 'var(--ink)' }}
+                />
+              ) : (
+                <button
+                  onClick={() => setMenuId(r.id)}
+                  className="font-condensed text-sm text-left flex-1 truncate"
+                  style={{
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    textDecoration: r.done ? 'line-through' : 'none', opacity: r.done ? 0.5 : 1, color: 'var(--ink)',
+                  }}
+                >
+                  {r.icon && `${r.icon} `}{r.title}
+                </button>
+              )}
             </div>
             {r.streak > 0 && (
-              <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{r.streak}🔥</span>
+              <span className="font-mono text-xs flex-shrink-0 ml-2" style={{ color: 'var(--muted)' }}>{r.streak}🔥</span>
             )}
-          </button>
+          </div>
         ))}
       </div>
+
+      <ActionSheet
+        open={menuRitual !== null}
+        onClose={() => setMenuId(null)}
+        items={menuRitual ? [
+          { label: 'Перейменувати', onClick: () => startRename(menuRitual) },
+          { label: 'Видалити', danger: true, onClick: () => handleDelete(menuRitual.id) },
+        ] : []}
+      />
     </div>
   )
 }

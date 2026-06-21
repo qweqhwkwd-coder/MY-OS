@@ -3,6 +3,7 @@
 import hashlib
 import hmac
 import json
+import re
 import time
 from urllib.parse import parse_qsl
 
@@ -19,8 +20,12 @@ from db import (
     add_task,
     add_water,
     calculate_hp,
+    clear_inbox_item,
     complete_task,
+    delete_ritual_by_id,
+    delete_task_by_id,
     get_food_today,
+    get_inbox,
     get_rank,
     get_rituals,
     get_rituals_done_today,
@@ -33,6 +38,12 @@ from db import (
     get_week_digest,
     get_xp_today,
     ensure_user,
+    inbox_to_diary,
+    inbox_to_idea,
+    inbox_to_meeting,
+    inbox_to_task,
+    rename_ritual,
+    rename_task,
     toggle_ritual,
 )
 
@@ -161,6 +172,26 @@ def api_toggle_ritual(ritual_id: str, user: dict = Depends(get_current_user)):
     return {"done": now_done}
 
 
+class RitualRenameIn(BaseModel):
+    title: str
+
+
+@router.patch("/rituals/{ritual_id}")
+def api_rename_ritual(ritual_id: str, body: RitualRenameIn, user: dict = Depends(get_current_user)):
+    ok = rename_ritual(ritual_id, user["id"], body.title)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Ritual not found")
+    return {"ok": True}
+
+
+@router.delete("/rituals/{ritual_id}")
+def api_delete_ritual(ritual_id: str, user: dict = Depends(get_current_user)):
+    ok = delete_ritual_by_id(ritual_id, user["id"])
+    if not ok:
+        raise HTTPException(status_code=404, detail="Ritual not found")
+    return {"ok": True}
+
+
 @router.get("/tasks")
 def api_tasks(user: dict = Depends(get_current_user)):
     return get_tasks(user["id"])
@@ -171,6 +202,26 @@ def api_complete_task(task_id: str, user: dict = Depends(get_current_user)):
     uid = user["id"]
     done = complete_task(task_id, uid)
     return {"done": done}
+
+
+class TaskRenameIn(BaseModel):
+    title: str
+
+
+@router.patch("/tasks/{task_id}")
+def api_rename_task(task_id: str, body: TaskRenameIn, user: dict = Depends(get_current_user)):
+    ok = rename_task(task_id, user["id"], body.title)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return {"ok": True}
+
+
+@router.delete("/tasks/{task_id}")
+def api_delete_task(task_id: str, user: dict = Depends(get_current_user)):
+    ok = delete_task_by_id(task_id, user["id"])
+    if not ok:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return {"ok": True}
 
 
 @router.get("/food")
@@ -220,6 +271,56 @@ class InboxIn(BaseModel):
 @router.post("/inbox")
 def api_add_inbox(body: InboxIn, user: dict = Depends(get_current_user)):
     return add_inbox(user["id"], body.text)
+
+
+@router.get("/inbox")
+def api_inbox(user: dict = Depends(get_current_user)):
+    return get_inbox(user["id"])
+
+
+@router.post("/inbox/{item_id}/to-task")
+def api_inbox_to_task(item_id: str, user: dict = Depends(get_current_user)):
+    result = inbox_to_task(item_id, user["id"])
+    if result is None:
+        raise HTTPException(status_code=404, detail="Inbox item not found")
+    return result
+
+
+@router.post("/inbox/{item_id}/to-diary")
+def api_inbox_to_diary(item_id: str, user: dict = Depends(get_current_user)):
+    result = inbox_to_diary(item_id, user["id"])
+    if result is None:
+        raise HTTPException(status_code=404, detail="Inbox item not found")
+    return result
+
+
+@router.post("/inbox/{item_id}/to-idea")
+def api_inbox_to_idea(item_id: str, user: dict = Depends(get_current_user)):
+    result = inbox_to_idea(item_id, user["id"])
+    if result is None:
+        raise HTTPException(status_code=404, detail="Inbox item not found")
+    return result
+
+
+class MeetingFromInboxIn(BaseModel):
+    date: str
+    time: str | None = None
+
+
+@router.post("/inbox/{item_id}/to-meeting")
+def api_inbox_to_meeting(item_id: str, body: MeetingFromInboxIn, user: dict = Depends(get_current_user)):
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", body.date):
+        raise HTTPException(status_code=400, detail="date must be YYYY-MM-DD")
+    result = inbox_to_meeting(item_id, user["id"], body.date, body.time)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Inbox item not found")
+    return result
+
+
+@router.delete("/inbox/{item_id}")
+def api_delete_inbox_item(item_id: str, user: dict = Depends(get_current_user)):
+    clear_inbox_item(item_id, user["id"])
+    return {"ok": True}
 
 
 class FoodIn(BaseModel):
