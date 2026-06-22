@@ -1020,9 +1020,14 @@ async def on_any(message: types.Message, user: dict | None = None):
 async def lifespan(app: FastAPI):
     # Reply-keyboard web_app кнопки ненадійні на деяких клієнтах Telegram —
     # Menu Button (іконка біля поля вводу) — офіційний надійний спосіб відкрити Mini App.
-    await bot.set_chat_menu_button(
-        menu_button=MenuButtonWebApp(text="MY-OS", web_app=WebAppInfo(url=MINIAPP_URL))
-    )
+    # Не критично для роботи бота — якщо Telegram API недоступний при старті,
+    # не валимо весь lifespan (вебхук нижче важливіший).
+    try:
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(text="MY-OS", web_app=WebAppInfo(url=MINIAPP_URL))
+        )
+    except Exception as e:
+        print(f"[startup] set_chat_menu_button failed (non-fatal): {e}", flush=True)
     if settings.webhook_base_url:
         base = settings.webhook_base_url.rstrip("/")
         webhook_url = f"{base}{WEBHOOK_PATH}"

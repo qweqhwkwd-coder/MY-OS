@@ -1,4 +1,4 @@
-import { useRef, type ReactNode, type CSSProperties } from 'react'
+import { useEffect, useRef, type ReactNode, type CSSProperties } from 'react'
 
 interface Props {
   onLongPress: () => void
@@ -10,6 +10,12 @@ interface Props {
 
 export function LongPressButton({ onLongPress, delay = 500, className, style, children }: Props) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
 
   function start() {
     timerRef.current = setTimeout(onLongPress, delay)
