@@ -53,6 +53,12 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ food_name, kcal, grams }),
     }),
+  diary: (initData: string) => req<DiaryEntry[]>('/api/diary', initData),
+  addDiaryEntry: (initData: string, text: string, mood?: number) =>
+    req<DiaryEntry>('/api/diary', initData, {
+      method: 'POST',
+      body: JSON.stringify({ text, mood }),
+    }),
   renameRitual: (initData: string, id: string, title: string) =>
     req<{ ok: boolean }>(`/api/rituals/${id}`, initData, {
       method: 'PATCH',
@@ -131,6 +137,12 @@ export interface InboxItem {
   id: string
   text: string
   created_at: string
+}
+
+export interface DiaryEntry {
+  date: string
+  text: string
+  mood: number | null
 }
 
 export interface DigestData {
