@@ -15,15 +15,18 @@ from db import (
     DEFAULT_WATER_GOAL,
     RANKS,
     STATS,
+    add_diary_entry,
     add_food,
     add_inbox,
     add_task,
     add_water,
+    add_xp,
     calculate_hp,
     clear_inbox_item,
     complete_task,
     delete_ritual_by_id,
     delete_task_by_id,
+    get_diary_entries,
     get_food_today,
     get_inbox,
     get_rank,
@@ -337,3 +340,20 @@ class FoodIn(BaseModel):
 @router.post("/food")
 def api_add_food_entry(body: FoodIn, user: dict = Depends(get_current_user)):
     return add_food(user["id"], body.food_name, body.kcal, body.grams)
+
+
+@router.get("/diary")
+def api_diary(user: dict = Depends(get_current_user)):
+    return get_diary_entries(user["id"], limit=10)
+
+
+class DiaryIn(BaseModel):
+    text: str
+    mood: int | None = None
+
+
+@router.post("/diary")
+def api_add_diary_entry(body: DiaryIn, user: dict = Depends(get_current_user)):
+    entry = add_diary_entry(user["id"], body.text, body.mood)
+    add_xp(user["id"], "reflection", 2, "journal")
+    return entry
