@@ -9,6 +9,7 @@ export function Tasks({ initData, onDataChange }: { initData: string; onDataChan
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [completeErr, setCompleteErr] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
   const [completing, setCompleting] = useState<string | null>(null)
   const [menuId, setMenuId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -23,10 +24,16 @@ export function Tasks({ initData, onDataChange }: { initData: string; onDataChan
   async function complete(id: string) {
     setCompleting(id)
     setCompleteErr('')
+    setSuccessMsg('')
     try {
-      await api.completeTask(initData, id)
+      const { done } = await api.completeTask(initData, id)
       setTasks(prev => prev.filter(t => t.id !== id))
-      onDataChange?.()
+      if (done) {
+        setSuccessMsg('+3 XP до Дисципліни')
+        onDataChange?.()
+      } else {
+        setCompleteErr('Вже виконано — XP за цю задачу вже нараховано раніше')
+      }
     } catch (e: unknown) {
       setCompleteErr(e instanceof Error ? e.message : 'Помилка')
     } finally {
@@ -79,6 +86,9 @@ export function Tasks({ initData, onDataChange }: { initData: string; onDataChan
 
       {completeErr && (
         <div className="px-4 py-2 text-xs" style={{ color: '#dc2626' }}>{completeErr}</div>
+      )}
+      {successMsg && (
+        <div className="px-4 py-2 text-xs font-mono" style={{ color: 'var(--accent)' }}>{successMsg}</div>
       )}
 
       {tasks.length === 0 && (
