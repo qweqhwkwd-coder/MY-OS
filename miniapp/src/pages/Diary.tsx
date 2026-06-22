@@ -68,8 +68,8 @@ export function Diary({ initData, onDataChange }: { initData: string; onDataChan
       )}
 
       <div>
-        {entries.map((e, idx) => (
-          <div key={idx} className="px-4 py-4" style={{ borderBottom: '1px solid var(--subtle)' }}>
+        {entries.map(e => (
+          <div key={`${e.date}-${e.text}`} className="px-4 py-4" style={{ borderBottom: '1px solid var(--subtle)' }}>
             <div className="font-mono text-xs flex items-center gap-2" style={{ color: 'var(--muted)' }}>
               <span>{e.date}</span>
               {e.mood != null && <span>{MOOD_EMOJI[e.mood]}</span>}
