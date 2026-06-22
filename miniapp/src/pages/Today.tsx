@@ -45,7 +45,9 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
   async function handleAddWater(amount: number) {
     setSaving(true)
     setSaveErr('')
-    try { await api.addWater(initData, amount); reload(); onDataChange?.(); closeModal() }
+    // Не закриваємо модалку — воду додають кількома натисканнями підряд, на відміну
+    // від задачі/нотатки/їжі, де один запис = одна дія.
+    try { await api.addWater(initData, amount); reload(); onDataChange?.() }
     catch (e: unknown) { setSaveErr(e instanceof Error ? e.message : 'Помилка') }
     finally { setSaving(false) }
   }
@@ -156,6 +158,7 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
           {modal === 'water' && (
             <>
               <div className="font-condensed font-semibold text-base">💧 Додати воду</div>
+              <div className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{data.water} / {data.water_goal} мл</div>
               <div className="grid grid-cols-3 gap-3">
                 {[250, 500, 1000].map(ml => (
                   <button
