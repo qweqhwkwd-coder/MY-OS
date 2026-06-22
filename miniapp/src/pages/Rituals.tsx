@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import type { Ritual } from '../api'
 import { ActionSheet } from '../components/ActionSheet'
+import { LongPressButton } from '../components/LongPressButton'
 
 export function Rituals({ initData, onDataChange }: { initData: string; onDataChange?: () => void }) {
   const [rituals, setRituals] = useState<Ritual[]>([])
@@ -122,8 +123,8 @@ export function Rituals({ initData, onDataChange }: { initData: string; onDataCh
                   style={{ background: 'transparent', borderBottom: '1px solid var(--ink)', color: 'var(--ink)' }}
                 />
               ) : (
-                <button
-                  onClick={() => setMenuId(r.id)}
+                <LongPressButton
+                  onLongPress={() => setMenuId(r.id)}
                   className="font-condensed text-sm text-left flex-1 truncate"
                   style={{
                     background: 'transparent', border: 'none', cursor: 'pointer',
@@ -131,7 +132,7 @@ export function Rituals({ initData, onDataChange }: { initData: string; onDataCh
                   }}
                 >
                   {r.icon && `${r.icon} `}{r.title}
-                </button>
+                </LongPressButton>
               )}
             </div>
             {r.streak > 0 && (

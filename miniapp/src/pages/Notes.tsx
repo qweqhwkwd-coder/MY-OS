@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import type { InboxItem } from '../api'
 import { ActionSheet } from '../components/ActionSheet'
+import { LongPressButton } from '../components/LongPressButton'
 import { BottomSheet } from '../components/BottomSheet'
 import { TextField } from '../components/TextField'
 
@@ -82,9 +83,9 @@ export function Notes({ initData, onDataChange }: { initData: string; onDataChan
 
       <div>
         {items.map(i => (
-          <button
+          <LongPressButton
             key={i.id}
-            onClick={() => setMenuId(i.id)}
+            onLongPress={() => setMenuId(i.id)}
             className="w-full text-left px-4 py-4"
             style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--subtle)', cursor: 'pointer' }}
           >
@@ -92,7 +93,7 @@ export function Notes({ initData, onDataChange }: { initData: string; onDataChan
             <div className="font-mono text-xs mt-1" style={{ color: 'var(--muted)' }}>
               {new Date(i.created_at).toLocaleDateString('uk-UA')}
             </div>
-          </button>
+          </LongPressButton>
         ))}
       </div>
 

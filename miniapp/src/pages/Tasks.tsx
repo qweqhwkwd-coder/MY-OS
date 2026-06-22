@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import type { Task } from '../api'
 import { ActionSheet } from '../components/ActionSheet'
+import { LongPressButton } from '../components/LongPressButton'
 
 export function Tasks({ initData, onDataChange }: { initData: string; onDataChange?: () => void }) {
   const [tasks, setTasks] = useState<Task[]>([])
@@ -104,13 +105,13 @@ export function Tasks({ initData, onDataChange }: { initData: string; onDataChan
                 style={{ background: 'transparent', borderBottom: '1px solid var(--ink)', color: 'var(--ink)' }}
               />
             ) : (
-              <button
-                onClick={() => setMenuId(t.id)}
+              <LongPressButton
+                onLongPress={() => setMenuId(t.id)}
                 className="font-condensed text-sm flex-1 mr-3 text-left truncate"
                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ink)' }}
               >
                 {t.title}
-              </button>
+              </LongPressButton>
             )}
             <button
               onClick={() => complete(t.id)}
