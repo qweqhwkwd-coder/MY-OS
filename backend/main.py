@@ -32,7 +32,7 @@ import re
 import secrets
 from contextlib import asynccontextmanager
 
-from aiogram import Bot, Dispatcher, F, types
+from aiogram import BaseMiddleware, Bot, Dispatcher, F, types
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import (
     InlineKeyboardButton,
@@ -100,6 +100,24 @@ from db import (
 
 bot = Bot(token=settings.bot_token)
 dp = Dispatcher()
+
+
+class EnsureUserMiddleware(BaseMiddleware):
+    """Резолвить юзера один раз на update, кладе в data["user"].
+
+    Замінює ~30 ідентичних `ensure_user(message.from_user.id, ...)`, якими
+    раніше починався кожен хендлер.
+    """
+
+    async def __call__(self, handler, event, data):
+        tg_user = event.from_user
+        if tg_user is not None:
+            data["user"] = ensure_user(tg_user.id, tg_user.full_name)
+        return await handler(event, data)
+
+
+dp.message.outer_middleware(EnsureUserMiddleware())
+dp.callback_query.outer_middleware(EnsureUserMiddleware())
 
 # Секрет вебхука — окреме значення, не похідне від токена
 WEBHOOK_SECRET = settings.webhook_secret or secrets.token_hex(32)
@@ -264,8 +282,7 @@ OPEN_APP_KB = InlineKeyboardMarkup(inline_keyboard=[[
 
 
 @dp.message(CommandStart())
-async def on_start(message: types.Message):
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
+async def on_start(message: types.Message, user: dict):
     await message.answer(
         f"MY-OS на зв'язку 👋\nПривіт, {user['name']}!",
         reply_markup=MAIN_KEYBOARD,
@@ -274,8 +291,7 @@ async def on_start(message: types.Message):
 
 
 @dp.message(Command("water"))
-async def cmd_water(message: types.Message):
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
+async def cmd_water(message: types.Message, user: dict):
     total = get_water_today(user["id"])
     goal = user.get("water_goal") or DEFAULT_WATER_GOAL
     await message.answer(
@@ -284,9 +300,8 @@ async def cmd_water(message: types.Message):
 
 
 @dp.callback_query(F.data.startswith("water:"))
-async def cb_water(callback: types.CallbackQuery):
+async def cb_water(callback: types.CallbackQuery, user: dict):
     amount = int(callback.data.split(":")[1])
-    user = ensure_user(callback.from_user.id, callback.from_user.full_name)
     goal = user.get("water_goal") or DEFAULT_WATER_GOAL
 
     total, xp_granted = add_water(user["id"], amount, goal)
@@ -300,12 +315,11 @@ async def cb_water(callback: types.CallbackQuery):
 
 
 @dp.message(Command("addritual"))
-async def cmd_addritual(message: types.Message, command: CommandObject):
+async def cmd_addritual(message: types.Message, command: CommandObject, user: dict):
     title = (command.args or "").strip()
     if not title:
         await message.answer("Напиши назву після команди:\n/addritual Медитація")
         return
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
     add_ritual(user["id"], title)
     rituals = get_rituals(user["id"])
     done, streaks = _ritual_state(user["id"], rituals)
@@ -316,8 +330,7 @@ async def cmd_addritual(message: types.Message, command: CommandObject):
 
 
 @dp.message(Command("rituals"))
-async def cmd_rituals(message: types.Message):
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
+async def cmd_rituals(message: types.Message, user: dict):
     rituals = get_rituals(user["id"])
     if not rituals:
         await message.answer("Ритуалів поки немає.\nДодай перший: /addritual Медитація")
@@ -327,9 +340,8 @@ async def cmd_rituals(message: types.Message):
 
 
 @dp.callback_query(F.data.startswith("ritual:"))
-async def cb_ritual(callback: types.CallbackQuery):
+async def cb_ritual(callback: types.CallbackQuery, user: dict):
     ritual_id = callback.data.split(":", 1)[1]
-    user = ensure_user(callback.from_user.id, callback.from_user.full_name)
 
     now_done, xp_eligible = toggle_ritual(ritual_id, user["id"])
 
@@ -359,8 +371,7 @@ STAT_LABELS = {
 
 
 @dp.message(Command("today"))
-async def cmd_today(message: types.Message):
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
+async def cmd_today(message: types.Message, user: dict):
     uid = user["id"]
 
     water = get_water_today(uid)
@@ -384,8 +395,7 @@ async def cmd_today(message: types.Message):
 
 
 @dp.message(Command("stats"))
-async def cmd_stats(message: types.Message):
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
+async def cmd_stats(message: types.Message, user: dict):
     st = get_user_stats(user["id"])
     lines = [f"⚔️ RPG-стати  •  Рівень {st['level']}\n"]
     for key in STATS:
@@ -397,7 +407,7 @@ async def cmd_stats(message: types.Message):
 
 
 @dp.message(Command("addfood"))
-async def cmd_addfood(message: types.Message, command: CommandObject):
+async def cmd_addfood(message: types.Message, command: CommandObject, user: dict):
     parsed = _parse_addfood((command.args or "").strip())
     if not parsed:
         await message.answer(
@@ -406,7 +416,6 @@ async def cmd_addfood(message: types.Message, command: CommandObject):
         )
         return
     food_name, grams, kcal = parsed
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
     add_food(user["id"], food_name, kcal, grams)
     add_xp(user["id"], "nutrition", 2, "food")
 
@@ -420,8 +429,7 @@ async def cmd_addfood(message: types.Message, command: CommandObject):
 
 
 @dp.message(Command("food"))
-async def cmd_food(message: types.Message):
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
+async def cmd_food(message: types.Message, user: dict):
     entries = get_food_today(user["id"])
     if not entries:
         await message.answer("🍽 Сьогодні ще нічого не записано.\nДодай: /addfood Гречка 250")
@@ -435,12 +443,11 @@ async def cmd_food(message: types.Message):
 
 
 @dp.message(Command("addtask"))
-async def cmd_addtask(message: types.Message, command: CommandObject):
+async def cmd_addtask(message: types.Message, command: CommandObject, user: dict):
     title = (command.args or "").strip()
     if not title:
         await message.answer("Напиши назву після команди:\n/addtask Купити молоко")
         return
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
     add_task(user["id"], title)
     tasks = get_tasks(user["id"])
     await message.answer(
@@ -450,8 +457,7 @@ async def cmd_addtask(message: types.Message, command: CommandObject):
 
 
 @dp.message(Command("tasks"))
-async def cmd_tasks(message: types.Message):
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
+async def cmd_tasks(message: types.Message, user: dict):
     tasks = get_tasks(user["id"])
     await message.answer(
         tasks_view(tasks),
@@ -460,9 +466,8 @@ async def cmd_tasks(message: types.Message):
 
 
 @dp.callback_query(F.data.startswith("task:"))
-async def cb_task(callback: types.CallbackQuery):
+async def cb_task(callback: types.CallbackQuery, user: dict):
     task_id = callback.data.split(":", 1)[1]
-    user = ensure_user(callback.from_user.id, callback.from_user.full_name)
 
     done = complete_task(task_id, user["id"])
 
@@ -491,7 +496,7 @@ async def cmd_balance(message: types.Message):
 
 
 @dp.callback_query(F.data.startswith("bal:"))
-async def cb_balance(callback: types.CallbackQuery):
+async def cb_balance(callback: types.CallbackQuery, user: dict):
     parts = callback.data.split(":", 2)
     if len(parts) != 3 or parts[1] not in BALANCE_FIELDS:
         await callback.answer("Застаріла кнопка. Запусти /balance знову.")
@@ -499,7 +504,6 @@ async def cb_balance(callback: types.CallbackQuery):
     _, field, score_str = parts
     score = int(score_str)
     uid = callback.from_user.id
-    user = ensure_user(uid, callback.from_user.full_name)
 
     session = _balance_sessions.get(uid)
     if session is None:
@@ -546,8 +550,7 @@ async def cb_balance(callback: types.CallbackQuery):
 
 
 @dp.message(Command("inbox"))
-async def cmd_inbox(message: types.Message):
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
+async def cmd_inbox(message: types.Message, user: dict):
     items = get_inbox(user["id"])
     await message.answer(
         inbox_view(items),
@@ -556,9 +559,8 @@ async def cmd_inbox(message: types.Message):
 
 
 @dp.callback_query(F.data.startswith("inbox:"))
-async def cb_inbox(callback: types.CallbackQuery):
+async def cb_inbox(callback: types.CallbackQuery, user: dict):
     item_id = callback.data.split(":", 1)[1]
-    user = ensure_user(callback.from_user.id, callback.from_user.full_name)
     clear_inbox_item(item_id, user["id"])
     items = get_inbox(user["id"])
     await callback.message.edit_text(
@@ -569,8 +571,7 @@ async def cb_inbox(callback: types.CallbackQuery):
 
 
 @dp.message(Command("digest"))
-async def cmd_digest(message: types.Message):
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
+async def cmd_digest(message: types.Message, user: dict):
     d = get_week_digest(user["id"])
     await message.answer(
         "📊 Дайджест за 7 днів\n\n"
@@ -586,7 +587,7 @@ async def cmd_digest(message: types.Message):
 
 
 @dp.message(Command("addmeeting"))
-async def cmd_addmeeting(message: types.Message, command: CommandObject):
+async def cmd_addmeeting(message: types.Message, command: CommandObject, user: dict):
     args = (command.args or "").strip()
     if not args:
         await message.answer(
@@ -609,15 +610,13 @@ async def cmd_addmeeting(message: types.Message, command: CommandObject):
         await message.answer("Вкажи дату у форматі РРРР-ММ-ДД.\nПриклад: /addmeeting Зустріч 2026-06-20 14:00")
         return
     title = " ".join(title_parts) or "Зустріч"
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
     add_meeting(user["id"], title, meeting_date, meeting_time)
     time_str = f" о {meeting_time}" if meeting_time else ""
     await message.answer(f"📅 Зустріч додана: {title}\n{meeting_date}{time_str}")
 
 
 @dp.message(Command("meetings"))
-async def cmd_meetings(message: types.Message):
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
+async def cmd_meetings(message: types.Message, user: dict):
     meetings = get_upcoming_meetings(user["id"])
     if not meetings:
         await message.answer("📅 Майбутніх зустрічей немає.\nДодай: /addmeeting Назва 2026-06-20 14:00")
@@ -630,7 +629,7 @@ async def cmd_meetings(message: types.Message):
 
 
 @dp.message(Command("workout"))
-async def cmd_workout(message: types.Message, command: CommandObject):
+async def cmd_workout(message: types.Message, command: CommandObject, user: dict):
     args = (command.args or "").strip()
     if not args:
         await message.answer(
@@ -646,7 +645,6 @@ async def cmd_workout(message: types.Message, command: CommandObject):
         activity = parts[0]
 
     workout_type = detect_workout_type(activity)
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
     add_workout(user["id"], activity, duration, workout_type)
 
     xp_stat = {"cardio": "endurance", "strength": "strength", "flexibility": "health"}.get(workout_type, "discipline")
@@ -661,7 +659,7 @@ async def cmd_workout(message: types.Message, command: CommandObject):
 
 
 @dp.message(Command("addgoal"))
-async def cmd_addgoal(message: types.Message, command: CommandObject):
+async def cmd_addgoal(message: types.Message, command: CommandObject, user: dict):
     args = (command.args or "").strip()
     if not args:
         await message.answer("Формат: /addgoal Назва [РРРР-ММ-ДД]\nПриклад: /addgoal Вивчити іспанську 2026-12-31")
@@ -677,15 +675,13 @@ async def cmd_addgoal(message: types.Message, command: CommandObject):
             title = parts[0]
         except ValueError:
             pass
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
     add_goal(user["id"], title, deadline)
     dl_str = f"  📅 до {deadline}" if deadline else ""
     await message.answer(f"🎯 Ціль додана: {title}{dl_str}")
 
 
 @dp.message(Command("goals"))
-async def cmd_goals(message: types.Message):
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
+async def cmd_goals(message: types.Message, user: dict):
     goals = get_goals(user["id"])
     if not goals:
         await message.answer("🎯 Цілей немає.\nДодай: /addgoal Назва")
@@ -699,8 +695,7 @@ async def cmd_goals(message: types.Message):
 
 
 @dp.message(Command("goalsdone"))
-async def cmd_goalsdone(message: types.Message):
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
+async def cmd_goalsdone(message: types.Message, user: dict):
     goals = get_goals(user["id"])
     if not goals:
         await message.answer("Немає активних цілей.")
@@ -712,9 +707,8 @@ async def cmd_goalsdone(message: types.Message):
 
 
 @dp.callback_query(F.data.startswith("goal:"))
-async def cb_goal(callback: types.CallbackQuery):
+async def cb_goal(callback: types.CallbackQuery, user: dict):
     goal_id = callback.data.split(":", 1)[1]
-    user = ensure_user(callback.from_user.id, callback.from_user.full_name)
     done = complete_goal(goal_id, user["id"])
     if done:
         add_xp(user["id"], "discipline", 10, "goals")
@@ -724,10 +718,9 @@ async def cb_goal(callback: types.CallbackQuery):
 
 
 @dp.message(Command("idea"))
-async def cmd_idea(message: types.Message, command: CommandObject):
+async def cmd_idea(message: types.Message, command: CommandObject, user: dict):
     text = (command.args or "").strip()
     if not text:
-        user = ensure_user(message.from_user.id, message.from_user.full_name)
         ideas = get_ideas(user["id"])
         if not ideas:
             await message.answer("💡 Ідей немає.\nДодай: /idea текст")
@@ -737,16 +730,14 @@ async def cmd_idea(message: types.Message, command: CommandObject):
             lines.append(f"{i}. {idea['text']}")
         await message.answer("\n".join(lines))
         return
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
     add_idea(user["id"], text)
     await message.answer("💡 Ідею збережено!")
 
 
 @dp.message(Command("weight"))
-async def cmd_weight(message: types.Message, command: CommandObject):
+async def cmd_weight(message: types.Message, command: CommandObject, user: dict):
     arg = (command.args or "").strip().replace(",", ".")
     if not arg:
-        user = ensure_user(message.from_user.id, message.from_user.full_name)
         entries = get_last_weights(user["id"])
         if not entries:
             await message.answer("⚖️ Замірів немає.\nДодай: /weight 80.5")
@@ -761,7 +752,6 @@ async def cmd_weight(message: types.Message, command: CommandObject):
     except ValueError:
         await message.answer("Невірний формат. Приклад: /weight 80.5")
         return
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
     log_weight(user["id"], weight)
     add_xp(user["id"], "reflection", 1, "body")
     await message.answer(f"⚖️ Вагу записано: {weight} кг  +1 XP до Рефлексії")
@@ -771,9 +761,8 @@ MOOD_EMOJI = {1: "😞", 2: "😕", 3: "😐", 4: "🙂", 5: "😄"}
 
 
 @dp.message(Command("journal"))
-async def cmd_journal(message: types.Message, command: CommandObject):
+async def cmd_journal(message: types.Message, command: CommandObject, user: dict):
     text = (command.args or "").strip()
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
 
     if not text:
         entries = get_diary_entries(user["id"], limit=10)
@@ -820,7 +809,7 @@ async def cmd_journal(message: types.Message, command: CommandObject):
 
 
 @dp.message(Command("spend"))
-async def cmd_spend(message: types.Message, command: CommandObject):
+async def cmd_spend(message: types.Message, command: CommandObject, user: dict):
     parts = (command.args or "").strip().split(maxsplit=1)
     try:
         amount = float(parts[0]) if parts else None
@@ -830,7 +819,6 @@ async def cmd_spend(message: types.Message, command: CommandObject):
         await message.answer("Формат: /spend сума категорія\nПриклад: /spend 500 їжа")
         return
     category = parts[1].strip() if len(parts) > 1 else "інше"
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
     add_transaction(user["id"], amount, category)
     add_xp(user["id"], "finance", 1, "finance")
 
@@ -843,8 +831,7 @@ async def cmd_spend(message: types.Message, command: CommandObject):
 
 
 @dp.message(Command("finance"))
-async def cmd_finance(message: types.Message):
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
+async def cmd_finance(message: types.Message, user: dict):
     entries = get_transactions_week(user["id"])
     if not entries:
         await message.answer("💰 Витрат за тиждень немає.\nДодай: /spend 500 їжа")
@@ -866,8 +853,7 @@ async def cmd_finance(message: types.Message):
 
 
 @dp.message(Command("workouts"))
-async def cmd_workouts(message: types.Message):
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
+async def cmd_workouts(message: types.Message, user: dict):
     entries = get_workouts_recent(user["id"])
     if not entries:
         await message.answer("🏋️ Тренувань ще немає.\nДодай: /workout Біг 30")
@@ -882,10 +868,9 @@ async def cmd_workouts(message: types.Message):
 
 
 @dp.message(Command("sleep"))
-async def cmd_sleep(message: types.Message, command: CommandObject):
+async def cmd_sleep(message: types.Message, command: CommandObject, user: dict):
     parts = (command.args or "").strip().split()
     if not parts:
-        user = ensure_user(message.from_user.id, message.from_user.full_name)
         history = get_sleep_history(user["id"])
         if not history:
             await message.answer(
@@ -925,7 +910,6 @@ async def cmd_sleep(message: types.Message, command: CommandObject):
     hours = duration // 60
     mins = duration % 60
 
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
     log_sleep(user["id"], parts[0], parts[1], duration)
 
     xp_note = ""
@@ -942,10 +926,9 @@ async def cmd_sleep(message: types.Message, command: CommandObject):
 # --- Видалення командою -------------------------------------------------------
 
 @dp.message(Command("delritual"))
-async def cmd_delritual(message: types.Message, command: CommandObject):
+async def cmd_delritual(message: types.Message, command: CommandObject, user: dict):
     title = (command.args or "").strip()
     if not title:
-        user = ensure_user(message.from_user.id, message.from_user.full_name)
         rituals = get_rituals(user["id"])
         if not rituals:
             await message.answer("Ритуалів немає.")
@@ -955,7 +938,6 @@ async def cmd_delritual(message: types.Message, command: CommandObject):
             lines.append(f"• {r['title']}")
         await message.answer("\n".join(lines))
         return
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
     deleted = delete_ritual_by_title(user["id"], title)
     if deleted:
         await message.answer(f"🗑 Ритуал «{title}» видалено.")
@@ -964,10 +946,9 @@ async def cmd_delritual(message: types.Message, command: CommandObject):
 
 
 @dp.message(Command("deltask"))
-async def cmd_deltask(message: types.Message, command: CommandObject):
+async def cmd_deltask(message: types.Message, command: CommandObject, user: dict):
     title = (command.args or "").strip()
     if not title:
-        user = ensure_user(message.from_user.id, message.from_user.full_name)
         tasks = get_tasks(user["id"])
         if not tasks:
             await message.answer("Активних завдань немає.")
@@ -977,7 +958,6 @@ async def cmd_deltask(message: types.Message, command: CommandObject):
             lines.append(f"• {t['title']}")
         await message.answer("\n".join(lines))
         return
-    user = ensure_user(message.from_user.id, message.from_user.full_name)
     deleted = delete_task_by_title(user["id"], title)
     if deleted:
         await message.answer(f"🗑 Завдання «{title}» видалено.")
@@ -988,44 +968,43 @@ async def cmd_deltask(message: types.Message, command: CommandObject):
 # --- Reply keyboard shortcuts -------------------------------------------------
 
 @dp.message(F.text == "📅 Сьогодні")
-async def kb_today(message: types.Message):
-    await cmd_today(message)
+async def kb_today(message: types.Message, user: dict):
+    await cmd_today(message, user)
 
 
 @dp.message(F.text == "⚔️ Стати")
-async def kb_stats(message: types.Message):
-    await cmd_stats(message)
+async def kb_stats(message: types.Message, user: dict):
+    await cmd_stats(message, user)
 
 
 @dp.message(F.text == "💧 Вода")
-async def kb_water(message: types.Message):
-    await cmd_water(message)
+async def kb_water(message: types.Message, user: dict):
+    await cmd_water(message, user)
 
 
 @dp.message(F.text == "🔥 Ритуали")
-async def kb_rituals(message: types.Message):
-    await cmd_rituals(message)
+async def kb_rituals(message: types.Message, user: dict):
+    await cmd_rituals(message, user)
 
 
 @dp.message(F.text == "✅ Завдання")
-async def kb_tasks(message: types.Message):
-    await cmd_tasks(message)
+async def kb_tasks(message: types.Message, user: dict):
+    await cmd_tasks(message, user)
 
 
 @dp.message(F.text == "🍽 Харчування")
-async def kb_food(message: types.Message):
-    await cmd_food(message)
+async def kb_food(message: types.Message, user: dict):
+    await cmd_food(message, user)
 
 
 # Catch-all — ЗАВЖДИ ОСТАННІМ
 @dp.message()
-async def on_any(message: types.Message):
-    if not message.from_user:
+async def on_any(message: types.Message, user: dict | None = None):
+    if user is None:
         return
     text = message.text or ""
     if text:
         try:
-            user = ensure_user(message.from_user.id, message.from_user.full_name)
             add_inbox(user["id"], text)
             await message.answer("📥 Збережено в Inbox.\n/inbox — перегляд", reply_markup=MAIN_KEYBOARD)
         except Exception:
