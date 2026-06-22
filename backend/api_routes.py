@@ -349,7 +349,9 @@ class FoodIn(BaseModel):
 
 @router.post("/food")
 def api_add_food_entry(body: FoodIn, user: dict = Depends(get_current_user)):
-    return add_food(user["id"], body.food_name, body.kcal, body.grams)
+    entry = add_food(user["id"], body.food_name, body.kcal, body.grams)
+    add_xp(user["id"], "nutrition", 2, "food")
+    return entry
 
 
 @router.get("/diary")
