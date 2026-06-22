@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { BottomSheet } from './BottomSheet'
 
 export interface ActionSheetItem {
   label: string
@@ -29,8 +30,6 @@ export function ActionSheet({ open, onClose, items }: Props) {
     }
   }, [])
 
-  if (!open) return null
-
   function handleClick(idx: number, item: ActionSheetItem) {
     if (!item.danger) {
       onClose()
@@ -50,33 +49,24 @@ export function ActionSheet({ open, onClose, items }: Props) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end"
-      style={{ background: 'rgba(26,26,26,0.6)' }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full"
-        style={{ background: 'var(--bg)', borderTop: '1px solid var(--subtle)' }}
-        onClick={e => e.stopPropagation()}
-      >
-        {items.map((item, idx) => (
-          <button
-            key={idx}
-            onClick={() => handleClick(idx, item)}
-            className="w-full px-6 py-4 text-left font-condensed text-sm"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              borderBottom: idx < items.length - 1 ? '1px solid var(--subtle)' : 'none',
-              color: item.danger && armedIndex === idx ? '#dc2626' : 'var(--ink)',
-              cursor: 'pointer',
-            }}
-          >
-            {item.danger && armedIndex === idx ? 'Натисни ще раз' : item.label}
-          </button>
-        ))}
-      </div>
-    </div>
+    <BottomSheet open={open} onClose={onClose} zIndex={50}>
+      {items.map((item, idx) => (
+        <button
+          key={idx}
+          onClick={() => handleClick(idx, item)}
+          aria-live="polite"
+          className="w-full px-6 py-4 text-left font-condensed text-sm"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            borderBottom: idx < items.length - 1 ? '1px solid var(--subtle)' : 'none',
+            color: item.danger && armedIndex === idx ? '#dc2626' : 'var(--ink)',
+            cursor: 'pointer',
+          }}
+        >
+          {item.danger && armedIndex === idx ? 'Натисни ще раз' : item.label}
+        </button>
+      ))}
+    </BottomSheet>
   )
 }
