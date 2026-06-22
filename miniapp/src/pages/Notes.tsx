@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import type { InboxItem } from '../api'
 import { ActionSheet } from '../components/ActionSheet'
+import { BottomSheet } from '../components/BottomSheet'
+import { TextField } from '../components/TextField'
 
 export function Notes({ initData, onDataChange }: { initData: string; onDataChange?: () => void }) {
   const [items, setItems] = useState<InboxItem[]>([])
@@ -106,44 +108,33 @@ export function Notes({ initData, onDataChange }: { initData: string; onDataChan
         ] : []}
       />
 
-      {meetingId && (
-        <div
-          className="fixed inset-0 z-40 flex items-end"
-          style={{ background: 'rgba(26,26,26,0.6)' }}
-          onClick={() => setMeetingId(null)}
-        >
-          <div
-            className="w-full p-6 space-y-4"
-            style={{ background: 'var(--bg)', borderTop: '1px solid var(--subtle)' }}
-            onClick={e => e.stopPropagation()}
+      <BottomSheet open={meetingId !== null} onClose={() => setMeetingId(null)}>
+        <div className="p-6 space-y-4">
+          <div className="font-condensed font-semibold text-base">📅 Зустріч — дата</div>
+          <TextField
+            autoFocus
+            type="date"
+            font="mono"
+            value={meetingDate}
+            onChange={setMeetingDate}
+          />
+          <TextField
+            type="time"
+            font="mono"
+            border="subtle"
+            value={meetingTime}
+            onChange={setMeetingTime}
+          />
+          <button
+            onClick={submitMeeting}
+            disabled={!meetingDate}
+            className="w-full py-3 font-condensed font-semibold text-sm"
+            style={{ background: 'var(--ink)', color: 'var(--bg)', border: 'none', cursor: 'pointer', opacity: meetingDate ? 1 : 0.5 }}
           >
-            <div className="font-condensed font-semibold text-base">📅 Зустріч — дата</div>
-            <input
-              autoFocus
-              type="date"
-              value={meetingDate}
-              onChange={e => setMeetingDate(e.target.value)}
-              className="w-full px-0 py-3 font-mono text-sm outline-none"
-              style={{ background: 'transparent', borderBottom: '1px solid var(--ink)', color: 'var(--ink)' }}
-            />
-            <input
-              type="time"
-              value={meetingTime}
-              onChange={e => setMeetingTime(e.target.value)}
-              className="w-full px-0 py-3 font-mono text-sm outline-none"
-              style={{ background: 'transparent', borderBottom: '1px solid var(--subtle)', color: 'var(--ink)' }}
-            />
-            <button
-              onClick={submitMeeting}
-              disabled={!meetingDate}
-              className="w-full py-3 font-condensed font-semibold text-sm"
-              style={{ background: 'var(--ink)', color: 'var(--bg)', border: 'none', cursor: 'pointer', opacity: meetingDate ? 1 : 0.5 }}
-            >
-              Створити зустріч
-            </button>
-          </div>
+            Створити зустріч
+          </button>
         </div>
-      )}
+      </BottomSheet>
     </div>
   )
 }

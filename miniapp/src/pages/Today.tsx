@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import type { TodayData } from '../api'
+import { BottomSheet } from '../components/BottomSheet'
+import { TextField } from '../components/TextField'
+import { ProgressBar } from '../components/ProgressBar'
 
 type Modal = 'water' | 'task' | 'note' | 'food' | null
 
@@ -80,7 +83,6 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
   if (err) return <div className="p-4 text-sm break-all" style={{ color: '#dc2626' }}>{err}</div>
   if (!data) return <div className="p-4 font-mono text-xs" style={{ color: 'var(--muted)' }}>…</div>
 
-  const waterPct = data.water_goal > 0 ? Math.round((data.water / data.water_goal) * 100) : 0
   const ritualPct = data.rituals_total > 0 ? Math.round((data.rituals_done / data.rituals_total) * 100) : 0
 
   return (
@@ -113,9 +115,7 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
               <span className="font-mono text-xs ml-1" style={{ color: 'var(--muted)' }}>з {data.water_goal} мл</span>
             </div>
           </div>
-          <div className="w-full h-1 rounded-full" style={{ background: 'var(--subtle)' }}>
-            <div className="h-1 rounded-full transition-all" style={{ width: `${waterPct}%`, background: '#3b82f6' }} />
-          </div>
+          <ProgressBar value={data.water} max={data.water_goal} color="bg-[#3b82f6]" height="h-1" />
         </div>
 
         <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--subtle)' }}>
@@ -126,9 +126,7 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
               <span className="font-mono text-xs ml-1" style={{ color: 'var(--muted)' }}>{ritualPct}%</span>
             </div>
           </div>
-          <div className="w-full h-1 rounded-full" style={{ background: 'var(--subtle)' }}>
-            <div className="h-1 rounded-full transition-all" style={{ width: `${ritualPct}%`, background: '#f97316' }} />
-          </div>
+          <ProgressBar value={data.rituals_done} max={data.rituals_total} color="bg-[#f97316]" height="h-1" />
         </div>
 
         <div className="px-4 py-4 flex items-baseline justify-between" style={{ borderBottom: '1px solid var(--subtle)' }}>
@@ -149,126 +147,111 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
       </div>
 
       {/* Quick-add modal */}
-      {modal && (
-        <div
-          className="fixed inset-0 z-40 flex items-end"
-          style={{ background: 'rgba(26,26,26,0.6)' }}
-          onClick={closeModal}
-        >
-          <div
-            className="w-full p-6 space-y-4"
-            style={{ background: 'var(--bg)', borderTop: '1px solid var(--subtle)' }}
-            onClick={e => e.stopPropagation()}
-          >
-            {saveErr && (
-              <div className="font-mono text-xs" style={{ color: '#dc2626' }}>{saveErr}</div>
-            )}
+      <BottomSheet open={modal !== null} onClose={closeModal}>
+        <div className="p-6 space-y-4">
+          {saveErr && (
+            <div className="font-mono text-xs" style={{ color: '#dc2626' }}>{saveErr}</div>
+          )}
 
-            {modal === 'water' && (
-              <>
-                <div className="font-condensed font-semibold text-base">💧 Додати воду</div>
-                <div className="grid grid-cols-3 gap-3">
-                  {[250, 500, 1000].map(ml => (
-                    <button
-                      key={ml}
-                      onClick={() => handleAddWater(ml)}
-                      disabled={saving}
-                      className="py-4 font-mono text-sm"
-                      style={{ border: '1px solid var(--subtle)', background: 'transparent', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
-                    >
-                      +{ml} мл
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+          {modal === 'water' && (
+            <>
+              <div className="font-condensed font-semibold text-base">💧 Додати воду</div>
+              <div className="grid grid-cols-3 gap-3">
+                {[250, 500, 1000].map(ml => (
+                  <button
+                    key={ml}
+                    onClick={() => handleAddWater(ml)}
+                    disabled={saving}
+                    className="py-4 font-mono text-sm"
+                    style={{ border: '1px solid var(--subtle)', background: 'transparent', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
+                  >
+                    +{ml} мл
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
-            {modal === 'task' && (
-              <>
-                <div className="font-condensed font-semibold text-base">✅ Нова задача</div>
-                <input
-                  autoFocus
-                  value={taskTitle}
-                  onChange={e => setTaskTitle(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleAddTask()}
-                  placeholder="Назва задачі..."
-                  className="w-full px-0 py-3 font-condensed text-sm outline-none"
-                  style={{ background: 'transparent', borderBottom: '1px solid var(--ink)', color: 'var(--ink)', borderTop: 'none', borderLeft: 'none', borderRight: 'none' }}
-                />
-                <button
-                  onClick={handleAddTask}
-                  disabled={saving || !taskTitle.trim()}
-                  className="w-full py-3 font-condensed font-semibold text-sm"
-                  style={{ background: 'var(--ink)', color: 'var(--bg)', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
-                >
-                  Додати
-                </button>
-              </>
-            )}
+          {modal === 'task' && (
+            <>
+              <div className="font-condensed font-semibold text-base">✅ Нова задача</div>
+              <TextField
+                autoFocus
+                value={taskTitle}
+                onChange={setTaskTitle}
+                onEnter={handleAddTask}
+                placeholder="Назва задачі..."
+              />
+              <button
+                onClick={handleAddTask}
+                disabled={saving || !taskTitle.trim()}
+                className="w-full py-3 font-condensed font-semibold text-sm"
+                style={{ background: 'var(--ink)', color: 'var(--bg)', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
+              >
+                Додати
+              </button>
+            </>
+          )}
 
-            {modal === 'note' && (
-              <>
-                <div className="font-condensed font-semibold text-base">📝 Нова нотатка</div>
-                <textarea
-                  autoFocus
-                  value={noteText}
-                  onChange={e => setNoteText(e.target.value)}
-                  placeholder="Запиши думку..."
-                  rows={3}
-                  className="w-full px-0 py-3 font-condensed text-sm outline-none resize-none"
-                  style={{ background: 'transparent', borderBottom: '1px solid var(--ink)', color: 'var(--ink)', borderTop: 'none', borderLeft: 'none', borderRight: 'none' }}
-                />
-                <button
-                  onClick={handleAddNote}
-                  disabled={saving || !noteText.trim()}
-                  className="w-full py-3 font-condensed font-semibold text-sm"
-                  style={{ background: 'var(--ink)', color: 'var(--bg)', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
-                >
-                  Зберегти
-                </button>
-              </>
-            )}
+          {modal === 'note' && (
+            <>
+              <div className="font-condensed font-semibold text-base">📝 Нова нотатка</div>
+              <TextField
+                autoFocus
+                multiline
+                value={noteText}
+                onChange={setNoteText}
+                placeholder="Запиши думку..."
+              />
+              <button
+                onClick={handleAddNote}
+                disabled={saving || !noteText.trim()}
+                className="w-full py-3 font-condensed font-semibold text-sm"
+                style={{ background: 'var(--ink)', color: 'var(--bg)', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
+              >
+                Зберегти
+              </button>
+            </>
+          )}
 
-            {modal === 'food' && (
-              <>
-                <div className="font-condensed font-semibold text-base">🍽 Їжа</div>
-                <input
-                  autoFocus
-                  value={foodName}
-                  onChange={e => setFoodName(e.target.value)}
-                  placeholder="Назва (Гречка, Яйця...)"
-                  className="w-full px-0 py-3 font-condensed text-sm outline-none"
-                  style={{ background: 'transparent', borderBottom: '1px solid var(--subtle)', color: 'var(--ink)', borderTop: 'none', borderLeft: 'none', borderRight: 'none' }}
-                />
-                <input
-                  value={foodGrams}
-                  onChange={e => setFoodGrams(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Грами (за бажанням)"
-                  inputMode="numeric"
-                  className="w-full px-0 py-3 font-mono text-sm outline-none"
-                  style={{ background: 'transparent', borderBottom: '1px solid var(--subtle)', color: 'var(--ink)', borderTop: 'none', borderLeft: 'none', borderRight: 'none' }}
-                />
-                <input
-                  value={foodKcal}
-                  onChange={e => setFoodKcal(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Калорії (ккал)"
-                  inputMode="numeric"
-                  className="w-full px-0 py-3 font-mono text-sm outline-none"
-                  style={{ background: 'transparent', borderBottom: '1px solid var(--subtle)', color: 'var(--ink)', borderTop: 'none', borderLeft: 'none', borderRight: 'none' }}
-                />
-                <button
-                  onClick={handleAddFood}
-                  disabled={saving || !foodName.trim() || !foodKcal}
-                  className="w-full py-3 font-condensed font-semibold text-sm"
-                  style={{ background: 'var(--ink)', color: 'var(--bg)', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
-                >
-                  Додати
-                </button>
-              </>
-            )}
-          </div>
+          {modal === 'food' && (
+            <>
+              <div className="font-condensed font-semibold text-base">🍽 Їжа</div>
+              <TextField
+                autoFocus
+                border="subtle"
+                value={foodName}
+                onChange={setFoodName}
+                placeholder="Назва (Гречка, Яйця...)"
+              />
+              <TextField
+                border="subtle"
+                font="mono"
+                inputMode="numeric"
+                value={foodGrams}
+                onChange={v => setFoodGrams(v.replace(/\D/g, ''))}
+                placeholder="Грами (за бажанням)"
+              />
+              <TextField
+                border="subtle"
+                font="mono"
+                inputMode="numeric"
+                value={foodKcal}
+                onChange={v => setFoodKcal(v.replace(/\D/g, ''))}
+                placeholder="Калорії (ккал)"
+              />
+              <button
+                onClick={handleAddFood}
+                disabled={saving || !foodName.trim() || !foodKcal}
+                className="w-full py-3 font-condensed font-semibold text-sm"
+                style={{ background: 'var(--ink)', color: 'var(--bg)', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
+              >
+                Додати
+              </button>
+            </>
+          )}
         </div>
-      )}
+      </BottomSheet>
     </div>
   )
 }
