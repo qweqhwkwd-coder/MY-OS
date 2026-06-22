@@ -12,8 +12,9 @@ import { Rituals } from './pages/Rituals'
 import { Tasks } from './pages/Tasks'
 import { Food } from './pages/Food'
 import { Notes } from './pages/Notes'
+import { Diary } from './pages/Diary'
 
-type View = 'today' | 'water' | 'rituals' | 'tasks' | 'food' | 'notes'
+type View = 'today' | 'water' | 'rituals' | 'tasks' | 'food' | 'notes' | 'diary'
 
 export default function App() {
   const [initData, setInitData] = useState('')
@@ -109,6 +110,7 @@ export default function App() {
       case 'tasks':   return <Tasks initData={initData} onDataChange={refreshProfile} />
       case 'food':    return <Food initData={initData} />
       case 'notes':   return <Notes initData={initData} onDataChange={refreshProfile} />
+      case 'diary':   return <Diary initData={initData} onDataChange={refreshProfile} />
     }
   })()
 

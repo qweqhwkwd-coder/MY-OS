@@ -14,7 +14,7 @@ const MODULES: Module[] = [
   { id: 'sleep',   num: '06', label: 'Сон',       locked: true  },
   { id: 'finance', num: '07', label: 'Фінанси',   locked: true  },
   { id: 'goals',   num: '08', label: 'Цілі',      locked: true  },
-  { id: 'diary',   num: '09', label: 'Щоденник',  locked: true  },
+  { id: 'diary',   num: '09', label: 'Щоденник',  locked: false },
   { id: 'ideas',   num: '10', label: 'Ідеї',      locked: true  },
   { id: 'meet',    num: '11', label: 'Зустрічі',  locked: true  },
   { id: 'digest',  num: '12', label: 'Дайджест',  locked: true  },
