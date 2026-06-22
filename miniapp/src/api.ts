@@ -1,23 +1,40 @@
 const BASE = import.meta.env.VITE_API_URL || 'https://my-os-ijgn.onrender.com'
 
 async function req<T>(path: string, initData: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Telegram-Init-Data': initData,
-      ...options?.headers,
-    },
-  })
-  if (!res.ok) {
-    const body = await res.text().catch(() => '')
-    // Якщо сервер повернув HTML — VITE_API_URL вказує не туди (GitHub Pages замість Render)
-    if (body.trimStart().startsWith('<')) {
-      throw new Error(`Невірна адреса API (${res.status}). Перевір VITE_API_URL → має бути Render URL.`)
+  // Render free tier sleeps after 15 min idle and can take 30-60s to wake up — the
+  // first request during that window sometimes drops with a network-level failure
+  // ("Load failed" / "Failed to fetch") rather than waiting. GET requests are safe
+  // to retry (no side effects); POST/PATCH/DELETE get exactly one attempt so we
+  // never risk double-submitting an action.
+  const isGet = !options?.method
+  const maxAttempts = isGet ? 3 : 1
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetch(`${BASE}${path}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Telegram-Init-Data': initData,
+          ...options?.headers,
+        },
+      })
+      if (!res.ok) {
+        const body = await res.text().catch(() => '')
+        // Якщо сервер повернув HTML — VITE_API_URL вказує не туди (GitHub Pages замість Render)
+        if (body.trimStart().startsWith('<')) {
+          throw new Error(`Невірна адреса API (${res.status}). Перевір VITE_API_URL → має бути Render URL.`)
+        }
+        throw new Error(`${res.status}: ${body || path}`)
+      }
+      return res.json()
+    } catch (e) {
+      const isNetworkFailure = e instanceof TypeError
+      if (!isNetworkFailure || attempt === maxAttempts) throw e
+      await new Promise(r => setTimeout(r, 2000 * attempt))
     }
-    throw new Error(`${res.status}: ${body || path}`)
   }
-  return res.json()
+  throw new Error('unreachable')
 }
 
 export const api = {
