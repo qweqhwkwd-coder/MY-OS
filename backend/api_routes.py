@@ -42,6 +42,7 @@ from db import (
     inbox_to_idea,
     inbox_to_meeting,
     inbox_to_task,
+    parallel,
     rename_ritual,
     rename_task,
     toggle_ritual,
@@ -105,13 +106,15 @@ def get_current_user(
 @router.get("/today")
 def api_today(user: dict = Depends(get_current_user)):
     uid = user["id"]
-    water = get_water_today(uid)
-    rituals = get_rituals(uid)
-    done_set = get_rituals_done_today(uid)
-    tasks_done = get_tasks_done_today(uid)
-    food = get_food_today(uid)
+    water, rituals, done_set, tasks_done, food, stats = parallel(
+        lambda: get_water_today(uid),
+        lambda: get_rituals(uid),
+        lambda: get_rituals_done_today(uid),
+        lambda: get_tasks_done_today(uid),
+        lambda: get_food_today(uid),
+        lambda: get_user_stats(uid),
+    )
     kcal = sum(e["kcal"] for e in food if e.get("kcal") is not None)
-    stats = get_user_stats(uid)
     return {
         "level": stats["level"],
         "water": water,
@@ -237,12 +240,14 @@ def api_digest(user: dict = Depends(get_current_user)):
 @router.get("/profile")
 def api_profile(user: dict = Depends(get_current_user)):
     uid = user["id"]
-    stats = get_user_stats(uid)
+    stats, hp, xp_today, streak = parallel(
+        lambda: get_user_stats(uid),
+        lambda: calculate_hp(uid, user.get("water_goal")),
+        lambda: get_xp_today(uid),
+        lambda: get_streak(uid),
+    )
     avg_xp = sum(stats[s] for s in STATS) / 8
     rank_data = get_rank(avg_xp)
-    hp = calculate_hp(uid, user.get("water_goal"))
-    xp_today = get_xp_today(uid)
-    streak = get_streak(uid)
     return {
         "name": user.get("name", ""),
         "level": stats["level"],

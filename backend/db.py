@@ -6,6 +6,7 @@
 
 DEFAULT_WATER_GOAL = 2000
 
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 
 from supabase import Client, create_client
@@ -15,6 +16,18 @@ from config import settings
 supabase: Client = create_client(
     settings.supabase_url, settings.supabase_service_role_key
 )
+
+
+def parallel(*funcs):
+    """Runs zero-arg callables concurrently on a thread pool, returns results in order.
+
+    Supabase calls are I/O-bound HTTP requests, so functions that need several
+    independent reads (calculate_hp, get_week_digest, api_today) cut wall-clock
+    time by firing them concurrently instead of awaiting each round trip in turn.
+    """
+    with ThreadPoolExecutor(max_workers=len(funcs)) as pool:
+        futures = [pool.submit(f) for f in funcs]
+        return [f.result() for f in futures]
 
 # Восемь RPG-характеристик
 STATS = (
@@ -115,35 +128,31 @@ def calculate_hp(user_id: str, water_goal: int | None = None) -> int:
         water_goal = user_row.data[0].get("water_goal") if user_row.data else None
     water_goal = water_goal or DEFAULT_WATER_GOAL
 
-    rituals = get_rituals(user_id)
-    total_rituals = len(rituals)
-
     start = (today - timedelta(days=2)).isoformat()
 
-    water_by_day = {
-        r["date"]: r["amount_ml"]
-        for r in supabase.table("water_logs").select("date,amount_ml")
-        .eq("user_id", user_id).gte("date", start).execute().data
-    }
+    rituals, water_rows, ritual_log_rows, sleep_rows, food_rows = parallel(
+        lambda: get_rituals(user_id),
+        lambda: supabase.table("water_logs").select("date,amount_ml")
+            .eq("user_id", user_id).gte("date", start).execute().data,
+        lambda: supabase.table("ritual_logs").select("date")
+            .eq("user_id", user_id).eq("is_done", True).gte("date", start).execute().data,
+        lambda: supabase.table("sleep_logs").select("date,duration_min")
+            .eq("user_id", user_id).gte("date", start).execute().data,
+        lambda: supabase.table("food_logs").select("date,kcal")
+            .eq("user_id", user_id).gte("date", start).execute().data,
+    )
+    total_rituals = len(rituals)
+
+    water_by_day = {r["date"]: r["amount_ml"] for r in water_rows}
 
     ritual_done_by_day: dict[str, int] = {}
-    for r in (
-        supabase.table("ritual_logs").select("date")
-        .eq("user_id", user_id).eq("is_done", True).gte("date", start).execute().data
-    ):
+    for r in ritual_log_rows:
         ritual_done_by_day[r["date"]] = ritual_done_by_day.get(r["date"], 0) + 1
 
-    sleep_by_day = {
-        r["date"]: r["duration_min"]
-        for r in supabase.table("sleep_logs").select("date,duration_min")
-        .eq("user_id", user_id).gte("date", start).execute().data
-    }
+    sleep_by_day = {r["date"]: r["duration_min"] for r in sleep_rows}
 
     kcal_by_day: dict[str, float] = {}
-    for r in (
-        supabase.table("food_logs").select("date,kcal")
-        .eq("user_id", user_id).gte("date", start).execute().data
-    ):
+    for r in food_rows:
         if r.get("kcal"):
             kcal_by_day[r["date"]] = kcal_by_day.get(r["date"], 0) + r["kcal"]
 
@@ -482,37 +491,23 @@ def get_week_digest(user_id: str) -> dict:
     today = date.today()
     week_start = (today - timedelta(days=6)).isoformat()
 
-    water = (
-        supabase.table("water_logs").select("amount_ml").eq("user_id", user_id)
-        .gte("date", week_start).execute().data
-    )
-    rituals_done = (
-        supabase.table("ritual_logs").select("id").eq("user_id", user_id)
-        .eq("is_done", True).gte("date", week_start).execute().data
-    )
-    tasks_done = (
-        supabase.table("tasks").select("id").eq("user_id", user_id)
-        .eq("is_completed", True).gte("completed_at", week_start).execute().data
-    )
-    food = (
-        supabase.table("food_logs").select("kcal").eq("user_id", user_id)
-        .gte("date", week_start).execute().data
-    )
-    sleep = (
-        supabase.table("sleep_logs").select("duration_min").eq("user_id", user_id)
-        .gte("date", week_start).execute().data
-    )
-    workouts = (
-        supabase.table("workouts").select("id").eq("user_id", user_id)
-        .gte("date", week_start).execute().data
-    )
-    spends = (
-        supabase.table("transactions").select("amount").eq("user_id", user_id)
-        .gte("date", week_start).execute().data
-    )
-    xp_events = (
-        supabase.table("xp_events").select("xp_amount").eq("user_id", user_id)
-        .gte("created_at", week_start).execute().data
+    water, rituals_done, tasks_done, food, sleep, workouts, spends, xp_events = parallel(
+        lambda: supabase.table("water_logs").select("amount_ml").eq("user_id", user_id)
+            .gte("date", week_start).execute().data,
+        lambda: supabase.table("ritual_logs").select("id").eq("user_id", user_id)
+            .eq("is_done", True).gte("date", week_start).execute().data,
+        lambda: supabase.table("tasks").select("id").eq("user_id", user_id)
+            .eq("is_completed", True).gte("completed_at", week_start).execute().data,
+        lambda: supabase.table("food_logs").select("kcal").eq("user_id", user_id)
+            .gte("date", week_start).execute().data,
+        lambda: supabase.table("sleep_logs").select("duration_min").eq("user_id", user_id)
+            .gte("date", week_start).execute().data,
+        lambda: supabase.table("workouts").select("id").eq("user_id", user_id)
+            .gte("date", week_start).execute().data,
+        lambda: supabase.table("transactions").select("amount").eq("user_id", user_id)
+            .gte("date", week_start).execute().data,
+        lambda: supabase.table("xp_events").select("xp_amount").eq("user_id", user_id)
+            .gte("created_at", week_start).execute().data,
     )
 
     avg_sleep = (sum(s["duration_min"] for s in sleep) / len(sleep) / 60) if sleep else 0
