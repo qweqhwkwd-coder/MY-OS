@@ -31,6 +31,11 @@ export const api = {
     }),
   food: (initData: string) => req<FoodEntry[]>('/api/food', initData),
   rituals: (initData: string) => req<Ritual[]>('/api/rituals', initData),
+  addRitual: (initData: string, title: string) =>
+    req<Ritual>('/api/rituals', initData, {
+      method: 'POST',
+      body: JSON.stringify({ title }),
+    }),
   toggleRitual: (initData: string, id: string) =>
     req<{ done: boolean }>(`/api/rituals/${id}/toggle`, initData, { method: 'POST' }),
   tasks: (initData: string) => req<Task[]>('/api/tasks', initData),

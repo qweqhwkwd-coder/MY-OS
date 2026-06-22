@@ -18,6 +18,7 @@ from db import (
     add_diary_entry,
     add_food,
     add_inbox,
+    add_ritual,
     add_task,
     add_water,
     add_xp,
@@ -151,6 +152,15 @@ def api_add_water(body: WaterIn, user: dict = Depends(get_current_user)):
     goal = user.get("water_goal") or DEFAULT_WATER_GOAL
     total, _xp_granted = add_water(uid, body.amount, goal)
     return {"total": total}
+
+
+class RitualIn(BaseModel):
+    title: str
+
+
+@router.post("/rituals")
+def api_create_ritual(body: RitualIn, user: dict = Depends(get_current_user)):
+    return add_ritual(user["id"], body.title)
 
 
 @router.get("/rituals")
