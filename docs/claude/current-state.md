@@ -30,12 +30,12 @@
 | RPG-движок | ✅ | 8 статов, XP, level, **ранги** (`get_rank`, 10 тиров), **HP** (`calculate_hp`, по воде/ритуалам/сну/еде за 3 дня), **стрик** (`get_streak`) |
 | `/stats` | ✅ | все 8 статов с уровнями |
 | Reply Keyboard | ✅ | 6 кнопок-шорткатов |
-| **Mini App (React)** | ✅ | см. ниже — это НЕ заглушка, полноценный фронтенд на GitHub Pages |
+| **Mini App (React)** | ✅ | SwipeRow во всех блоках, архив задач, КБЖУ-калькулятор, дата-фильтр дневника, прогресс-бар ккал |
 | Уведомления / планировщик | ❌ | отложено (free-хостинг, см. roadmap.md) |
 | AI-слой | ❌ | не подключён |
 | Мультипользователь | ❌ | моста initData→JWT нет, бэкенд под `service_role` |
 | Умные уведомления (модуль 16) | ❌ | требует планировщика |
-| Полный 5-шаговый онбординг (физ-профиль, КБЖУ) | ❌ | есть только лёгкий `WelcomeScreen` в Mini App, без сбора данных |
+| Полный 5-шаговый онбординг (физ-профиль, КБЖУ) | 🟡 | `WelcomeScreen` + вкладка «Тіло» в ProfileModal с КБЖУ-калькулятором (Mifflin, только мужская формула); стать добавить позже |
 | Настройки (модуль 17) | 🟡 | только переключение темы (light/dark/auto) в `ProfileModal`; язык/часовой пояс/экспорт/уведомления — нет |
 | AI-тренер, шаблоны тренировок | ❌ | только ручной лог тренировки |
 | Чтение/учёба (источник XP в Интеллект) | ❌ | стат `intellect` существует, но ничего его не начисляет |
@@ -47,12 +47,19 @@
 
 Экраны/компоненты (`miniapp/src/`):
 - `App.tsx` — роутинг между вкладками, темизация (CSS-переменные `--bg`/`--ink`/...), опрос Telegram WebApp SDK на готовность initData.
-- `components/WelcomeScreen.tsx` — лёгкий онбординг-экран (не полный 5-шаговый из продукта), показывается через `shouldShowWelcome()` (localStorage).
+- `components/WelcomeScreen.tsx` — онбординг-экран с цитатой дня, показывается при каждом открытии (не раз в день).
+- `components/SwipeRow.tsx` — универсальный свайп-компонент (свайп влево → кнопки действий), заменяет LongPressButton во всех экранах.
 - `components/SysBar.tsx`, `components/NavGrid.tsx` — верхняя системная панель + сетка навигации по модулям.
-- `components/ProfileModal.tsx` — профиль (ранг, percentile, HP, стрик, XP за сегодня, 8 статов) + вкладка настроек с переключателем темы.
+- `components/ProfileModal.tsx` — профиль (ранг, percentile, HP, стрик, XP за сегодня, 8 статов) + вкладка настроек + вкладка «Тіло» с КБЖУ-калькулятором (формула Миффлина-Сент-Жора).
 - `components/ErrorBoundary.tsx` — видимый экран краша вместо белого экрана.
-- `pages/{Today,Water,Rituals,Tasks,Food,Notes,Diary}.tsx` — экраны MVP-модулей.
-- `api.ts` — тонкий fetch-клиент к `/api/*`, шлёт `X-Telegram-Init-Data` заголовком.
+- `pages/Today.tsx` — дашборд с прогресс-баром калорий vs цель КБЖУ.
+- `pages/Tasks.tsx` — SwipeRow + вкладки Активні/Архів (ленивая загрузка) + BottomSheet-редактирование + line-clamp-2.
+- `pages/Rituals.tsx` — SwipeRow вместо LongPress, редактирование через BottomSheet.
+- `pages/Notes.tsx` — SwipeRow (Опції/Видалити), конвертация через BottomSheet.
+- `pages/Diary.tsx` — SwipeRow + фильтр по дате + редактирование/удаление через BottomSheet.
+- `pages/Food.tsx` — SwipeRow удаление + прогресс-бар ккал/цель.
+- `pages/Water.tsx` — без изменений.
+- `api.ts` — тонкий fetch-клиент к `/api/*`, шлёт `X-Telegram-Init-Data` заголовком. Новые методы: `archivedTasks`, `diaryForDate`, `updateDiaryEntry`, `deleteDiaryEntry`, `deleteFoodEntry`, `getBodyProfile`, `updateBodyProfile`.
 
 Стек по факту (не путать с целевым из `conventions.md`): обычный `useState`/`useEffect`,
 без Zustand/TanStack Query/shadcn/ui/Recharts — это всё ещё в планах, не внедрено.
@@ -67,14 +74,13 @@
 
 ## Таблицы, существующие в БД
 
-Из примененных миграций `001`–`014` (см. `database.md`; `002_add_stats.sql`
-был восстановлен по коду — оригинальный файл потерян, но колонки уже были
-в продакшен-БД, восстановленный файл идемпотентен `add column if not exists`,
-безопасно прогнать даже если уже применялось раньше под другим/без файла):
+Из примененных миграций `001`–`015` (см. `database.md`):
 
-`users`, `user_stats`, `xp_events`, `tasks`, `rituals`, `ritual_logs`, `water_logs`,
+`users` (+ колонки `weight_kg`, `height_cm`, `age`, `activity_level` — миграция `015_body_profile.sql`, применить вручную в Supabase SQL Editor перед деплоем!), `user_stats`, `xp_events`, `tasks`, `rituals`, `ritual_logs`, `water_logs`,
 `food_logs`, `sleep_logs`, `transactions`, `diary_entries`, `body_measurements`,
 `ideas`, `goals`, `workouts`, `meetings`, `inbox_items`, `life_balance`.
+
+**⚠️ Миграция 015 ещё не применена в Supabase** — нужно запустить `db/migrations/015_body_profile.sql` через SQL Editor до деплоя (иначе `/api/users/body` и КБЖУ-расчёт не работают).
 
 Плюс Postgres-функция `increment_user_stat` (миграция `014`) — атомарное
 начисление XP, см. `database.md`.
@@ -102,5 +108,11 @@
 
 MVP-ядро и большинство модулей продукта (12 из 17, см. `modules.md`) уже в коде.
 Mini App покрывает 7 экранов (Сьогодні/Вода/Ритуали/Завдання/Їжа/Нотатки/Щоденник); остальные модули доступны только через бота.
-Следующий шаг по продукту — решить, расширять ли Mini App на оставшиеся модули,
-или подключать AI-слой (Фаза 4). Подробно — `roadmap.md` (тоже требует ревизии).
+
+**Ближайший обязательный шаг:** Применить миграцию `db/migrations/015_body_profile.sql` в Supabase SQL Editor.
+
+Следующие возможные направления:
+- XP/HP feedback layer (тосты + майлстоуны + график) — спек готов (`docs/superpowers/specs/2026-06-22-gamification-feedback-design.md`)
+- Расширить Mini App на оставшиеся модули (Сон, Фінанси, Тренування)
+- AI-слой (Фаза 4, см. `roadmap.md`)
+- Добавить стать в КБЖУ-профіль
