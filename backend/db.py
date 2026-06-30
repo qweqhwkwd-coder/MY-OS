@@ -72,7 +72,7 @@ def calculate_kcal_goal(user_id: str) -> int | None:
         return None
     u = res.data[0]
     w, h, a = u.get("weight_kg"), u.get("height_cm"), u.get("age")
-    if not all([w, h, a]):
+    if any(v is None for v in (w, h, a)):
         return None
     bmr = 10 * float(w) + 6.25 * int(h) - 5 * int(a) + 5
     multiplier = ACTIVITY_MULTIPLIERS.get(u.get("activity_level") or "moderate", 1.375)
