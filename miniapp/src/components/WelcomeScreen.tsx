@@ -11,12 +11,8 @@ const QUOTES = [
   { text: 'Живи кожен день так, ніби це останній день твого життя, і ти ніколи не будеш жалкувати.', author: 'Марк Аврелій' },
 ]
 
-function todayStr() {
-  return new Date().toLocaleDateString('sv')
-}
-
 export function shouldShowWelcome(): boolean {
-  return localStorage.getItem('last_welcome_date') !== todayStr()
+  return true
 }
 
 interface Props {
@@ -28,7 +24,6 @@ export function WelcomeScreen({ onEnter, streak = 0 }: Props) {
   const quote = QUOTES[new Date().getDate() % QUOTES.length]
 
   function handleEnter() {
-    localStorage.setItem('last_welcome_date', todayStr())
     onEnter()
   }
 
