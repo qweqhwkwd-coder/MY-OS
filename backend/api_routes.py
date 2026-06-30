@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 from config import settings
 from db import (
+    ACTIVITY_MULTIPLIERS,
     DEFAULT_WATER_GOAL,
     RANKS,
     STATS,
@@ -23,11 +24,17 @@ from db import (
     add_water,
     add_xp,
     calculate_hp,
+    calculate_kcal_goal,
     clear_inbox_item,
     complete_task,
+    delete_diary_entry,
+    delete_food_entry,
     delete_ritual_by_id,
     delete_task_by_id,
+    get_archived_tasks,
+    get_body_profile,
     get_diary_entries,
+    get_diary_entries_by_date,
     get_food_today,
     get_inbox,
     get_rank,
@@ -50,6 +57,8 @@ from db import (
     rename_ritual,
     rename_task,
     toggle_ritual,
+    update_body_profile,
+    update_diary_entry,
 )
 
 router = APIRouter(prefix="/api")
@@ -110,13 +119,14 @@ def get_current_user(
 @router.get("/today")
 def api_today(user: dict = Depends(get_current_user)):
     uid = user["id"]
-    water, rituals, done_set, tasks_done, food, stats = parallel(
+    water, rituals, done_set, tasks_done, food, stats, kcal_goal = parallel(
         lambda: get_water_today(uid),
         lambda: get_rituals(uid),
         lambda: get_rituals_done_today(uid),
         lambda: get_tasks_done_today(uid),
         lambda: get_food_today(uid),
         lambda: get_user_stats(uid),
+        lambda: calculate_kcal_goal(uid),
     )
     kcal = sum(e["kcal"] for e in food if e.get("kcal") is not None)
     return {
@@ -127,6 +137,7 @@ def api_today(user: dict = Depends(get_current_user)):
         "rituals_total": len(rituals),
         "tasks_done": tasks_done,
         "kcal": kcal,
+        "kcal_goal": kcal_goal,
     }
 
 
@@ -209,7 +220,9 @@ def api_delete_ritual(ritual_id: str, user: dict = Depends(get_current_user)):
 
 
 @router.get("/tasks")
-def api_tasks(user: dict = Depends(get_current_user)):
+def api_tasks(archive: bool = False, user: dict = Depends(get_current_user)):
+    if archive:
+        return get_archived_tasks(user["id"])
     return get_tasks(user["id"])
 
 
@@ -253,11 +266,12 @@ def api_digest(user: dict = Depends(get_current_user)):
 @router.get("/profile")
 def api_profile(user: dict = Depends(get_current_user)):
     uid = user["id"]
-    stats, hp, xp_today, streak = parallel(
+    stats, hp, xp_today, streak, kcal_goal = parallel(
         lambda: get_user_stats(uid),
         lambda: calculate_hp(uid, user.get("water_goal")),
         lambda: get_xp_today(uid),
         lambda: get_streak(uid),
+        lambda: calculate_kcal_goal(uid),
     )
     avg_xp = sum(stats[s] for s in STATS) / 8
     rank_data = get_rank(avg_xp)
@@ -268,6 +282,7 @@ def api_profile(user: dict = Depends(get_current_user)):
         "xp_today": xp_today,
         "streak": streak,
         "hp": hp,
+        "kcal_goal": kcal_goal,
         **rank_data,
         "stats": {s: stats[s] for s in STATS},
     }
@@ -354,9 +369,21 @@ def api_add_food_entry(body: FoodIn, user: dict = Depends(get_current_user)):
     return entry
 
 
+@router.delete("/food/{entry_id}")
+def api_delete_food(entry_id: str, user: dict = Depends(get_current_user)):
+    ok = delete_food_entry(entry_id, user["id"])
+    if not ok:
+        raise HTTPException(status_code=404, detail="Food entry not found")
+    return {"ok": True}
+
+
 @router.get("/diary")
-def api_diary(user: dict = Depends(get_current_user)):
-    return get_diary_entries(user["id"], limit=10)
+def api_diary(date: str | None = None, user: dict = Depends(get_current_user)):
+    if date:
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", date):
+            raise HTTPException(status_code=400, detail="date must be YYYY-MM-DD")
+        return get_diary_entries_by_date(user["id"], date)
+    return get_diary_entries(user["id"])
 
 
 class DiaryIn(BaseModel):
@@ -369,3 +396,44 @@ def api_add_diary_entry(body: DiaryIn, user: dict = Depends(get_current_user)):
     entry = add_diary_entry(user["id"], body.text, body.mood)
     add_xp(user["id"], "reflection", 2, "journal")
     return entry
+
+
+class DiaryUpdateIn(BaseModel):
+    text: str
+    mood: int | None = None
+
+
+@router.patch("/diary/{entry_id}")
+def api_update_diary(entry_id: str, body: DiaryUpdateIn, user: dict = Depends(get_current_user)):
+    ok = update_diary_entry(entry_id, user["id"], body.text, body.mood)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Diary entry not found")
+    return {"ok": True}
+
+
+@router.delete("/diary/{entry_id}")
+def api_delete_diary(entry_id: str, user: dict = Depends(get_current_user)):
+    ok = delete_diary_entry(entry_id, user["id"])
+    if not ok:
+        raise HTTPException(status_code=404, detail="Diary entry not found")
+    return {"ok": True}
+
+
+class BodyIn(BaseModel):
+    weight_kg: float | None = None
+    height_cm: int | None = None
+    age: int | None = None
+    activity_level: str | None = None
+
+
+@router.get("/users/body")
+def api_get_body(user: dict = Depends(get_current_user)):
+    return get_body_profile(user["id"])
+
+
+@router.patch("/users/body")
+def api_update_body(body: BodyIn, user: dict = Depends(get_current_user)):
+    update_body_profile(user["id"], body.weight_kg, body.height_cm, body.age, body.activity_level)
+    kcal_goal = calculate_kcal_goal(user["id"])
+    profile = get_body_profile(user["id"])
+    return {"ok": True, "kcal_goal": kcal_goal, **profile}
