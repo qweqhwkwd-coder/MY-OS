@@ -108,7 +108,7 @@ export default function App() {
       case 'water':   return <Water initData={initData} onDataChange={refreshProfile} />
       case 'rituals': return <Rituals initData={initData} onDataChange={refreshProfile} />
       case 'tasks':   return <Tasks initData={initData} onDataChange={refreshProfile} />
-      case 'food':    return <Food initData={initData} />
+      case 'food':    return <Food initData={initData} kcalGoal={profile?.kcal_goal} />
       case 'notes':   return <Notes initData={initData} onDataChange={refreshProfile} />
       case 'diary':   return <Diary initData={initData} onDataChange={refreshProfile} />
     }
