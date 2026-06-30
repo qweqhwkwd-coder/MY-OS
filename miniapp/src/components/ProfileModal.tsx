@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { api } from '../api'
 import type { ProfileData } from '../api'
 import { ProgressBar } from './ProgressBar'
 import { hpColor } from '../utils'
@@ -27,10 +28,30 @@ interface Props {
   onClose: () => void
   theme: Theme
   onThemeChange: (t: Theme) => void
+  initData: string
 }
 
-export function ProfileModal({ profile, onClose, theme, onThemeChange }: Props) {
-  const [view, setView] = useState<'profile' | 'settings'>('profile')
+export function ProfileModal({ profile, onClose, theme, onThemeChange, initData }: Props) {
+  const [view, setView] = useState<'profile' | 'settings' | 'body'>('profile')
+  const [bodyData, setBodyData] = useState<{ weight_kg: string; height_cm: string; age: string; activity_level: string }>({
+    weight_kg: '', height_cm: '', age: '', activity_level: 'moderate',
+  })
+  const [bodyLoading, setBodyLoading] = useState(false)
+  const [bodySaving, setBodySaving] = useState(false)
+  const [bodyKcal, setBodyKcal] = useState<number | null>(profile.kcal_goal ?? null)
+
+  useEffect(() => {
+    if (view !== 'body') return
+    setBodyLoading(true)
+    api.getBodyProfile(initData).then(d => {
+      setBodyData({
+        weight_kg: d.weight_kg != null ? String(d.weight_kg) : '',
+        height_cm: d.height_cm != null ? String(d.height_cm) : '',
+        age: d.age != null ? String(d.age) : '',
+        activity_level: d.activity_level ?? 'moderate',
+      })
+    }).catch(() => {}).finally(() => setBodyLoading(false))
+  }, [view, initData])
   const xpInLevel = profile.xp_total % 100
   const xpToNext = 100 - xpInLevel
 
@@ -49,7 +70,7 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange }: Props) 
         className="flex items-center justify-between px-4 py-3"
         style={{ background: '#1a1a1a', color: '#f8f7f4', borderBottom: '1px solid rgba(248,247,244,0.1)' }}
       >
-        {view === 'settings' ? (
+        {(view === 'settings' || view === 'body') ? (
           <button
             onClick={() => setView('profile')}
             className="font-mono text-xs"
@@ -62,14 +83,24 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange }: Props) 
         )}
         <div className="flex items-center gap-2">
           {view === 'profile' && (
-            <button
-              onClick={() => setView('settings')}
-              className="font-mono text-sm"
-              style={{ color: 'rgba(248,247,244,0.5)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
-              aria-label="Налаштування"
-            >
-              ⚙️
-            </button>
+            <>
+              <button
+                onClick={() => setView('body')}
+                className="font-mono text-sm"
+                style={{ color: 'rgba(248,247,244,0.5)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
+                aria-label="Тіло"
+              >
+                💪
+              </button>
+              <button
+                onClick={() => setView('settings')}
+                className="font-mono text-sm"
+                style={{ color: 'rgba(248,247,244,0.5)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
+                aria-label="Налаштування"
+              >
+                ⚙️
+              </button>
+            </>
           )}
           <button
             onClick={onClose}
@@ -80,6 +111,97 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange }: Props) 
           </button>
         </div>
       </div>
+
+      {view === 'body' && (
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-4 py-2 font-mono text-xs" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
+            ФІЗИЧНИЙ ПРОФІЛЬ
+          </div>
+
+          {bodyLoading ? (
+            <div className="px-4 py-8 text-center font-mono text-sm" style={{ color: 'var(--muted)' }}>…</div>
+          ) : (
+            <div className="px-4 py-4 space-y-4">
+              {[
+                { key: 'weight_kg', label: 'Вага (кг)', placeholder: '75', inputMode: 'decimal' },
+                { key: 'height_cm', label: 'Зріст (см)', placeholder: '180', inputMode: 'numeric' },
+                { key: 'age', label: 'Вік (роки)', placeholder: '25', inputMode: 'numeric' },
+              ].map(field => (
+                <div key={field.key} className="space-y-1">
+                  <div className="font-condensed text-xs" style={{ color: 'var(--muted)' }}>{field.label}</div>
+                  <input
+                    type="text"
+                    inputMode={field.inputMode as 'decimal' | 'numeric'}
+                    value={bodyData[field.key as keyof typeof bodyData]}
+                    onChange={e => setBodyData(prev => ({ ...prev, [field.key]: e.target.value }))}
+                    placeholder={field.placeholder}
+                    className="w-full font-mono text-sm px-3 py-3 outline-none"
+                    style={{ background: 'var(--subtle)', border: 'none', color: 'var(--ink)' }}
+                  />
+                </div>
+              ))}
+
+              <div className="space-y-1">
+                <div className="font-condensed text-xs" style={{ color: 'var(--muted)' }}>Рівень активності</div>
+                {[
+                  { value: 'low', label: 'Низький — офіс, без спорту' },
+                  { value: 'moderate', label: 'Помірний — спорт 1-3 дні/тиж' },
+                  { value: 'active', label: 'Активний — спорт 3-5 днів/тиж' },
+                  { value: 'very_active', label: 'Дуже активний — щодня або важка праця' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setBodyData(prev => ({ ...prev, activity_level: opt.value }))}
+                    className="w-full flex items-center justify-between px-3 py-3 text-left"
+                    style={{
+                      background: bodyData.activity_level === opt.value ? 'var(--ink)' : 'var(--subtle)',
+                      color: bodyData.activity_level === opt.value ? 'var(--bg)' : 'var(--ink)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      marginBottom: '2px',
+                    }}
+                  >
+                    <span className="font-condensed text-sm">{opt.label}</span>
+                    {bodyData.activity_level === opt.value && (
+                      <span className="font-mono text-xs">✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {bodyKcal !== null && (
+                <div className="px-3 py-3" style={{ background: 'var(--subtle)' }}>
+                  <div className="font-condensed font-semibold text-sm">КБЖУ · TDEE: {bodyKcal} ккал/день</div>
+                  <div className="font-mono text-xs mt-1" style={{ color: 'var(--muted)' }}>
+                    Б: {Math.round(bodyKcal * 0.30 / 4)}г · Ж: {Math.round(bodyKcal * 0.30 / 9)}г · В: {Math.round(bodyKcal * 0.40 / 4)}г
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={async () => {
+                  setBodySaving(true)
+                  try {
+                    const res = await api.updateBodyProfile(initData, {
+                      weight_kg: bodyData.weight_kg ? parseFloat(bodyData.weight_kg) : undefined,
+                      height_cm: bodyData.height_cm ? parseInt(bodyData.height_cm) : undefined,
+                      age: bodyData.age ? parseInt(bodyData.age) : undefined,
+                      activity_level: bodyData.activity_level || undefined,
+                    })
+                    if (res.kcal_goal) setBodyKcal(res.kcal_goal)
+                  } catch { /* silent */ }
+                  finally { setBodySaving(false) }
+                }}
+                disabled={bodySaving}
+                className="w-full py-3 font-condensed font-semibold text-sm"
+                style={{ background: 'var(--ink)', color: 'var(--bg)', border: 'none', cursor: 'pointer', opacity: bodySaving ? 0.5 : 1 }}
+              >
+                {bodySaving ? 'Збереження...' : 'Зберегти'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {view === 'settings' && (
         <div className="flex-1 overflow-y-auto">

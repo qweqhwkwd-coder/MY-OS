@@ -125,6 +125,7 @@ export default function App() {
           onClose={() => setProfileOpen(false)}
           theme={theme}
           onThemeChange={setTheme}
+          initData={initData}
         />
       )}
       {profileOpen && !profile && (
