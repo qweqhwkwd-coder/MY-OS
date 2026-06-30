@@ -12,7 +12,6 @@ from pydantic import BaseModel
 
 from config import settings
 from db import (
-    ACTIVITY_MULTIPLIERS,
     DEFAULT_WATER_GOAL,
     RANKS,
     STATS,
