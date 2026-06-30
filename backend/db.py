@@ -57,6 +57,46 @@ RANKS = [
     {"name": "Божество", "min_xp": 4900, "pct": 99},
 ]
 
+ACTIVITY_MULTIPLIERS = {
+    'low': 1.2,
+    'moderate': 1.375,
+    'active': 1.55,
+    'very_active': 1.725,
+}
+
+
+def calculate_kcal_goal(user_id: str) -> int | None:
+    """TDEE за формулою Міффліна. Повертає None якщо профіль тіла неповний."""
+    res = supabase.table("users").select("weight_kg,height_cm,age,activity_level").eq("id", user_id).execute()
+    if not res.data:
+        return None
+    u = res.data[0]
+    w, h, a = u.get("weight_kg"), u.get("height_cm"), u.get("age")
+    if not all([w, h, a]):
+        return None
+    bmr = 10 * float(w) + 6.25 * int(h) - 5 * int(a) + 5
+    multiplier = ACTIVITY_MULTIPLIERS.get(u.get("activity_level") or "moderate", 1.375)
+    return round(bmr * multiplier)
+
+
+def get_body_profile(user_id: str) -> dict:
+    res = supabase.table("users").select("weight_kg,height_cm,age,activity_level").eq("id", user_id).execute()
+    return res.data[0] if res.data else {}
+
+
+def update_body_profile(user_id: str, weight_kg: float | None, height_cm: int | None, age: int | None, activity_level: str | None) -> None:
+    update: dict = {}
+    if weight_kg is not None:
+        update["weight_kg"] = weight_kg
+    if height_cm is not None:
+        update["height_cm"] = height_cm
+    if age is not None:
+        update["age"] = age
+    if activity_level is not None:
+        update["activity_level"] = activity_level
+    if update:
+        supabase.table("users").update(update).eq("id", user_id).execute()
+
 
 def get_rank(avg_xp: float) -> dict:
     """Returns rank info for given average XP across all 8 stats."""
@@ -701,10 +741,10 @@ def get_last_weights(user_id: str, limit: int = 5) -> list[dict]:
 
 # --- Дневник ------------------------------------------------------------------
 
-def get_diary_entries(user_id: str, limit: int = 10) -> list[dict]:
+def get_diary_entries(user_id: str, limit: int = 30) -> list[dict]:
     return (
         supabase.table("diary_entries")
-        .select("date,text,mood")
+        .select("id,date,text,mood")
         .eq("user_id", user_id)
         .order("created_at", desc=True)
         .limit(limit)
@@ -732,6 +772,28 @@ def add_diary_entry(user_id: str, text: str, mood: int | None = None) -> dict:
         .execute()
         .data[0]
     )
+
+
+def update_diary_entry(entry_id: str, user_id: str, text: str, mood: int | None) -> bool:
+    res = (
+        supabase.table("diary_entries")
+        .update({"text": text, "mood": mood})
+        .eq("id", entry_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return bool(res.data)
+
+
+def delete_diary_entry(entry_id: str, user_id: str) -> bool:
+    res = (
+        supabase.table("diary_entries")
+        .delete()
+        .eq("id", entry_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return bool(res.data)
 
 
 # --- Финансы ------------------------------------------------------------------
@@ -948,6 +1010,17 @@ def add_food(user_id: str, food_name: str, kcal: int, grams: int | None = None) 
     )
 
 
+def delete_food_entry(entry_id: str, user_id: str) -> bool:
+    res = (
+        supabase.table("food_logs")
+        .delete()
+        .eq("id", entry_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return bool(res.data)
+
+
 # --- Задачи -------------------------------------------------------------------
 
 def get_tasks(user_id: str) -> list[dict]:
@@ -958,6 +1031,21 @@ def get_tasks(user_id: str) -> list[dict]:
         .eq("user_id", user_id)
         .eq("is_completed", False)
         .order("created_at")
+        .execute()
+        .data
+    )
+
+
+def get_archived_tasks(user_id: str) -> list[dict]:
+    """Виконані задачі за останні 30 днів, від нових до старих."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    return (
+        supabase.table("tasks")
+        .select("id,title,completed_at")
+        .eq("user_id", user_id)
+        .eq("is_completed", True)
+        .gte("completed_at", cutoff)
+        .order("completed_at", desc=True)
         .execute()
         .data
     )
