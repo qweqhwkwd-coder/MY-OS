@@ -95,6 +95,26 @@ export const api = {
     }),
   deleteTask: (initData: string, id: string) =>
     req<{ ok: boolean }>(`/api/tasks/${id}`, initData, { method: 'DELETE' }),
+  archivedTasks: (initData: string) =>
+    req<Task[]>('/api/tasks?archive=true', initData),
+  diaryForDate: (initData: string, date: string) =>
+    req<DiaryEntry[]>(`/api/diary?date=${encodeURIComponent(date)}`, initData),
+  updateDiaryEntry: (initData: string, id: string, text: string, mood?: number) =>
+    req<{ ok: boolean }>(`/api/diary/${id}`, initData, {
+      method: 'PATCH',
+      body: JSON.stringify({ text, mood: mood ?? null }),
+    }),
+  deleteDiaryEntry: (initData: string, id: string) =>
+    req<{ ok: boolean }>(`/api/diary/${id}`, initData, { method: 'DELETE' }),
+  deleteFoodEntry: (initData: string, id: string) =>
+    req<{ ok: boolean }>(`/api/food/${id}`, initData, { method: 'DELETE' }),
+  getBodyProfile: (initData: string) =>
+    req<BodyData>('/api/users/body', initData),
+  updateBodyProfile: (initData: string, data: Partial<BodyData>) =>
+    req<{ ok: boolean; kcal_goal: number | null } & BodyData>('/api/users/body', initData, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
   inbox: (initData: string) => req<InboxItem[]>('/api/inbox', initData),
   inboxToTask: (initData: string, id: string) =>
     req<Task>(`/api/inbox/${id}/to-task`, initData, { method: 'POST' }),
@@ -119,6 +139,7 @@ export interface TodayData {
   rituals_total: number
   tasks_done: number
   kcal: number
+  kcal_goal: number | null
 }
 
 export interface StatsData {
@@ -153,6 +174,7 @@ export interface Task {
   id: string
   title: string
   is_completed: boolean
+  completed_at?: string
 }
 
 export interface InboxItem {
@@ -162,6 +184,7 @@ export interface InboxItem {
 }
 
 export interface DiaryEntry {
+  id: string
   date: string
   text: string
   mood: number | null
@@ -191,5 +214,13 @@ export interface ProfileData {
   rank_xp_min: number
   next_rank: string | null
   next_rank_xp_min: number | null
+  kcal_goal: number | null
   stats: Record<string, number>
+}
+
+export interface BodyData {
+  weight_kg: number | null
+  height_cm: number | null
+  age: number | null
+  activity_level: string | null
 }
