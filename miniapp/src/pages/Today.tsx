@@ -139,12 +139,25 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
           </div>
         </div>
 
-        <div className="px-4 py-4 flex items-baseline justify-between">
-          <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>КАЛОРІЇ</span>
-          <div className="text-right">
-            <span className="font-condensed font-bold text-xl">{data.kcal}</span>
-            <span className="font-mono text-xs ml-1" style={{ color: 'var(--muted)' }}>ккал</span>
+        {/* Calories */}
+        <div className="px-4 py-4 space-y-2" style={{ borderBottom: '1px solid var(--subtle)' }}>
+          <div className="flex items-center justify-between">
+            <span className="font-condensed text-sm">🍽 Калорії</span>
+            <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>
+              {data.kcal}{data.kcal_goal ? ` / ${data.kcal_goal}` : ''} ккал
+            </span>
           </div>
+          {data.kcal_goal && (
+            <div className="w-full h-1.5 rounded-full" style={{ background: 'var(--subtle)' }}>
+              <div
+                className="h-1.5 rounded-full"
+                style={{
+                  width: `${Math.min(100, Math.round((data.kcal / data.kcal_goal) * 100))}%`,
+                  background: data.kcal >= data.kcal_goal ? '#dc2626' : '#f97316',
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
 
