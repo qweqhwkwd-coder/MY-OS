@@ -1,13 +1,13 @@
 const BASE = import.meta.env.VITE_API_URL || 'https://my-os-ijgn.onrender.com'
 
-async function req<T>(path: string, initData: string, options?: RequestInit): Promise<T> {
+async function req<T>(path: string, initData: string, options?: RequestInit, retryable = false): Promise<T> {
   // Render free tier sleeps after 15 min idle and can take 30-60s to wake up — the
   // first request during that window sometimes drops with a network-level failure
   // ("Load failed" / "Failed to fetch") rather than waiting. GET requests are safe
-  // to retry (no side effects); POST/PATCH/DELETE get exactly one attempt so we
-  // never risk double-submitting an action.
+  // to retry (no side effects); idempotent PATCH requests can also retry safely.
+  // POST/DELETE get exactly one attempt so we never risk double-submitting an action.
   const isGet = !options?.method
-  const maxAttempts = isGet ? 3 : 1
+  const maxAttempts = (isGet || retryable) ? 3 : 1
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -114,7 +114,7 @@ export const api = {
     req<{ ok: boolean; kcal_goal: number | null } & BodyData>('/api/users/body', initData, {
       method: 'PATCH',
       body: JSON.stringify(data),
-    }),
+    }, true),
   inbox: (initData: string) => req<InboxItem[]>('/api/inbox', initData),
   inboxToTask: (initData: string, id: string) =>
     req<Task>(`/api/inbox/${id}/to-task`, initData, { method: 'POST' }),
