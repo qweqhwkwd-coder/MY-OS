@@ -184,11 +184,11 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
                   try {
                     const res = await api.updateBodyProfile(initData, {
                       weight_kg: bodyData.weight_kg ? parseFloat(bodyData.weight_kg) : undefined,
-                      height_cm: bodyData.height_cm ? parseInt(bodyData.height_cm) : undefined,
-                      age: bodyData.age ? parseInt(bodyData.age) : undefined,
+                      height_cm: bodyData.height_cm ? parseInt(bodyData.height_cm, 10) : undefined,
+                      age: bodyData.age ? parseInt(bodyData.age, 10) : undefined,
                       activity_level: bodyData.activity_level || undefined,
                     })
-                    if (res.kcal_goal) setBodyKcal(res.kcal_goal)
+                    if (res.kcal_goal != null) setBodyKcal(res.kcal_goal)
                   } catch { /* silent */ }
                   finally { setBodySaving(false) }
                 }}
