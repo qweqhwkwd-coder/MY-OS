@@ -44,6 +44,8 @@ export function Tasks({ initData, onDataChange }: { initData: string; onDataChan
   function switchTab(t: Tab) {
     setTab(t)
     setOpenId(null)
+    setActionErr('')
+    setSuccessMsg('')
     if (t === 'archive') loadArchive()
   }
 

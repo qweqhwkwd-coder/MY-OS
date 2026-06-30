@@ -38,6 +38,7 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
   })
   const [bodyLoading, setBodyLoading] = useState(false)
   const [bodySaving, setBodySaving] = useState(false)
+  const [bodyErr, setBodyErr] = useState('')
   const [bodyKcal, setBodyKcal] = useState<number | null>(profile.kcal_goal ?? null)
 
   useEffect(() => {
@@ -178,8 +179,10 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
                 </div>
               )}
 
+              {bodyErr && <div className="font-mono text-xs" style={{ color: '#dc2626' }}>{bodyErr}</div>}
               <button
                 onClick={async () => {
+                  setBodyErr('')
                   setBodySaving(true)
                   try {
                     const res = await api.updateBodyProfile(initData, {
@@ -189,8 +192,11 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
                       activity_level: bodyData.activity_level || undefined,
                     })
                     if (res.kcal_goal != null) setBodyKcal(res.kcal_goal)
-                  } catch { /* silent */ }
-                  finally { setBodySaving(false) }
+                  } catch (e: unknown) {
+                    setBodyErr(e instanceof Error ? e.message : 'Помилка збереження')
+                  } finally {
+                    setBodySaving(false)
+                  }
                 }}
                 disabled={bodySaving}
                 className="w-full py-3 font-condensed font-semibold text-sm"

@@ -8,7 +8,7 @@ import time
 from urllib.parse import parse_qsl
 
 from fastapi import APIRouter, Depends, Header, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from config import settings
 from db import (
@@ -424,6 +424,14 @@ class BodyIn(BaseModel):
     age: int | None = None
     activity_level: str | None = None
 
+    @field_validator('activity_level')
+    @classmethod
+    def validate_activity(cls, v: str | None) -> str | None:
+        VALID = {'low', 'moderate', 'active', 'very_active'}
+        if v is not None and v not in VALID:
+            raise ValueError(f'activity_level must be one of {VALID}')
+        return v
+
 
 @router.get("/users/body")
 def api_get_body(user: dict = Depends(get_current_user)):
@@ -433,6 +441,8 @@ def api_get_body(user: dict = Depends(get_current_user)):
 @router.patch("/users/body")
 def api_update_body(body: BodyIn, user: dict = Depends(get_current_user)):
     update_body_profile(user["id"], body.weight_kg, body.height_cm, body.age, body.activity_level)
-    kcal_goal = calculate_kcal_goal(user["id"])
-    profile = get_body_profile(user["id"])
+    kcal_goal, profile = parallel(
+        lambda: calculate_kcal_goal(user["id"]),
+        lambda: get_body_profile(user["id"]),
+    )
     return {"ok": True, "kcal_goal": kcal_goal, **profile}
