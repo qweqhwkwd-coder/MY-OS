@@ -1046,7 +1046,7 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"^(https://qweqhwkwd-coder\.github\.io|null)$",  # null = Telegram native WebView sends Origin: null; known trade-off, acceptable for single-user
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Content-Type", "X-Telegram-Init-Data"],
 )
 app.include_router(api_router)
