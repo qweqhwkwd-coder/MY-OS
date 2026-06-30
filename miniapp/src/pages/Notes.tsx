@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import type { InboxItem } from '../api'
-import { ActionSheet } from '../components/ActionSheet'
-import { LongPressButton } from '../components/LongPressButton'
+import { SwipeRow } from '../components/SwipeRow'
 import { BottomSheet } from '../components/BottomSheet'
 import { TextField } from '../components/TextField'
 
@@ -11,7 +10,8 @@ export function Notes({ initData, onDataChange }: { initData: string; onDataChan
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [actionErr, setActionErr] = useState('')
-  const [menuId, setMenuId] = useState<string | null>(null)
+  const [openId, setOpenId] = useState<string | null>(null)
+  const [optionsItem, setOptionsItem] = useState<InboxItem | null>(null)
   const [meetingId, setMeetingId] = useState<string | null>(null)
   const [meetingDate, setMeetingDate] = useState('')
   const [meetingTime, setMeetingTime] = useState('')
@@ -28,7 +28,7 @@ export function Notes({ initData, onDataChange }: { initData: string; onDataChan
   }
 
   async function run(action: () => Promise<unknown>, id: string) {
-    setMenuId(null)
+    setOptionsItem(null)
     setActionErr('')
     try {
       await action()
@@ -38,8 +38,24 @@ export function Notes({ initData, onDataChange }: { initData: string; onDataChan
     }
   }
 
+  async function handleDelete(id: string) {
+    setOpenId(null)
+    setActionErr('')
+    try {
+      await api.deleteInboxItem(initData, id)
+      remove(id)
+    } catch (e: unknown) {
+      setActionErr(e instanceof Error ? e.message : 'Помилка')
+    }
+  }
+
+  function openOptions(item: InboxItem) {
+    setOpenId(null)
+    setOptionsItem(item)
+  }
+
   function openMeetingForm(id: string) {
-    setMenuId(null)
+    setOptionsItem(null)
     setMeetingId(id)
     setMeetingDate('')
     setMeetingTime('')
@@ -62,8 +78,6 @@ export function Notes({ initData, onDataChange }: { initData: string; onDataChan
   if (loading) return <div className="p-4 font-mono text-xs" style={{ color: 'var(--muted)' }}>…</div>
   if (err) return <div className="p-4 text-sm break-all" style={{ color: '#dc2626' }}>{err}</div>
 
-  const menuItem = items.find(i => i.id === menuId) ?? null
-
   return (
     <div style={{ color: 'var(--ink)' }}>
       <div className="px-4 py-2 font-mono text-xs flex justify-between" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
@@ -71,9 +85,7 @@ export function Notes({ initData, onDataChange }: { initData: string; onDataChan
         <span>{items.length}</span>
       </div>
 
-      {actionErr && (
-        <div className="px-4 py-2 text-xs" style={{ color: '#dc2626' }}>{actionErr}</div>
-      )}
+      {actionErr && <div className="px-4 py-2 text-xs" style={{ color: '#dc2626' }}>{actionErr}</div>}
 
       {items.length === 0 && (
         <div className="px-4 py-8 text-center font-condensed text-sm" style={{ color: 'var(--muted)' }}>
@@ -81,51 +93,58 @@ export function Notes({ initData, onDataChange }: { initData: string; onDataChan
         </div>
       )}
 
-      <div>
-        {items.map(i => (
-          <LongPressButton
-            key={i.id}
-            onLongPress={() => setMenuId(i.id)}
-            className="w-full text-left px-4 py-4"
-            style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--subtle)', cursor: 'pointer' }}
-          >
-            <div className="font-condensed text-sm">{i.text}</div>
+      {items.map(i => (
+        <SwipeRow
+          key={i.id}
+          id={i.id}
+          openId={openId}
+          onOpen={setOpenId}
+          onClose={() => setOpenId(null)}
+          actions={[
+            { label: 'Опції', bgColor: '#374151', onClick: () => openOptions(i) },
+            { label: 'Видалити', bgColor: '#dc2626', onClick: () => handleDelete(i.id) },
+          ]}
+          style={{ borderBottom: '1px solid var(--subtle)' }}
+        >
+          <div className="px-4 py-4">
+            <div className="font-condensed text-sm line-clamp-2">{i.text}</div>
             <div className="font-mono text-xs mt-1" style={{ color: 'var(--muted)' }}>
               {new Date(i.created_at).toLocaleDateString('uk-UA')}
             </div>
-          </LongPressButton>
-        ))}
-      </div>
+          </div>
+        </SwipeRow>
+      ))}
 
-      <ActionSheet
-        open={menuItem !== null}
-        onClose={() => setMenuId(null)}
-        items={menuItem ? [
-          { label: '→ Завдання', onClick: () => run(() => api.inboxToTask(initData, menuItem.id), menuItem.id) },
-          { label: '→ Щоденник', onClick: () => run(() => api.inboxToDiary(initData, menuItem.id), menuItem.id) },
-          { label: '→ Ідея', onClick: () => run(() => api.inboxToIdea(initData, menuItem.id), menuItem.id) },
-          { label: '→ Зустріч', onClick: () => openMeetingForm(menuItem.id) },
-          { label: 'Видалити', danger: true, onClick: () => run(() => api.deleteInboxItem(initData, menuItem.id), menuItem.id) },
-        ] : []}
-      />
+      {/* Options BottomSheet */}
+      <BottomSheet open={optionsItem !== null} onClose={() => setOptionsItem(null)}>
+        {optionsItem && (
+          <div className="p-6 space-y-2">
+            <div className="font-condensed font-semibold text-base mb-3">Конвертувати в...</div>
+            {[
+              { label: '→ Завдання', action: () => run(() => api.inboxToTask(initData, optionsItem.id), optionsItem.id) },
+              { label: '→ Щоденник', action: () => run(() => api.inboxToDiary(initData, optionsItem.id), optionsItem.id) },
+              { label: '→ Ідея', action: () => run(() => api.inboxToIdea(initData, optionsItem.id), optionsItem.id) },
+              { label: '→ Зустріч', action: () => openMeetingForm(optionsItem.id) },
+            ].map(opt => (
+              <button
+                key={opt.label}
+                onClick={opt.action}
+                className="w-full py-3 font-condensed text-sm text-left px-3"
+                style={{ background: 'var(--subtle)', border: 'none', cursor: 'pointer', color: 'var(--ink)' }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </BottomSheet>
 
+      {/* Meeting BottomSheet */}
       <BottomSheet open={meetingId !== null} onClose={() => setMeetingId(null)}>
         <div className="p-6 space-y-4">
           <div className="font-condensed font-semibold text-base">📅 Зустріч — дата</div>
-          <TextField
-            autoFocus
-            type="date"
-            font="mono"
-            value={meetingDate}
-            onChange={setMeetingDate}
-          />
-          <TextField
-            type="time"
-            font="mono"
-            border="subtle"
-            value={meetingTime}
-            onChange={setMeetingTime}
-          />
+          <TextField autoFocus type="date" font="mono" value={meetingDate} onChange={setMeetingDate} />
+          <TextField type="time" font="mono" border="subtle" value={meetingTime} onChange={setMeetingTime} />
           <button
             onClick={submitMeeting}
             disabled={!meetingDate}
