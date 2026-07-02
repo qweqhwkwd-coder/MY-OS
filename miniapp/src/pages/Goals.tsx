@@ -5,7 +5,7 @@ import { SwipeRow } from '../components/SwipeRow'
 import { BottomSheet } from '../components/BottomSheet'
 import { TextField } from '../components/TextField'
 import { useToast } from '../components/Toast'
-import { xpToastText, haptic } from '../utils'
+import { xpToastText, haptic, localIsoDate } from '../utils'
 
 type Tab = 'active' | 'archive'
 
@@ -61,7 +61,7 @@ export function Goals({ initData, onDataChange }: { initData: string; onDataChan
         if (res.xp_granted) push(xpToastText(res.xp_granted))
         const done = goals.find(g => g.id === id)
         setGoals(prev => prev.filter(g => g.id !== id))
-        if (done) setArchived(prev => prev ? [{ ...done, is_done: true }, ...prev] : null)
+        if (done) setArchived(prev => prev ? [{ ...done, is_done: true, done_at: new Date().toISOString() }, ...prev] : null)
         onDataChange?.()
       }
     } catch (e: unknown) {
@@ -129,7 +129,7 @@ export function Goals({ initData, onDataChange }: { initData: string; onDataChan
   if (loading) return <div className="p-4 font-mono text-xs" style={{ color: 'var(--muted)' }}>…</div>
   if (err) return <div className="p-4 text-sm" style={{ color: '#dc2626' }}>{err}</div>
 
-  const todayIso = new Date().toISOString().slice(0, 10)
+  const todayIso = localIsoDate()
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' })
 

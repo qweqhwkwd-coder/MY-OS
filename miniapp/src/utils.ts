@@ -27,6 +27,13 @@ export const STAT_NAME: Record<string, string> = {
   intellect: 'Інтелект',
 }
 
+// Локальна дата YYYY-MM-DD (не UTC! toISOString вночі віддає вчорашній день)
+export function localIsoDate(offsetDays = 0): string {
+  const d = new Date()
+  d.setDate(d.getDate() + offsetDays)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export interface Milestone {
   text: string
   size: 'sm' | 'lg'

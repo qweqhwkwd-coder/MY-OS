@@ -4,7 +4,7 @@ import type { Meeting } from '../api'
 import { SwipeRow } from '../components/SwipeRow'
 import { BottomSheet } from '../components/BottomSheet'
 import { TextField } from '../components/TextField'
-import { haptic } from '../utils'
+import { haptic, localIsoDate } from '../utils'
 
 function sortMeetings(list: Meeting[]): Meeting[] {
   return [...list].sort((a, b) =>
@@ -91,8 +91,8 @@ export function Meetings({ initData }: { initData: string }) {
   if (loading) return <div className="p-4 font-mono text-xs" style={{ color: 'var(--muted)' }}>…</div>
   if (err) return <div className="p-4 text-sm break-all" style={{ color: '#dc2626' }}>{err}</div>
 
-  const todayIso = new Date().toISOString().slice(0, 10)
-  const tomorrowIso = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
+  const todayIso = localIsoDate()
+  const tomorrowIso = localIsoDate(1)
 
   const dateLabel = (d: string) => {
     if (d === todayIso) return 'СЬОГОДНІ'

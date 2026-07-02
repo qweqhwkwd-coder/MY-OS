@@ -5,6 +5,7 @@ import hmac
 import json
 import re
 import time
+from datetime import date
 from urllib.parse import parse_qsl
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -637,9 +638,18 @@ class GoalIn(BaseModel):
     deadline: str | None = None
 
 
+def _check_iso_date(value: str, field: str) -> None:
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", value):
+        raise HTTPException(status_code=400, detail=f"{field} must be YYYY-MM-DD")
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"{field} must be a valid date")
+
+
 def _check_deadline(deadline: str | None) -> None:
-    if deadline and not re.match(r"^\d{4}-\d{2}-\d{2}$", deadline):
-        raise HTTPException(status_code=400, detail="deadline must be YYYY-MM-DD")
+    if deadline:
+        _check_iso_date(deadline, "deadline")
 
 
 @router.get("/goals")
@@ -723,8 +733,12 @@ class MeetingIn(BaseModel):
 
 
 def _check_meeting_date(d: str) -> None:
-    if not re.match(r"^\d{4}-\d{2}-\d{2}$", d):
-        raise HTTPException(status_code=400, detail="date must be YYYY-MM-DD")
+    _check_iso_date(d, "date")
+
+
+def _check_meeting_time(t: str | None) -> None:
+    if t is not None and not re.match(r"^\d{2}:\d{2}(:\d{2})?$", t):
+        raise HTTPException(status_code=400, detail="time must be HH:MM")
 
 
 @router.get("/meetings")
@@ -735,12 +749,14 @@ def api_meetings(user: dict = Depends(get_current_user)):
 @router.post("/meetings")
 def api_create_meeting(body: MeetingIn, user: dict = Depends(get_current_user)):
     _check_meeting_date(body.date)
+    _check_meeting_time(body.time)
     return add_meeting(user["id"], body.title, body.date, body.time)
 
 
 @router.patch("/meetings/{meeting_id}")
 def api_update_meeting(meeting_id: str, body: MeetingIn, user: dict = Depends(get_current_user)):
     _check_meeting_date(body.date)
+    _check_meeting_time(body.time)
     ok = update_meeting(meeting_id, user["id"], body.title, body.date, body.time)
     if not ok:
         raise HTTPException(status_code=404, detail="Meeting not found")
