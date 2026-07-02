@@ -117,6 +117,25 @@ export const api = {
     }, true),
   xpHistory: (initData: string, days = 30) =>
     req<XpPoint[]>(`/api/xp-history?days=${days}`, initData),
+  sleep: (initData: string) =>
+    req<{ today: SleepEntry | null; history: SleepEntry[] }>('/api/sleep', initData),
+  logSleep: (initData: string, sleep_time: string, wake_time: string) =>
+    req<SleepEntry & { xp_granted: XpGranted }>('/api/sleep', initData, {
+      method: 'POST',
+      body: JSON.stringify({ sleep_time, wake_time }),
+    }),
+  finance: (initData: string) => req<Transaction[]>('/api/finance', initData),
+  addSpend: (initData: string, amount: number, category: string) =>
+    req<Transaction & { xp_granted: XpGranted }>('/api/finance', initData, {
+      method: 'POST',
+      body: JSON.stringify({ amount, category }),
+    }),
+  workouts: (initData: string) => req<Workout[]>('/api/workouts', initData),
+  addWorkout: (initData: string, activity: string, duration_min?: number) =>
+    req<Workout & { xp_granted: XpGranted }>('/api/workouts', initData, {
+      method: 'POST',
+      body: JSON.stringify({ activity, duration_min }),
+    }),
   inbox: (initData: string) => req<InboxItem[]>('/api/inbox', initData),
   inboxToTask: (initData: string, id: string) =>
     req<Task>(`/api/inbox/${id}/to-task`, initData, { method: 'POST' }),
@@ -138,6 +157,27 @@ export type XpGranted = { stat: string; amount: number } | null
 export interface XpPoint {
   date: string
   xp: number
+}
+
+export interface SleepEntry {
+  date: string
+  sleep_time: string
+  wake_time: string
+  duration_min: number
+}
+
+export interface Transaction {
+  date: string
+  amount: number
+  category: string
+  note: string | null
+}
+
+export interface Workout {
+  date: string
+  activity: string
+  duration_min: number | null
+  type: string
 }
 
 export interface TodayData {

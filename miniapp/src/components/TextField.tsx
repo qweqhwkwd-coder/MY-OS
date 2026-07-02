@@ -5,7 +5,7 @@ interface Props {
   font?: 'condensed' | 'mono'
   border?: 'ink' | 'subtle'
   autoFocus?: boolean
-  inputMode?: 'numeric' | 'text'
+  inputMode?: 'numeric' | 'decimal' | 'text'
   type?: string
   onEnter?: () => void
   onBlur?: () => void

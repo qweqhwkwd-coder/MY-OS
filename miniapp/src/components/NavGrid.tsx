@@ -11,14 +11,15 @@ const MODULES: Module[] = [
   { id: 'rituals', num: '03', label: 'Ритуали',   locked: false },
   { id: 'tasks',   num: '04', label: 'Завдання',  locked: false },
   { id: 'food',    num: '05', label: 'Їжа',       locked: false },
-  { id: 'sleep',   num: '06', label: 'Сон',       locked: true  },
-  { id: 'finance', num: '07', label: 'Фінанси',   locked: true  },
+  { id: 'sleep',   num: '06', label: 'Сон',       locked: false },
+  { id: 'finance', num: '07', label: 'Фінанси',   locked: false },
   { id: 'goals',   num: '08', label: 'Цілі',      locked: true  },
   { id: 'diary',   num: '09', label: 'Щоденник',  locked: false },
   { id: 'ideas',   num: '10', label: 'Ідеї',      locked: true  },
   { id: 'meet',    num: '11', label: 'Зустрічі',  locked: true  },
   { id: 'digest',  num: '12', label: 'Дайджест',  locked: true  },
   { id: 'notes',   num: '13', label: 'Нотатки',   locked: false },
+  { id: 'workouts', num: '14', label: 'Тренування', locked: false },
 ]
 
 interface Props {
