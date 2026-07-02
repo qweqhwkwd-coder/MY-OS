@@ -653,15 +653,37 @@ def get_upcoming_meetings(user_id: str) -> list[dict]:
     today = date.today().isoformat()
     return (
         supabase.table("meetings")
-        .select("title,date,time")
+        .select("id,title,date,time")
         .eq("user_id", user_id)
         .gte("date", today)
         .order("date")
         .order("time")
-        .limit(10)
+        .limit(20)
         .execute()
         .data
     )
+
+
+def update_meeting(meeting_id: str, user_id: str, title: str, meeting_date: str, meeting_time: str | None) -> bool:
+    res = (
+        supabase.table("meetings")
+        .update({"title": title, "date": meeting_date, "time": meeting_time})
+        .eq("id", meeting_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return bool(res.data)
+
+
+def delete_meeting(meeting_id: str, user_id: str) -> bool:
+    res = (
+        supabase.table("meetings")
+        .delete()
+        .eq("id", meeting_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return bool(res.data)
 
 
 # --- Тренировки --------------------------------------------------------------
@@ -737,16 +759,18 @@ def add_goal(user_id: str, title: str, deadline: str | None = None) -> dict:
     )
 
 
-def get_goals(user_id: str) -> list[dict]:
-    return (
+def get_goals(user_id: str, archive: bool = False) -> list[dict]:
+    q = (
         supabase.table("goals")
-        .select("id,title,deadline,is_done")
+        .select("id,title,deadline,is_done,done_at")
         .eq("user_id", user_id)
-        .eq("is_done", False)
-        .order("created_at")
-        .execute()
-        .data
+        .eq("is_done", archive)
     )
+    if archive:
+        q = q.order("done_at", desc=True).limit(30)
+    else:
+        q = q.order("created_at")
+    return q.execute().data
 
 
 def complete_goal(goal_id: str, user_id: str) -> bool:
@@ -756,6 +780,28 @@ def complete_goal(goal_id: str, user_id: str) -> bool:
         .eq("id", goal_id)
         .eq("user_id", user_id)
         .eq("is_done", False)
+        .execute()
+    )
+    return bool(res.data)
+
+
+def update_goal(goal_id: str, user_id: str, title: str, deadline: str | None) -> bool:
+    res = (
+        supabase.table("goals")
+        .update({"title": title, "deadline": deadline})
+        .eq("id", goal_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return bool(res.data)
+
+
+def delete_goal(goal_id: str, user_id: str) -> bool:
+    res = (
+        supabase.table("goals")
+        .delete()
+        .eq("id", goal_id)
+        .eq("user_id", user_id)
         .execute()
     )
     return bool(res.data)
@@ -779,10 +825,32 @@ def get_ideas(user_id: str) -> list[dict]:
         .eq("user_id", user_id)
         .eq("status", "raw")
         .order("created_at", desc=True)
-        .limit(10)
+        .limit(50)
         .execute()
         .data
     )
+
+
+def update_idea(idea_id: str, user_id: str, text: str) -> bool:
+    res = (
+        supabase.table("ideas")
+        .update({"text": text})
+        .eq("id", idea_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return bool(res.data)
+
+
+def delete_idea(idea_id: str, user_id: str) -> bool:
+    res = (
+        supabase.table("ideas")
+        .delete()
+        .eq("id", idea_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return bool(res.data)
 
 
 # --- Замеры тела --------------------------------------------------------------

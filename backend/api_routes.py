@@ -17,7 +17,10 @@ from db import (
     STATS,
     add_diary_entry,
     add_food,
+    add_goal,
+    add_idea,
     add_inbox,
+    add_meeting,
     add_ritual,
     add_task,
     add_transaction,
@@ -28,9 +31,13 @@ from db import (
     calculate_hp,
     calculate_kcal_goal,
     clear_inbox_item,
+    complete_goal,
     complete_task,
     delete_diary_entry,
     delete_food_entry,
+    delete_goal,
+    delete_idea,
+    delete_meeting,
     delete_ritual_by_id,
     delete_task_by_id,
     get_archived_tasks,
@@ -39,6 +46,8 @@ from db import (
     get_diary_entries,
     get_diary_entries_by_date,
     get_food_today,
+    get_goals,
+    get_ideas,
     get_inbox,
     get_rank,
     get_rituals,
@@ -50,6 +59,7 @@ from db import (
     get_tasks,
     get_tasks_done_today,
     get_transactions_week,
+    get_upcoming_meetings,
     get_user_stats,
     get_water_today,
     get_week_digest,
@@ -70,6 +80,9 @@ from db import (
     toggle_ritual,
     update_body_profile,
     update_diary_entry,
+    update_goal,
+    update_idea,
+    update_meeting,
 )
 
 router = APIRouter(prefix="/api")
@@ -614,3 +627,129 @@ def api_update_body(body: BodyIn, user: dict = Depends(get_current_user)):
         lambda: get_body_profile(user["id"]),
     )
     return {"ok": True, "kcal_goal": kcal_goal, **profile}
+
+
+# --- Цілі ----------------------------------------------------------------------
+
+
+class GoalIn(BaseModel):
+    title: str
+    deadline: str | None = None
+
+
+def _check_deadline(deadline: str | None) -> None:
+    if deadline and not re.match(r"^\d{4}-\d{2}-\d{2}$", deadline):
+        raise HTTPException(status_code=400, detail="deadline must be YYYY-MM-DD")
+
+
+@router.get("/goals")
+def api_goals(archive: bool = False, user: dict = Depends(get_current_user)):
+    return get_goals(user["id"], archive)
+
+
+@router.post("/goals")
+def api_create_goal(body: GoalIn, user: dict = Depends(get_current_user)):
+    _check_deadline(body.deadline)
+    return add_goal(user["id"], body.title, body.deadline)
+
+
+@router.post("/goals/{goal_id}/complete")
+def api_complete_goal(goal_id: str, user: dict = Depends(get_current_user)):
+    uid = user["id"]
+    done = complete_goal(goal_id, uid)
+    if done:
+        add_xp(uid, "discipline", 10, "goals")
+        add_xp(uid, "reflection", 5, "goals")
+    return {"done": done, "xp_granted": {"stat": "discipline", "amount": 10} if done else None}
+
+
+@router.patch("/goals/{goal_id}")
+def api_update_goal(goal_id: str, body: GoalIn, user: dict = Depends(get_current_user)):
+    _check_deadline(body.deadline)
+    ok = update_goal(goal_id, user["id"], body.title, body.deadline)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    return {"ok": True}
+
+
+@router.delete("/goals/{goal_id}")
+def api_delete_goal(goal_id: str, user: dict = Depends(get_current_user)):
+    ok = delete_goal(goal_id, user["id"])
+    if not ok:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    return {"ok": True}
+
+
+# --- Ідеї ----------------------------------------------------------------------
+
+
+class IdeaIn(BaseModel):
+    text: str
+
+
+@router.get("/ideas")
+def api_ideas(user: dict = Depends(get_current_user)):
+    return get_ideas(user["id"])
+
+
+@router.post("/ideas")
+def api_create_idea(body: IdeaIn, user: dict = Depends(get_current_user)):
+    return add_idea(user["id"], body.text)
+
+
+@router.patch("/ideas/{idea_id}")
+def api_update_idea(idea_id: str, body: IdeaIn, user: dict = Depends(get_current_user)):
+    ok = update_idea(idea_id, user["id"], body.text)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Idea not found")
+    return {"ok": True}
+
+
+@router.delete("/ideas/{idea_id}")
+def api_delete_idea(idea_id: str, user: dict = Depends(get_current_user)):
+    ok = delete_idea(idea_id, user["id"])
+    if not ok:
+        raise HTTPException(status_code=404, detail="Idea not found")
+    return {"ok": True}
+
+
+# --- Зустрічі -------------------------------------------------------------------
+
+
+class MeetingIn(BaseModel):
+    title: str
+    date: str
+    time: str | None = None
+
+
+def _check_meeting_date(d: str) -> None:
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", d):
+        raise HTTPException(status_code=400, detail="date must be YYYY-MM-DD")
+
+
+@router.get("/meetings")
+def api_meetings(user: dict = Depends(get_current_user)):
+    return get_upcoming_meetings(user["id"])
+
+
+@router.post("/meetings")
+def api_create_meeting(body: MeetingIn, user: dict = Depends(get_current_user)):
+    _check_meeting_date(body.date)
+    return add_meeting(user["id"], body.title, body.date, body.time)
+
+
+@router.patch("/meetings/{meeting_id}")
+def api_update_meeting(meeting_id: str, body: MeetingIn, user: dict = Depends(get_current_user)):
+    _check_meeting_date(body.date)
+    ok = update_meeting(meeting_id, user["id"], body.title, body.date, body.time)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    return {"ok": True}
+
+
+@router.delete("/meetings/{meeting_id}")
+def api_delete_meeting(meeting_id: str, user: dict = Depends(get_current_user)):
+    ok = delete_meeting(meeting_id, user["id"])
+    if not ok:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    return {"ok": True}
