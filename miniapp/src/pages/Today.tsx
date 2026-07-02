@@ -5,7 +5,7 @@ import { BottomSheet } from '../components/BottomSheet'
 import { TextField } from '../components/TextField'
 import { ProgressBar } from '../components/ProgressBar'
 import { useToast } from '../components/Toast'
-import { xpToastText } from '../utils'
+import { xpToastText, kbjuFromKcal } from '../utils'
 
 type Modal = 'water' | 'task' | 'note' | 'food' | null
 
@@ -162,7 +162,7 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
           </div>
         </div>
 
-        {/* Calories */}
+        {/* Calories + КБЖУ norm */}
         <div className="px-4 py-4 space-y-2" style={{ borderBottom: '1px solid var(--subtle)' }}>
           <div className="flex items-center justify-between">
             <span className="font-condensed text-sm">🍽 Калорії</span>
@@ -179,6 +179,19 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
                   background: data.kcal >= data.kcal_goal ? '#dc2626' : '#f97316',
                 }}
               />
+            </div>
+          )}
+          {data.kcal_goal ? (() => {
+            const m = kbjuFromKcal(data.kcal_goal)
+            return (
+              <div className="flex items-center justify-between font-mono text-xs" style={{ color: 'var(--muted)' }}>
+                <span>НОРМА КБЖУ</span>
+                <span>Б {m.protein}г · Ж {m.fat}г · В {m.carbs}г</span>
+              </div>
+            )
+          })() : (
+            <div className="font-mono text-xs" style={{ color: 'var(--muted)' }}>
+              Заповни профіль «Тіло» (⚔️ → 💪), щоб бачити норму КБЖУ
             </div>
           )}
         </div>

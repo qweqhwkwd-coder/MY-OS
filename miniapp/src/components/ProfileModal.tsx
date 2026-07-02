@@ -2,7 +2,7 @@ import { useState, useEffect, lazy, Suspense } from 'react'
 import { api } from '../api'
 import type { ProfileData, XpPoint } from '../api'
 import { ProgressBar } from './ProgressBar'
-import { hpColor } from '../utils'
+import { hpColor, kbjuFromKcal } from '../utils'
 
 const XpChart = lazy(() => import('./XpChart'))
 
@@ -205,14 +205,17 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
                 ))}
               </div>
 
-              {bodyKcal !== null && (
-                <div className="px-3 py-3" style={{ background: 'var(--subtle)' }}>
-                  <div className="font-condensed font-semibold text-sm">КБЖУ · TDEE: {bodyKcal} ккал/день</div>
-                  <div className="font-mono text-xs mt-1" style={{ color: 'var(--muted)' }}>
-                    Б: {Math.round(bodyKcal * 0.30 / 4)}г · Ж: {Math.round(bodyKcal * 0.30 / 9)}г · В: {Math.round(bodyKcal * 0.40 / 4)}г
+              {bodyKcal !== null && (() => {
+                const m = kbjuFromKcal(bodyKcal)
+                return (
+                  <div className="px-3 py-3" style={{ background: 'var(--subtle)' }}>
+                    <div className="font-condensed font-semibold text-sm">КБЖУ · TDEE: {bodyKcal} ккал/день</div>
+                    <div className="font-mono text-xs mt-1" style={{ color: 'var(--muted)' }}>
+                      Б: {m.protein}г · Ж: {m.fat}г · В: {m.carbs}г
+                    </div>
                   </div>
-                </div>
-              )}
+                )
+              })()}
 
               {bodyErr && <div className="font-mono text-xs" style={{ color: '#dc2626' }}>{bodyErr}</div>}
               <button

@@ -80,6 +80,16 @@ export function profileMilestones(prev: ProfileSnapshot, next: ProfileSnapshot):
   return out
 }
 
+// Розкладка TDEE на макроси: 30% білки / 30% жири / 40% вуглеводи
+// (та сама формула, що у вкладці «Тіло» профілю)
+export function kbjuFromKcal(kcal: number): { protein: number; fat: number; carbs: number } {
+  return {
+    protein: Math.round(kcal * 0.30 / 4),
+    fat: Math.round(kcal * 0.30 / 9),
+    carbs: Math.round(kcal * 0.40 / 4),
+  }
+}
+
 export function hpColor(hp: number): string {
   if (hp > 60) return 'var(--hp-hi)'
   if (hp >= 30) return 'var(--hp-mid)'
