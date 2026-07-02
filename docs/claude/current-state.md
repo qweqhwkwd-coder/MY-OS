@@ -62,6 +62,9 @@
 - `pages/Diary.tsx` — SwipeRow + фильтр по дате + редактирование/удаление через BottomSheet.
 - `pages/Food.tsx` — SwipeRow удаление + прогресс-бар ккал/цель.
 - `pages/Water.tsx` — без изменений.
+- `pages/Sleep.tsx` — сегодняшний сон + форма ЧЧ:ММ→ЧЧ:ММ + история 7 дней (`GET/POST /api/sleep`, upsert по дате).
+- `pages/Finance.tsx` — траты за 7 дней: сводка по категориям с барами, форма добавления, список операций (`GET/POST /api/finance`).
+- `pages/Workouts.tsx` — форма (активность + минуты) с автоопределением типа, последние 10 (`GET/POST /api/workouts`).
 - `api.ts` — тонкий fetch-клиент к `/api/*`, шлёт `X-Telegram-Init-Data` заголовком. Новые методы: `archivedTasks`, `diaryForDate`, `updateDiaryEntry`, `deleteDiaryEntry`, `deleteFoodEntry`, `getBodyProfile`, `updateBodyProfile`, `xpHistory`. Мутации, начисляющие XP, возвращают `xp_granted`.
 - `utils.ts` — `STAT_LABEL`/`STAT_NAME`, `xpToastText`, чистая `profileMilestones(prev, next)` (диффинг снимков профиля; в `App.tsx` защита от гонки конкурентных фетчей через seq-guard).
 
@@ -112,12 +115,12 @@ recharts внедрён (только для XP-графика, lazy). Без Zu
 ## Что следующее по плану
 
 MVP-ядро и большинство модулей продукта (12 из 17, см. `modules.md`) уже в коде.
-Mini App покрывает 7 экранов (Сьогодні/Вода/Ритуали/Завдання/Їжа/Нотатки/Щоденник); остальные модули доступны только через бота.
+Mini App покрывает 10 экранов (Сьогодні/Вода/Ритуали/Завдання/Їжа/Нотатки/Щоденник/Сон/Фінанси/Тренування); Цілі/Ідеї/Зустрічі/Дайджест — только через бота (🔒 в NavGrid).
 
 **Ближайший обязательный шаг:** Применить миграцию `db/migrations/015_body_profile.sql` в Supabase SQL Editor.
 
 Следующие возможные направления:
 - ~~XP/HP feedback layer~~ — **сделано 02.07.2026** (спек `docs/superpowers/specs/2026-06-22-gamification-feedback-design.md`, коммиты 23c6627..ecc7d64 + фиксы ревью)
-- Расширить Mini App на оставшиеся модули (Сон, Фінанси, Тренування)
+- ~~Экраны Сон/Фінанси/Тренування в Mini App~~ — **сделано 02.07.2026** (d4060cf + 58d47d3)
 - AI-слой (Фаза 4, см. `roadmap.md`)
 - Добавить стать в КБЖУ-профіль
