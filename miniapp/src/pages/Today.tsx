@@ -28,6 +28,7 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
   const [foodName, setFoodName] = useState('')
   const [foodGrams, setFoodGrams] = useState('')
   const [foodKcal, setFoodKcal] = useState('')
+  const [lastWaterAdd, setLastWaterAdd] = useState<number | null>(null)
 
   function reload() {
     api.today(initData).then(setData).catch((e: Error) => setErr(e.message))
@@ -53,6 +54,20 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
     try {
       const res = await api.addWater(initData, amount)
       if (res.xp_granted) push(xpToastText(res.xp_granted))
+      setLastWaterAdd(amount)
+      reload(); onDataChange?.()
+    }
+    catch (e: unknown) { setSaveErr(e instanceof Error ? e.message : 'Помилка') }
+    finally { setSaving(false) }
+  }
+
+  async function handleUndoWater() {
+    if (lastWaterAdd === null) return
+    setSaving(true)
+    setSaveErr('')
+    try {
+      await api.undoWater(initData, lastWaterAdd)
+      setLastWaterAdd(null)
       reload(); onDataChange?.()
     }
     catch (e: unknown) { setSaveErr(e instanceof Error ? e.message : 'Помилка') }
@@ -193,6 +208,16 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
                   </button>
                 ))}
               </div>
+              {lastWaterAdd !== null && (
+                <button
+                  onClick={handleUndoWater}
+                  disabled={saving}
+                  className="w-full py-2 font-mono text-xs"
+                  style={{ background: 'transparent', border: 'none', color: 'var(--muted)', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
+                >
+                  ↩ Відмінити останнє (+{lastWaterAdd} мл)
+                </button>
+              )}
             </>
           )}
 

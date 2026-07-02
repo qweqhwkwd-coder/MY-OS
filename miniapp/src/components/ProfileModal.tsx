@@ -35,8 +35,8 @@ interface Props {
 
 export function ProfileModal({ profile, onClose, theme, onThemeChange, initData }: Props) {
   const [view, setView] = useState<'profile' | 'settings' | 'body'>('profile')
-  const [bodyData, setBodyData] = useState<{ weight_kg: string; height_cm: string; age: string; activity_level: string }>({
-    weight_kg: '', height_cm: '', age: '', activity_level: 'moderate',
+  const [bodyData, setBodyData] = useState<{ weight_kg: string; height_cm: string; age: string; activity_level: string; sex: string }>({
+    weight_kg: '', height_cm: '', age: '', activity_level: 'moderate', sex: 'male',
   })
   const [bodyLoading, setBodyLoading] = useState(false)
   const [bodySaving, setBodySaving] = useState(false)
@@ -60,6 +60,7 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
         height_cm: d.height_cm != null ? String(d.height_cm) : '',
         age: d.age != null ? String(d.age) : '',
         activity_level: d.activity_level ?? 'moderate',
+        sex: d.sex ?? 'male',
       })
     }).catch(() => {}).finally(() => setBodyLoading(false))
   }, [view, initData])
@@ -133,6 +134,29 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
             <div className="px-4 py-8 text-center font-mono text-sm" style={{ color: 'var(--muted)' }}>…</div>
           ) : (
             <div className="px-4 py-4 space-y-4">
+              <div className="space-y-1">
+                <div className="font-condensed text-xs" style={{ color: 'var(--muted)' }}>Стать</div>
+                <div className="grid grid-cols-2 gap-1">
+                  {[
+                    { value: 'male', label: 'Чоловіча' },
+                    { value: 'female', label: 'Жіноча' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setBodyData(prev => ({ ...prev, sex: opt.value }))}
+                      className="py-3 font-condensed text-sm"
+                      style={{
+                        background: bodyData.sex === opt.value ? 'var(--ink)' : 'var(--subtle)',
+                        color: bodyData.sex === opt.value ? 'var(--bg)' : 'var(--ink)',
+                        border: 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               {[
                 { key: 'weight_kg', label: 'Вага (кг)', placeholder: '75', inputMode: 'decimal' },
                 { key: 'height_cm', label: 'Зріст (см)', placeholder: '180', inputMode: 'numeric' },
@@ -200,6 +224,7 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
                       height_cm: bodyData.height_cm ? parseInt(bodyData.height_cm, 10) : undefined,
                       age: bodyData.age ? parseInt(bodyData.age, 10) : undefined,
                       activity_level: bodyData.activity_level || undefined,
+                      sex: bodyData.sex || undefined,
                     })
                     if (res.kcal_goal != null) setBodyKcal(res.kcal_goal)
                   } catch (e: unknown) {

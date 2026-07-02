@@ -46,6 +46,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ amount }),
     }),
+  undoWater: (initData: string, amount: number) =>
+    req<{ total: number }>('/api/water/undo', initData, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    }),
   food: (initData: string) => req<FoodEntry[]>('/api/food', initData),
   rituals: (initData: string) => req<Ritual[]>('/api/rituals', initData),
   addRitual: (initData: string, title: string) =>
@@ -273,4 +278,5 @@ export interface BodyData {
   height_cm: number | null
   age: number | null
   activity_level: string | null
+  sex: string | null
 }

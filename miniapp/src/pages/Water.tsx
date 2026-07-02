@@ -10,6 +10,8 @@ export function Water({ initData, onDataChange }: { initData: string; onDataChan
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
+  // Останнє додавання в цій сесії — для «відмінити помилковий тап»
+  const [lastAdd, setLastAdd] = useState<number | null>(null)
 
   useEffect(() => {
     api.water(initData)
@@ -22,7 +24,23 @@ export function Water({ initData, onDataChange }: { initData: string; onDataChan
     try {
       const d = await api.addWater(initData, amount)
       setTotal(d.total)
+      setLastAdd(amount)
       if (d.xp_granted) push(xpToastText(d.xp_granted))
+      onDataChange?.()
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : 'Помилка')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function undoLast() {
+    if (lastAdd === null) return
+    setSaving(true)
+    try {
+      const d = await api.undoWater(initData, lastAdd)
+      setTotal(d.total)
+      setLastAdd(null)
       onDataChange?.()
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : 'Помилка')
@@ -69,6 +87,17 @@ export function Water({ initData, onDataChange }: { initData: string; onDataChan
           </button>
         ))}
       </div>
+
+      {lastAdd !== null && (
+        <button
+          onClick={undoLast}
+          disabled={saving}
+          className="w-full py-3 font-mono text-xs"
+          style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--subtle)', color: 'var(--muted)', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
+        >
+          ↩ Відмінити останнє (+{lastAdd} мл)
+        </button>
+      )}
     </div>
   )
 }
