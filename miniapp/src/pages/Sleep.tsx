@@ -13,7 +13,16 @@ function fmtDate(iso: string): string {
   return new Date(iso + 'T00:00:00').toLocaleDateString('uk-UA', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
-const TIME_RE = /^\d{1,2}:\d{2}$/
+// Postgres TIME повертається як "23:30:00" — секунди в UI не потрібні
+function fmtTime(t: string): string {
+  return t.slice(0, 5)
+}
+
+function validTime(s: string): boolean {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(s.trim())
+  if (!m) return false
+  return parseInt(m[1], 10) <= 23 && parseInt(m[2], 10) <= 59
+}
 
 export function Sleep({ initData, onDataChange }: { initData: string; onDataChange?: () => void }) {
   const { push } = useToast()
@@ -32,7 +41,7 @@ export function Sleep({ initData, onDataChange }: { initData: string; onDataChan
       .catch((e: Error) => { setErr(e.message); setLoading(false) })
   }, [initData])
 
-  const timesValid = TIME_RE.test(sleepTime.trim()) && TIME_RE.test(wakeTime.trim())
+  const timesValid = validTime(sleepTime) && validTime(wakeTime)
 
   async function handleSave() {
     if (!timesValid) return
@@ -41,7 +50,7 @@ export function Sleep({ initData, onDataChange }: { initData: string; onDataChan
     try {
       const entry = await api.logSleep(initData, sleepTime.trim(), wakeTime.trim())
       setToday(entry)
-      setHistory(prev => [entry, ...prev.filter(h => h.date !== entry.date)])
+      setHistory(prev => [entry, ...prev.filter(h => h.date !== entry.date)].slice(0, 7))
       if (entry.xp_granted) push(xpToastText(entry.xp_granted))
       setSleepTime('')
       setWakeTime('')
@@ -68,7 +77,7 @@ export function Sleep({ initData, onDataChange }: { initData: string; onDataChan
           <>
             <div className="font-condensed font-bold text-4xl">{fmtDuration(today.duration_min)}</div>
             <div className="font-mono text-xs" style={{ color: 'var(--muted)' }}>
-              {today.sleep_time} → {today.wake_time}
+              {fmtTime(today.sleep_time)} → {fmtTime(today.wake_time)}
               {today.duration_min >= 420 && today.duration_min <= 540 ? ' · норма 7–9г ✓' : ''}
             </div>
           </>
@@ -105,7 +114,7 @@ export function Sleep({ initData, onDataChange }: { initData: string; onDataChan
 
       {/* History */}
       <div className="px-4 py-2 font-mono text-xs" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
-        ОСТАННІ 7 ДНІВ
+        ОСТАННІ ЗАПИСИ
       </div>
       {history.length === 0 && (
         <div className="px-4 py-8 text-center font-condensed text-sm" style={{ color: 'var(--muted)' }}>
@@ -117,7 +126,7 @@ export function Sleep({ initData, onDataChange }: { initData: string; onDataChan
           <span className="font-condensed text-sm">{fmtDate(h.date)}</span>
           <div className="text-right">
             <span className="font-mono text-sm">{fmtDuration(h.duration_min)}</span>
-            <span className="font-mono text-xs ml-2" style={{ color: 'var(--muted)' }}>{h.sleep_time}→{h.wake_time}</span>
+            <span className="font-mono text-xs ml-2" style={{ color: 'var(--muted)' }}>{fmtTime(h.sleep_time)}→{fmtTime(h.wake_time)}</span>
           </div>
         </div>
       ))}

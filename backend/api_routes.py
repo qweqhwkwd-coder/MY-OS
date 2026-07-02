@@ -58,6 +58,7 @@ from db import (
     get_xp_today,
     ensure_user,
     log_sleep,
+    xp_granted_today,
     inbox_to_diary,
     inbox_to_idea,
     inbox_to_meeting,
@@ -491,7 +492,8 @@ def api_log_sleep(body: SleepIn, user: dict = Depends(get_current_user)):
 
     entry = log_sleep(user["id"], body.sleep_time.strip(), body.wake_time.strip(), duration)
     xp_granted = None
-    if 7 * 60 <= duration <= 9 * 60:
+    # once-per-day: кнопка «Перезаписати» не має фармити +3 health повторними тапами
+    if 7 * 60 <= duration <= 9 * 60 and not xp_granted_today(user["id"], "sleep"):
         add_xp(user["id"], "health", 3, "sleep")
         xp_granted = {"stat": "health", "amount": 3}
     return {**entry, "xp_granted": xp_granted}
@@ -507,8 +509,8 @@ class SpendIn(BaseModel):
     @field_validator('amount')
     @classmethod
     def validate_amount(cls, v: float) -> float:
-        if v <= 0:
-            raise ValueError('amount must be positive')
+        if not 0 < v <= 1_000_000_000:
+            raise ValueError('amount must be positive and sane')
         return v
 
     @field_validator('category')

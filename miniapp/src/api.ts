@@ -172,6 +172,7 @@ export interface SleepEntry {
 }
 
 export interface Transaction {
+  id?: string
   date: string
   amount: number
   category: string
@@ -179,6 +180,7 @@ export interface Transaction {
 }
 
 export interface Workout {
+  id?: string
   date: string
   activity: string
   duration_min: number | null

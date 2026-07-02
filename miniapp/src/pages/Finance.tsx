@@ -9,6 +9,11 @@ function fmtDate(iso: string): string {
   return new Date(iso + 'T00:00:00').toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' })
 }
 
+// Копійки не округлюємо — трекер фінансів має показувати точні суми
+function fmtAmount(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(2)
+}
+
 export function Finance({ initData, onDataChange }: { initData: string; onDataChange?: () => void }) {
   const { push } = useToast()
   const [txs, setTxs] = useState<Transaction[]>([])
@@ -62,7 +67,7 @@ export function Finance({ initData, onDataChange }: { initData: string; onDataCh
     <div style={{ color: 'var(--ink)' }}>
       <div className="px-4 py-2 font-mono text-xs flex justify-between" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
         <span>ФІНАНСИ — 7 ДНІВ</span>
-        <span>{Math.round(total)} грн</span>
+        <span>{fmtAmount(total)} грн</span>
       </div>
 
       {/* Add form */}
@@ -107,7 +112,7 @@ export function Finance({ initData, onDataChange }: { initData: string; onDataCh
               <div key={cat} className="space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="font-condensed text-sm">{cat}</span>
-                  <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{Math.round(sum)} грн</span>
+                  <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{fmtAmount(sum)} грн</span>
                 </div>
                 <div className="w-full h-1 rounded-full" style={{ background: 'var(--subtle)' }}>
                   <div className="h-1 rounded-full" style={{ width: `${maxCat > 0 ? Math.round(sum / maxCat * 100) : 0}%`, background: 'var(--ink)' }} />
@@ -128,13 +133,13 @@ export function Finance({ initData, onDataChange }: { initData: string; onDataCh
         </div>
       )}
       {txs.map((t, i) => (
-        <div key={i} className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--subtle)' }}>
+        <div key={t.id ?? i} className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--subtle)' }}>
           <div>
             <span className="font-condensed text-sm">{t.category}</span>
             {t.note && <span className="font-condensed text-xs ml-2" style={{ color: 'var(--muted)' }}>{t.note}</span>}
           </div>
           <div className="text-right">
-            <span className="font-mono text-sm">{Math.round(t.amount)}</span>
+            <span className="font-mono text-sm">{fmtAmount(t.amount)}</span>
             <span className="font-mono text-xs ml-2" style={{ color: 'var(--muted)' }}>{fmtDate(t.date)}</span>
           </div>
         </div>

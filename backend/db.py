@@ -334,19 +334,24 @@ def add_water(user_id: str, amount_ml: int, goal: int | None = None) -> tuple[in
     ).execute()
     # Третя умова — захист від фарму: з появою remove_water можна опуститись
     # нижче цілі та перетнути її повторно; XP за воду — один раз на день.
-    xp_granted = bool(goal) and before < goal <= new_total and not _water_xp_granted_today(user_id)
+    xp_granted = bool(goal) and before < goal <= new_total and not xp_granted_today(user_id, "water")
     if xp_granted:
         add_xp(user_id, "health", 2, "water")
     return new_total, xp_granted
 
 
-def _water_xp_granted_today(user_id: str) -> bool:
+def xp_granted_today(user_id: str, source: str) -> bool:
+    """Чи вже було нарахування XP з цього джерела сьогодні (once-per-day guard).
+
+    «Сьогодні» — UTC-межа по created_at (server TZ на Render = UTC, тому збігається
+    з date-колонками логів; на не-UTC хості день розійдеться — прийнятий tradeoff).
+    """
     start = datetime.combine(date.today(), datetime.min.time(), tzinfo=timezone.utc).isoformat()
     res = (
         supabase.table("xp_events")
         .select("id")
         .eq("user_id", user_id)
-        .eq("source_module", "water")
+        .eq("source_module", source)
         .gte("created_at", start)
         .limit(1)
         .execute()
@@ -696,7 +701,7 @@ def detect_workout_type(activity: str) -> str:
 def get_workouts_recent(user_id: str, limit: int = 10) -> list[dict]:
     return (
         supabase.table("workouts")
-        .select("date,activity,duration_min,type")
+        .select("id,date,activity,duration_min,type")
         .eq("user_id", user_id)
         .order("date", desc=True)
         .order("created_at", desc=True)
@@ -878,7 +883,7 @@ def get_transactions_week(user_id: str) -> list[dict]:
     week_start = (date.today() - timedelta(days=6)).isoformat()
     return (
         supabase.table("transactions")
-        .select("date,amount,category,note")
+        .select("id,date,amount,category,note")
         .eq("user_id", user_id)
         .gte("date", week_start)
         .order("date", desc=True)

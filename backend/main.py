@@ -97,6 +97,7 @@ from db import (
     log_weight,
     save_balance,
     toggle_ritual,
+    xp_granted_today,
 )
 
 bot = Bot(token=settings.bot_token)
@@ -914,7 +915,8 @@ async def cmd_sleep(message: types.Message, command: CommandObject, user: dict):
     log_sleep(user["id"], parts[0], parts[1], duration)
 
     xp_note = ""
-    if 7 * 60 <= duration <= 9 * 60:
+    # once-per-day, спільно з API: перезапис сну не фармить +3 health
+    if 7 * 60 <= duration <= 9 * 60 and not xp_granted_today(user["id"], "sleep"):
         add_xp(user["id"], "health", 3, "sleep")
         xp_note = "  +3 XP до Здоров'я 🎉"
 

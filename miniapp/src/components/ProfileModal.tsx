@@ -144,6 +144,7 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
                     <button
                       key={opt.value}
                       onClick={() => setBodyData(prev => ({ ...prev, sex: opt.value }))}
+                      aria-pressed={bodyData.sex === opt.value}
                       className="py-3 font-condensed text-sm"
                       style={{
                         background: bodyData.sex === opt.value ? 'var(--ink)' : 'var(--subtle)',

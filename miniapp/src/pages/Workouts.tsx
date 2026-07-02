@@ -107,7 +107,7 @@ export function Workouts({ initData, onDataChange }: { initData: string; onDataC
         </div>
       )}
       {workouts.map((w, i) => (
-        <div key={i} className="flex items-center justify-between px-4 py-3 gap-3" style={{ borderBottom: '1px solid var(--subtle)' }}>
+        <div key={w.id ?? i} className="flex items-center justify-between px-4 py-3 gap-3" style={{ borderBottom: '1px solid var(--subtle)' }}>
           <div className="flex items-center gap-3 min-w-0">
             <span style={{ fontSize: '18px', lineHeight: 1 }}>{TYPE_EMOJI[w.type] ?? '🏋️'}</span>
             <div className="min-w-0">
