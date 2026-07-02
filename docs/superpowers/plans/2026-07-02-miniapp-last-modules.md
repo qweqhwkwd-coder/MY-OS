@@ -1,8 +1,8 @@
-# Mini App Last Modules (Цілі, Ідеї, Зустрічі, Дайджест) Implementation Plan
+﻿# Mini App Last Modules (Đ¦Ń–Đ»Ń–, Đ†Đ´ĐµŃ—, Đ—ŃŃŃ‚Ń€Ń–Ń‡Ń–, Đ”Đ°ĐąĐ´Đ¶ĐµŃŃ‚) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
-**Goal:** Unlock the last 4 NavGrid modules — Goals (08), Ideas (10), Meetings (11), Digest (12) — with full CRUD pages in Paper OS style; after this the «СКОРО: …» line disappears.
+**Goal:** Unlock the last 4 NavGrid modules â€” Goals (08), Ideas (10), Meetings (11), Digest (12) â€” with full CRUD pages in Paper OS style; after this the Â«ĐˇĐšĐžĐ Đž: â€¦Â» line disappears.
 
 **Architecture:** Backend adds REST endpoints over existing `goals`/`ideas`/`meetings` tables (no migrations); `GET /api/digest` already exists. Frontend adds 4 pages following existing patterns (Tasks.tsx for Goals, SwipeRow+BottomSheet everywhere), unlocks modules in NavGrid one commit per module.
 
@@ -16,11 +16,11 @@
 - XP for goal completion: +10 discipline, +5 reflection, source `goals` (parity with bot `cb_goal`).
 - Verification: `python -m py_compile backend/db.py backend/api_routes.py` (no test suite exists) and `cd miniapp && npm run build`.
 - Commit + push after each task (project rule 7). `git add` specific files only.
-- Touch targets ≥ 44px, `haptic()` on taps, XP toasts via `useToast` + `xpToastText`.
+- Touch targets â‰Ą 44px, `haptic()` on taps, XP toasts via `useToast` + `xpToastText`.
 
 ---
 
-### Task 1: Backend — db.py functions + REST endpoints
+### Task 1: Backend â€” db.py functions + REST endpoints
 
 **Files:**
 - Modify: `backend/db.py` (goals section ~line 729, ideas section ~line 764, meetings section ~line 641)
@@ -28,9 +28,9 @@
 
 **Interfaces:**
 - Produces: `get_goals(user_id, archive=False)`, `update_goal(goal_id, user_id, title, deadline) -> bool`, `delete_goal(goal_id, user_id) -> bool`, `update_idea(idea_id, user_id, text) -> bool`, `delete_idea(idea_id, user_id) -> bool`, `update_meeting(meeting_id, user_id, title, meeting_date, meeting_time) -> bool`, `delete_meeting(meeting_id, user_id) -> bool`
-- Produces REST: `GET/POST /api/goals`, `POST /api/goals/{id}/complete` → `{done, xp_granted}`, `PATCH/DELETE /api/goals/{id}`, `GET/POST /api/ideas`, `PATCH/DELETE /api/ideas/{id}`, `GET/POST /api/meetings`, `PATCH/DELETE /api/meetings/{id}`
+- Produces REST: `GET/POST /api/goals`, `POST /api/goals/{id}/complete` â†’ `{done, xp_granted}`, `PATCH/DELETE /api/goals/{id}`, `GET/POST /api/ideas`, `PATCH/DELETE /api/ideas/{id}`, `GET/POST /api/meetings`, `PATCH/DELETE /api/meetings/{id}`
 
-- [ ] **Step 1: Replace `get_goals` in `backend/db.py` (currently returns only active)**
+- [x] **Step 1: Replace `get_goals` in `backend/db.py` (currently returns only active)**
 
 ```python
 def get_goals(user_id: str, archive: bool = False) -> list[dict]:
@@ -47,9 +47,9 @@ def get_goals(user_id: str, archive: bool = False) -> list[dict]:
     return q.execute().data
 ```
 
-(Bot callers use `get_goals(user["id"])` — default keeps old behavior.)
+(Bot callers use `get_goals(user["id"])` â€” default keeps old behavior.)
 
-- [ ] **Step 2: Add `update_goal` / `delete_goal` after `complete_goal` in db.py**
+- [x] **Step 2: Add `update_goal` / `delete_goal` after `complete_goal` in db.py**
 
 ```python
 def update_goal(goal_id: str, user_id: str, title: str, deadline: str | None) -> bool:
@@ -74,9 +74,9 @@ def delete_goal(goal_id: str, user_id: str) -> bool:
     return bool(res.data)
 ```
 
-- [ ] **Step 3: Ideas — bump limit 10→50 in `get_ideas`, add `update_idea` / `delete_idea` after it**
+- [x] **Step 3: Ideas â€” bump limit 10â†’50 in `get_ideas`, add `update_idea` / `delete_idea` after it**
 
-In `get_ideas` change `.limit(10)` → `.limit(50)`.
+In `get_ideas` change `.limit(10)` â†’ `.limit(50)`.
 
 ```python
 def update_idea(idea_id: str, user_id: str, text: str) -> bool:
@@ -101,9 +101,9 @@ def delete_idea(idea_id: str, user_id: str) -> bool:
     return bool(res.data)
 ```
 
-- [ ] **Step 4: Meetings — return `id`, add update/delete**
+- [x] **Step 4: Meetings â€” return `id`, add update/delete**
 
-In `get_upcoming_meetings` change `.select("title,date,time")` → `.select("id,title,date,time")` and `.limit(10)` → `.limit(20)`. Add after it:
+In `get_upcoming_meetings` change `.select("title,date,time")` â†’ `.select("id,title,date,time")` and `.limit(10)` â†’ `.limit(20)`. Add after it:
 
 ```python
 def update_meeting(meeting_id: str, user_id: str, title: str, meeting_date: str, meeting_time: str | None) -> bool:
@@ -128,14 +128,14 @@ def delete_meeting(meeting_id: str, user_id: str) -> bool:
     return bool(res.data)
 ```
 
-- [ ] **Step 5: api_routes.py — extend the `from db import (...)` block**
+- [x] **Step 5: api_routes.py â€” extend the `from db import (...)` block**
 
 Add (alphabetical position, matching existing style): `add_goal`, `add_idea`, `add_meeting`, `complete_goal`, `delete_goal`, `delete_idea`, `delete_meeting`, `get_goals`, `get_ideas`, `get_upcoming_meetings`, `update_goal`, `update_idea`, `update_meeting`.
 
-- [ ] **Step 6: Append endpoints to the bottom of api_routes.py**
+- [x] **Step 6: Append endpoints to the bottom of api_routes.py**
 
 ```python
-# --- Цілі ----------------------------------------------------------------------
+# --- Đ¦Ń–Đ»Ń– ----------------------------------------------------------------------
 
 
 class GoalIn(BaseModel):
@@ -186,7 +186,7 @@ def api_delete_goal(goal_id: str, user: dict = Depends(get_current_user)):
     return {"ok": True}
 
 
-# --- Ідеї ----------------------------------------------------------------------
+# --- Đ†Đ´ĐµŃ— ----------------------------------------------------------------------
 
 
 class IdeaIn(BaseModel):
@@ -219,7 +219,7 @@ def api_delete_idea(idea_id: str, user: dict = Depends(get_current_user)):
     return {"ok": True}
 
 
-# --- Зустрічі -------------------------------------------------------------------
+# --- Đ—ŃŃŃ‚Ń€Ń–Ń‡Ń– -------------------------------------------------------------------
 
 
 class MeetingIn(BaseModel):
@@ -261,12 +261,12 @@ def api_delete_meeting(meeting_id: str, user: dict = Depends(get_current_user)):
     return {"ok": True}
 ```
 
-- [ ] **Step 7: Verify syntax**
+- [x] **Step 7: Verify syntax**
 
 Run: `python -m py_compile backend/db.py backend/api_routes.py backend/main.py`
 Expected: no output.
 
-- [ ] **Step 8: Commit + push**
+- [x] **Step 8: Commit + push**
 
 ```bash
 git add backend/db.py backend/api_routes.py
@@ -276,7 +276,7 @@ git push
 
 ---
 
-### Task 2: api.ts — types + methods
+### Task 2: api.ts â€” types + methods
 
 **Files:**
 - Modify: `miniapp/src/api.ts`
@@ -284,7 +284,7 @@ git push
 **Interfaces:**
 - Produces: `Goal {id,title,deadline,is_done,done_at?}`, `Idea {id,text,created_at}`, `Meeting {id,title,date,time}`; methods `goals`, `archivedGoals`, `addGoal`, `completeGoal`, `updateGoal`, `deleteGoal`, `ideas`, `addIdea`, `updateIdea`, `deleteIdea`, `meetings`, `addMeeting`, `updateMeeting`, `deleteMeeting`. (`digest`/`DigestData` already exist.)
 
-- [ ] **Step 1: Add methods inside the `api` object (before the closing `}`)**
+- [x] **Step 1: Add methods inside the `api` object (before the closing `}`)**
 
 ```typescript
   goals: (initData: string) => req<Goal[]>('/api/goals', initData),
@@ -331,7 +331,7 @@ git push
     req<{ ok: boolean }>(`/api/meetings/${id}`, initData, { method: 'DELETE' }),
 ```
 
-- [ ] **Step 2: Add interfaces near the other entity types**
+- [x] **Step 2: Add interfaces near the other entity types**
 
 ```typescript
 export interface Goal {
@@ -356,12 +356,12 @@ export interface Meeting {
 }
 ```
 
-- [ ] **Step 3: Verify build**
+- [x] **Step 3: Verify build**
 
 Run: `cd miniapp && npm run build`
 Expected: builds without errors.
 
-- [ ] **Step 4: Commit + push**
+- [x] **Step 4: Commit + push**
 
 ```bash
 git add miniapp/src/api.ts
@@ -376,13 +376,13 @@ git push
 **Files:**
 - Create: `miniapp/src/pages/Goals.tsx`
 - Modify: `miniapp/src/App.tsx` (import, View union, switch case)
-- Modify: `miniapp/src/components/NavGrid.tsx` (goals → `locked: false`)
+- Modify: `miniapp/src/components/NavGrid.tsx` (goals â†’ `locked: false`)
 
 **Interfaces:**
 - Consumes: `api.goals/archivedGoals/addGoal/completeGoal/updateGoal/deleteGoal`, `Goal` type, `SwipeRow`, `BottomSheet`, `TextField`, `useToast`, `xpToastText`, `haptic`
 - Produces: `<Goals initData onDataChange />` page
 
-- [ ] **Step 1: Create `miniapp/src/pages/Goals.tsx`**
+- [x] **Step 1: Create `miniapp/src/pages/Goals.tsx`**
 
 ```tsx
 import { useEffect, useState } from 'react'
@@ -425,7 +425,7 @@ export function Goals({ initData, onDataChange }: { initData: string; onDataChan
     try {
       setArchived(await api.archivedGoals(initData))
     } catch (e: unknown) {
-      setActionErr(e instanceof Error ? e.message : 'Помилка')
+      setActionErr(e instanceof Error ? e.message : 'ĐźĐľĐĽĐ¸Đ»ĐşĐ°')
     } finally {
       setArchiveLoading(false)
     }
@@ -452,7 +452,7 @@ export function Goals({ initData, onDataChange }: { initData: string; onDataChan
         onDataChange?.()
       }
     } catch (e: unknown) {
-      setActionErr(e instanceof Error ? e.message : 'Помилка')
+      setActionErr(e instanceof Error ? e.message : 'ĐźĐľĐĽĐ¸Đ»ĐşĐ°')
     } finally {
       setCompleting(null)
     }
@@ -466,7 +466,7 @@ export function Goals({ initData, onDataChange }: { initData: string; onDataChan
       setGoals(prev => prev.filter(g => g.id !== id))
       setArchived(prev => prev ? prev.filter(g => g.id !== id) : null)
     } catch (e: unknown) {
-      setActionErr(e instanceof Error ? e.message : 'Помилка')
+      setActionErr(e instanceof Error ? e.message : 'ĐźĐľĐĽĐ¸Đ»ĐşĐ°')
     }
   }
 
@@ -507,13 +507,13 @@ export function Goals({ initData, onDataChange }: { initData: string; onDataChan
       }
       closeSheet()
     } catch (e: unknown) {
-      setActionErr(e instanceof Error ? e.message : 'Помилка')
+      setActionErr(e instanceof Error ? e.message : 'ĐźĐľĐĽĐ¸Đ»ĐşĐ°')
     } finally {
       setSaving(false)
     }
   }
 
-  if (loading) return <div className="p-4 font-mono text-xs" style={{ color: 'var(--muted)' }}>…</div>
+  if (loading) return <div className="p-4 font-mono text-xs" style={{ color: 'var(--muted)' }}>â€¦</div>
   if (err) return <div className="p-4 text-sm" style={{ color: '#dc2626' }}>{err}</div>
 
   const todayIso = new Date().toISOString().slice(0, 10)
@@ -538,7 +538,7 @@ export function Goals({ initData, onDataChange }: { initData: string; onDataChan
               marginBottom: '-1px',
             }}
           >
-            {t === 'active' ? `АКТИВНІ ${goals.length > 0 ? goals.length : ''}` : 'АРХІВ'}
+            {t === 'active' ? `ĐĐšĐ˘ĐĐ’ĐťĐ† ${goals.length > 0 ? goals.length : ''}` : 'ĐĐ ĐĄĐ†Đ’'}
           </button>
         ))}
       </div>
@@ -552,12 +552,12 @@ export function Goals({ initData, onDataChange }: { initData: string; onDataChan
             className="w-full px-4 py-3 font-mono text-xs text-left"
             style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--subtle)', color: 'var(--muted)', cursor: 'pointer', minHeight: '44px' }}
           >
-            + НОВА ЦІЛЬ
+            + ĐťĐžĐ’Đ Đ¦Đ†Đ›Đ¬
           </button>
 
           {goals.length === 0 && (
             <div className="px-4 py-8 text-center font-condensed text-sm" style={{ color: 'var(--muted)' }}>
-              Цілей немає.<br />Додай кнопкою вище або через бот: /addgoal Назва
+              Đ¦Ń–Đ»ĐµĐą Đ˝ĐµĐĽĐ°Ń”.<br />Đ”ĐľĐ´Đ°Đą ĐşĐ˝ĐľĐżĐşĐľŃŽ Đ˛Đ¸Ń‰Đµ Đ°Đ±Đľ Ń‡ĐµŃ€ĐµĐ· Đ±ĐľŃ‚: /addgoal ĐťĐ°Đ·Đ˛Đ°
             </div>
           )}
 
@@ -571,8 +571,8 @@ export function Goals({ initData, onDataChange }: { initData: string; onDataChan
                 onOpen={setOpenId}
                 onClose={() => setOpenId(null)}
                 actions={[
-                  { label: 'Редаг.', bgColor: '#374151', onClick: () => startEdit(g) },
-                  { label: 'Видалити', bgColor: '#dc2626', onClick: () => handleDelete(g.id) },
+                  { label: 'Đ ĐµĐ´Đ°Đł.', bgColor: '#374151', onClick: () => startEdit(g) },
+                  { label: 'Đ’Đ¸Đ´Đ°Đ»Đ¸Ń‚Đ¸', bgColor: '#dc2626', onClick: () => handleDelete(g.id) },
                 ]}
                 style={{ borderBottom: '1px solid var(--subtle)' }}
               >
@@ -581,7 +581,7 @@ export function Goals({ initData, onDataChange }: { initData: string; onDataChan
                     <div className="font-condensed text-sm line-clamp-2">{g.title}</div>
                     {g.deadline && (
                       <div className="font-mono text-xs mt-1" style={{ color: overdue ? '#dc2626' : 'var(--muted)' }}>
-                        ДО {g.deadline}
+                        Đ”Đž {g.deadline}
                       </div>
                     )}
                   </div>
@@ -598,7 +598,7 @@ export function Goals({ initData, onDataChange }: { initData: string; onDataChan
                       opacity: completing === g.id ? 0.4 : 1,
                     }}
                   >
-                    Готово
+                    Đ“ĐľŃ‚ĐľĐ˛Đľ
                   </button>
                 </div>
               </SwipeRow>
@@ -609,10 +609,10 @@ export function Goals({ initData, onDataChange }: { initData: string; onDataChan
 
       {tab === 'archive' && (
         <>
-          {archiveLoading && <div className="p-4 font-mono text-xs" style={{ color: 'var(--muted)' }}>…</div>}
+          {archiveLoading && <div className="p-4 font-mono text-xs" style={{ color: 'var(--muted)' }}>â€¦</div>}
           {archived !== null && archived.length === 0 && (
             <div className="px-4 py-8 text-center font-condensed text-sm" style={{ color: 'var(--muted)' }}>
-              Виконаних цілей немає.
+              Đ’Đ¸ĐşĐľĐ˝Đ°Đ˝Đ¸Ń… Ń†Ń–Đ»ĐµĐą Đ˝ĐµĐĽĐ°Ń”.
             </div>
           )}
           {archived?.map(g => (
@@ -623,7 +623,7 @@ export function Goals({ initData, onDataChange }: { initData: string; onDataChan
               onOpen={setOpenId}
               onClose={() => setOpenId(null)}
               actions={[
-                { label: 'Видалити', bgColor: '#dc2626', onClick: () => handleDelete(g.id) },
+                { label: 'Đ’Đ¸Đ´Đ°Đ»Đ¸Ń‚Đ¸', bgColor: '#dc2626', onClick: () => handleDelete(g.id) },
               ]}
               style={{ borderBottom: '1px solid var(--subtle)' }}
             >
@@ -646,14 +646,14 @@ export function Goals({ initData, onDataChange }: { initData: string; onDataChan
       <BottomSheet open={addOpen} onClose={closeSheet}>
         <div className="p-6 space-y-4">
           <div className="font-condensed font-semibold text-base">
-            {editItem ? 'Редагувати ціль' : 'Нова ціль'}
+            {editItem ? 'Đ ĐµĐ´Đ°ĐłŃĐ˛Đ°Ń‚Đ¸ Ń†Ń–Đ»ŃŚ' : 'ĐťĐľĐ˛Đ° Ń†Ń–Đ»ŃŚ'}
           </div>
           <TextField
             autoFocus
             value={title}
             onChange={setTitle}
             onEnter={submit}
-            placeholder="Назва цілі..."
+            placeholder="ĐťĐ°Đ·Đ˛Đ° Ń†Ń–Đ»Ń–..."
           />
           <TextField
             type="date"
@@ -668,7 +668,7 @@ export function Goals({ initData, onDataChange }: { initData: string; onDataChan
             className="w-full py-3 font-condensed font-semibold text-sm"
             style={{ background: 'var(--ink)', color: 'var(--bg)', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
           >
-            {editItem ? 'Зберегти' : 'Додати'}
+            {editItem ? 'Đ—Đ±ĐµŃ€ĐµĐłŃ‚Đ¸' : 'Đ”ĐľĐ´Đ°Ń‚Đ¸'}
           </button>
         </div>
       </BottomSheet>
@@ -677,26 +677,26 @@ export function Goals({ initData, onDataChange }: { initData: string; onDataChan
 }
 ```
 
-- [ ] **Step 2: Wire into `App.tsx`**
+- [x] **Step 2: Wire into `App.tsx`**
 
 Add import: `import { Goals } from './pages/Goals'`
 Extend View union: `... | 'workouts' | 'goals'`
 Add switch case: `case 'goals': return <Goals initData={initData} onDataChange={refreshProfile} />`
 
-- [ ] **Step 3: Unlock in `NavGrid.tsx`**
+- [x] **Step 3: Unlock in `NavGrid.tsx`**
 
-`{ id: 'goals', num: '08', label: 'Цілі', locked: false, color: 'var(--ink)' },`
+`{ id: 'goals', num: '08', label: 'Đ¦Ń–Đ»Ń–', locked: false, color: 'var(--ink)' },`
 
-- [ ] **Step 4: Verify build**
+- [x] **Step 4: Verify build**
 
 Run: `cd miniapp && npm run build`
 Expected: builds without errors.
 
-- [ ] **Step 5: Commit + push**
+- [x] **Step 5: Commit + push**
 
 ```bash
 git add miniapp/src/pages/Goals.tsx miniapp/src/App.tsx miniapp/src/components/NavGrid.tsx
-git commit -m "feat: Goals page in Mini App — active/archive tabs, complete with XP, CRUD"
+git commit -m "feat: Goals page in Mini App â€” active/archive tabs, complete with XP, CRUD"
 git push
 ```
 
@@ -707,13 +707,13 @@ git push
 **Files:**
 - Create: `miniapp/src/pages/Ideas.tsx`
 - Modify: `miniapp/src/App.tsx`
-- Modify: `miniapp/src/components/NavGrid.tsx` (ideas → `locked: false`)
+- Modify: `miniapp/src/components/NavGrid.tsx` (ideas â†’ `locked: false`)
 
 **Interfaces:**
 - Consumes: `api.ideas/addIdea/updateIdea/deleteIdea`, `Idea` type
 - Produces: `<Ideas initData />` page
 
-- [ ] **Step 1: Create `miniapp/src/pages/Ideas.tsx`**
+- [x] **Step 1: Create `miniapp/src/pages/Ideas.tsx`**
 
 ```tsx
 import { useEffect, useState } from 'react'
@@ -774,7 +774,7 @@ export function Ideas({ initData }: { initData: string }) {
       }
       closeSheet()
     } catch (e: unknown) {
-      setActionErr(e instanceof Error ? e.message : 'Помилка')
+      setActionErr(e instanceof Error ? e.message : 'ĐźĐľĐĽĐ¸Đ»ĐşĐ°')
     } finally {
       setSaving(false)
     }
@@ -787,17 +787,17 @@ export function Ideas({ initData }: { initData: string }) {
       await api.deleteIdea(initData, id)
       setIdeas(prev => prev.filter(i => i.id !== id))
     } catch (e: unknown) {
-      setActionErr(e instanceof Error ? e.message : 'Помилка')
+      setActionErr(e instanceof Error ? e.message : 'ĐźĐľĐĽĐ¸Đ»ĐşĐ°')
     }
   }
 
-  if (loading) return <div className="p-4 font-mono text-xs" style={{ color: 'var(--muted)' }}>…</div>
+  if (loading) return <div className="p-4 font-mono text-xs" style={{ color: 'var(--muted)' }}>â€¦</div>
   if (err) return <div className="p-4 text-sm break-all" style={{ color: '#dc2626' }}>{err}</div>
 
   return (
     <div style={{ color: 'var(--ink)' }}>
       <div className="px-4 py-2 font-mono text-xs flex justify-between" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
-        <span>ІДЕЇ</span>
+        <span>Đ†Đ”Đ•Đ‡</span>
         <span>{ideas.length}</span>
       </div>
 
@@ -806,14 +806,14 @@ export function Ideas({ initData }: { initData: string }) {
         className="w-full px-4 py-3 font-mono text-xs text-left"
         style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--subtle)', color: 'var(--muted)', cursor: 'pointer', minHeight: '44px' }}
       >
-        + НОВА ІДЕЯ
+        + ĐťĐžĐ’Đ Đ†Đ”Đ•ĐŻ
       </button>
 
       {actionErr && <div className="px-4 py-2 text-xs" style={{ color: '#dc2626' }}>{actionErr}</div>}
 
       {ideas.length === 0 && (
         <div className="px-4 py-8 text-center font-condensed text-sm" style={{ color: 'var(--muted)' }}>
-          Ідей немає.<br />Додай кнопкою вище або через бот: /idea Текст
+          Đ†Đ´ĐµĐą Đ˝ĐµĐĽĐ°Ń”.<br />Đ”ĐľĐ´Đ°Đą ĐşĐ˝ĐľĐżĐşĐľŃŽ Đ˛Đ¸Ń‰Đµ Đ°Đ±Đľ Ń‡ĐµŃ€ĐµĐ· Đ±ĐľŃ‚: /idea Đ˘ĐµĐşŃŃ‚
         </div>
       )}
 
@@ -825,8 +825,8 @@ export function Ideas({ initData }: { initData: string }) {
           onOpen={setOpenId}
           onClose={() => setOpenId(null)}
           actions={[
-            { label: 'Редаг.', bgColor: '#374151', onClick: () => startEdit(i) },
-            { label: 'Видалити', bgColor: '#dc2626', onClick: () => handleDelete(i.id) },
+            { label: 'Đ ĐµĐ´Đ°Đł.', bgColor: '#374151', onClick: () => startEdit(i) },
+            { label: 'Đ’Đ¸Đ´Đ°Đ»Đ¸Ń‚Đ¸', bgColor: '#dc2626', onClick: () => handleDelete(i.id) },
           ]}
           style={{ borderBottom: '1px solid var(--subtle)' }}
         >
@@ -842,13 +842,13 @@ export function Ideas({ initData }: { initData: string }) {
       <BottomSheet open={sheetOpen} onClose={closeSheet}>
         <div className="p-6 space-y-4">
           <div className="font-condensed font-semibold text-base">
-            {editItem ? 'Редагувати ідею' : 'Нова ідея'}
+            {editItem ? 'Đ ĐµĐ´Đ°ĐłŃĐ˛Đ°Ń‚Đ¸ Ń–Đ´ĐµŃŽ' : 'ĐťĐľĐ˛Đ° Ń–Đ´ĐµŃŹ'}
           </div>
           <textarea
             autoFocus
             value={text}
             onChange={e => setText(e.target.value)}
-            placeholder="Запиши ідею..."
+            placeholder="Đ—Đ°ĐżĐ¸ŃĐ¸ Ń–Đ´ĐµŃŽ..."
             rows={3}
             className="w-full px-3 py-3 font-condensed text-sm outline-none resize-none"
             style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--ink)', color: 'var(--ink)' }}
@@ -859,7 +859,7 @@ export function Ideas({ initData }: { initData: string }) {
             className="w-full py-3 font-condensed font-semibold text-sm"
             style={{ background: 'var(--ink)', color: 'var(--bg)', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
           >
-            {editItem ? 'Зберегти' : 'Додати'}
+            {editItem ? 'Đ—Đ±ĐµŃ€ĐµĐłŃ‚Đ¸' : 'Đ”ĐľĐ´Đ°Ń‚Đ¸'}
           </button>
         </div>
       </BottomSheet>
@@ -868,19 +868,19 @@ export function Ideas({ initData }: { initData: string }) {
 }
 ```
 
-- [ ] **Step 2: Wire into `App.tsx`**
+- [x] **Step 2: Wire into `App.tsx`**
 
 Import `Ideas`, extend View union with `'ideas'`, add `case 'ideas': return <Ideas initData={initData} />`.
 
-- [ ] **Step 3: Unlock `ideas` in NavGrid (`locked: false`).**
+- [x] **Step 3: Unlock `ideas` in NavGrid (`locked: false`).**
 
-- [ ] **Step 4: Verify build** — `cd miniapp && npm run build`, no errors.
+- [x] **Step 4: Verify build** â€” `cd miniapp && npm run build`, no errors.
 
-- [ ] **Step 5: Commit + push**
+- [x] **Step 5: Commit + push**
 
 ```bash
 git add miniapp/src/pages/Ideas.tsx miniapp/src/App.tsx miniapp/src/components/NavGrid.tsx
-git commit -m "feat: Ideas page in Mini App — list, add, edit, delete"
+git commit -m "feat: Ideas page in Mini App â€” list, add, edit, delete"
 git push
 ```
 
@@ -891,13 +891,13 @@ git push
 **Files:**
 - Create: `miniapp/src/pages/Meetings.tsx`
 - Modify: `miniapp/src/App.tsx`
-- Modify: `miniapp/src/components/NavGrid.tsx` (meet → `locked: false`)
+- Modify: `miniapp/src/components/NavGrid.tsx` (meet â†’ `locked: false`)
 
 **Interfaces:**
 - Consumes: `api.meetings/addMeeting/updateMeeting/deleteMeeting`, `Meeting` type
 - Produces: `<Meetings initData />` page
 
-- [ ] **Step 1: Create `miniapp/src/pages/Meetings.tsx`**
+- [x] **Step 1: Create `miniapp/src/pages/Meetings.tsx`**
 
 ```tsx
 import { useEffect, useState } from 'react'
@@ -973,7 +973,7 @@ export function Meetings({ initData }: { initData: string }) {
       }
       closeSheet()
     } catch (e: unknown) {
-      setActionErr(e instanceof Error ? e.message : 'Помилка')
+      setActionErr(e instanceof Error ? e.message : 'ĐźĐľĐĽĐ¸Đ»ĐşĐ°')
     } finally {
       setSaving(false)
     }
@@ -986,26 +986,26 @@ export function Meetings({ initData }: { initData: string }) {
       await api.deleteMeeting(initData, id)
       setMeetings(prev => prev.filter(m => m.id !== id))
     } catch (e: unknown) {
-      setActionErr(e instanceof Error ? e.message : 'Помилка')
+      setActionErr(e instanceof Error ? e.message : 'ĐźĐľĐĽĐ¸Đ»ĐşĐ°')
     }
   }
 
-  if (loading) return <div className="p-4 font-mono text-xs" style={{ color: 'var(--muted)' }}>…</div>
+  if (loading) return <div className="p-4 font-mono text-xs" style={{ color: 'var(--muted)' }}>â€¦</div>
   if (err) return <div className="p-4 text-sm break-all" style={{ color: '#dc2626' }}>{err}</div>
 
   const todayIso = new Date().toISOString().slice(0, 10)
   const tomorrowIso = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
 
   const dateLabel = (d: string) => {
-    if (d === todayIso) return 'СЬОГОДНІ'
-    if (d === tomorrowIso) return 'ЗАВТРА'
+    if (d === todayIso) return 'ĐˇĐ¬ĐžĐ“ĐžĐ”ĐťĐ†'
+    if (d === tomorrowIso) return 'Đ—ĐĐ’Đ˘Đ Đ'
     return new Date(`${d}T00:00:00`).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' }).toUpperCase()
   }
 
   return (
     <div style={{ color: 'var(--ink)' }}>
       <div className="px-4 py-2 font-mono text-xs flex justify-between" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
-        <span>НАЙБЛИЖЧІ ЗУСТРІЧІ</span>
+        <span>ĐťĐĐ™Đ‘Đ›ĐĐ–Đ§Đ† Đ—ĐŁĐˇĐ˘Đ Đ†Đ§Đ†</span>
         <span>{meetings.length}</span>
       </div>
 
@@ -1014,14 +1014,14 @@ export function Meetings({ initData }: { initData: string }) {
         className="w-full px-4 py-3 font-mono text-xs text-left"
         style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--subtle)', color: 'var(--muted)', cursor: 'pointer', minHeight: '44px' }}
       >
-        + НОВА ЗУСТРІЧ
+        + ĐťĐžĐ’Đ Đ—ĐŁĐˇĐ˘Đ Đ†Đ§
       </button>
 
       {actionErr && <div className="px-4 py-2 text-xs" style={{ color: '#dc2626' }}>{actionErr}</div>}
 
       {meetings.length === 0 && (
         <div className="px-4 py-8 text-center font-condensed text-sm" style={{ color: 'var(--muted)' }}>
-          Зустрічей немає.<br />Додай кнопкою вище або через бот: /addmeeting
+          Đ—ŃŃŃ‚Ń€Ń–Ń‡ĐµĐą Đ˝ĐµĐĽĐ°Ń”.<br />Đ”ĐľĐ´Đ°Đą ĐşĐ˝ĐľĐżĐşĐľŃŽ Đ˛Đ¸Ń‰Đµ Đ°Đ±Đľ Ń‡ĐµŃ€ĐµĐ· Đ±ĐľŃ‚: /addmeeting
         </div>
       )}
 
@@ -1035,8 +1035,8 @@ export function Meetings({ initData }: { initData: string }) {
             onOpen={setOpenId}
             onClose={() => setOpenId(null)}
             actions={[
-              { label: 'Редаг.', bgColor: '#374151', onClick: () => startEdit(m) },
-              { label: 'Видалити', bgColor: '#dc2626', onClick: () => handleDelete(m.id) },
+              { label: 'Đ ĐµĐ´Đ°Đł.', bgColor: '#374151', onClick: () => startEdit(m) },
+              { label: 'Đ’Đ¸Đ´Đ°Đ»Đ¸Ń‚Đ¸', bgColor: '#dc2626', onClick: () => handleDelete(m.id) },
             ]}
             style={{ borderBottom: '1px solid var(--subtle)' }}
           >
@@ -1046,7 +1046,7 @@ export function Meetings({ initData }: { initData: string }) {
                 className="font-mono text-xs flex-shrink-0 text-right"
                 style={{ color: isToday ? 'var(--ink)' : 'var(--muted)', fontWeight: isToday ? 600 : 400 }}
               >
-                {dateLabel(m.date)}{m.time ? ` · ${m.time.slice(0, 5)}` : ''}
+                {dateLabel(m.date)}{m.time ? ` Â· ${m.time.slice(0, 5)}` : ''}
               </span>
             </div>
           </SwipeRow>
@@ -1056,13 +1056,13 @@ export function Meetings({ initData }: { initData: string }) {
       <BottomSheet open={sheetOpen} onClose={closeSheet}>
         <div className="p-6 space-y-4">
           <div className="font-condensed font-semibold text-base">
-            {editItem ? 'Редагувати зустріч' : 'Нова зустріч'}
+            {editItem ? 'Đ ĐµĐ´Đ°ĐłŃĐ˛Đ°Ń‚Đ¸ Đ·ŃŃŃ‚Ń€Ń–Ń‡' : 'ĐťĐľĐ˛Đ° Đ·ŃŃŃ‚Ń€Ń–Ń‡'}
           </div>
           <TextField
             autoFocus
             value={title}
             onChange={setTitle}
-            placeholder="Назва зустрічі..."
+            placeholder="ĐťĐ°Đ·Đ˛Đ° Đ·ŃŃŃ‚Ń€Ń–Ń‡Ń–..."
           />
           <TextField type="date" font="mono" border="subtle" value={date} onChange={setDate} />
           <TextField type="time" font="mono" border="subtle" value={time} onChange={setTime} />
@@ -1072,7 +1072,7 @@ export function Meetings({ initData }: { initData: string }) {
             className="w-full py-3 font-condensed font-semibold text-sm"
             style={{ background: 'var(--ink)', color: 'var(--bg)', border: 'none', cursor: 'pointer', opacity: saving || !title.trim() || !date ? 0.5 : 1 }}
           >
-            {editItem ? 'Зберегти' : 'Додати'}
+            {editItem ? 'Đ—Đ±ĐµŃ€ĐµĐłŃ‚Đ¸' : 'Đ”ĐľĐ´Đ°Ń‚Đ¸'}
           </button>
         </div>
       </BottomSheet>
@@ -1081,34 +1081,34 @@ export function Meetings({ initData }: { initData: string }) {
 }
 ```
 
-- [ ] **Step 2: Wire into `App.tsx`** — import `Meetings`, View union `'meet'`, `case 'meet': return <Meetings initData={initData} />`. (View id must be `meet` — it matches the NavGrid module id.)
+- [x] **Step 2: Wire into `App.tsx`** â€” import `Meetings`, View union `'meet'`, `case 'meet': return <Meetings initData={initData} />`. (View id must be `meet` â€” it matches the NavGrid module id.)
 
-- [ ] **Step 3: Unlock `meet` in NavGrid (`locked: false`).**
+- [x] **Step 3: Unlock `meet` in NavGrid (`locked: false`).**
 
-- [ ] **Step 4: Verify build** — `cd miniapp && npm run build`, no errors.
+- [x] **Step 4: Verify build** â€” `cd miniapp && npm run build`, no errors.
 
-- [ ] **Step 5: Commit + push**
+- [x] **Step 5: Commit + push**
 
 ```bash
 git add miniapp/src/pages/Meetings.tsx miniapp/src/App.tsx miniapp/src/components/NavGrid.tsx
-git commit -m "feat: Meetings page in Mini App — upcoming list, add, edit, delete"
+git commit -m "feat: Meetings page in Mini App â€” upcoming list, add, edit, delete"
 git push
 ```
 
 ---
 
-### Task 6: Digest page + unlock + hide «СКОРО»
+### Task 6: Digest page + unlock + hide Â«ĐˇĐšĐžĐ ĐžÂ»
 
 **Files:**
 - Create: `miniapp/src/pages/Digest.tsx`
 - Modify: `miniapp/src/App.tsx`
-- Modify: `miniapp/src/components/NavGrid.tsx` (digest → `locked: false`; render «СКОРО» row only when locked modules exist)
+- Modify: `miniapp/src/components/NavGrid.tsx` (digest â†’ `locked: false`; render Â«ĐˇĐšĐžĐ ĐžÂ» row only when locked modules exist)
 
 **Interfaces:**
 - Consumes: `api.digest`, `DigestData` (both already exist in api.ts)
 - Produces: `<Digest initData />` page
 
-- [ ] **Step 1: Create `miniapp/src/pages/Digest.tsx`**
+- [x] **Step 1: Create `miniapp/src/pages/Digest.tsx`**
 
 ```tsx
 import { useEffect, useState } from 'react'
@@ -1124,22 +1124,22 @@ export function Digest({ initData }: { initData: string }) {
   }, [initData])
 
   if (err) return <div className="p-4 text-sm break-all" style={{ color: '#dc2626' }}>{err}</div>
-  if (!data) return <div className="p-4 font-mono text-xs" style={{ color: 'var(--muted)' }}>…</div>
+  if (!data) return <div className="p-4 font-mono text-xs" style={{ color: 'var(--muted)' }}>â€¦</div>
 
   const rows: { label: string; value: string }[] = [
-    { label: 'Вода', value: `${data.water_total} мл · ${data.water_days} дн` },
-    { label: 'Ритуали', value: `${data.rituals_done}` },
-    { label: 'Завдання', value: `${data.tasks_done}` },
-    { label: 'Калорії', value: `${data.kcal_avg} / день` },
-    { label: 'Сон', value: `${data.sleep_avg_h.toFixed(1)} год / ніч` },
-    { label: 'Тренування', value: `${data.workouts}` },
-    { label: 'Витрати', value: `${data.spend_total} грн` },
+    { label: 'Đ’ĐľĐ´Đ°', value: `${data.water_total} ĐĽĐ» Â· ${data.water_days} Đ´Đ˝` },
+    { label: 'Đ Đ¸Ń‚ŃĐ°Đ»Đ¸', value: `${data.rituals_done}` },
+    { label: 'Đ—Đ°Đ˛Đ´Đ°Đ˝Đ˝ŃŹ', value: `${data.tasks_done}` },
+    { label: 'ĐšĐ°Đ»ĐľŃ€Ń–Ń—', value: `${data.kcal_avg} / Đ´ĐµĐ˝ŃŚ` },
+    { label: 'ĐˇĐľĐ˝', value: `${data.sleep_avg_h.toFixed(1)} ĐłĐľĐ´ / Đ˝Ń–Ń‡` },
+    { label: 'Đ˘Ń€ĐµĐ˝ŃĐ˛Đ°Đ˝Đ˝ŃŹ', value: `${data.workouts}` },
+    { label: 'Đ’Đ¸Ń‚Ń€Đ°Ń‚Đ¸', value: `${data.spend_total} ĐłŃ€Đ˝` },
   ]
 
   return (
     <div style={{ color: 'var(--ink)' }}>
       <div className="px-4 py-2 font-mono text-xs" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
-        ДАЙДЖЕСТ — ОСТАННІ 7 ДНІВ
+        Đ”ĐĐ™Đ”Đ–Đ•ĐˇĐ˘ â€” ĐžĐˇĐ˘ĐĐťĐťĐ† 7 Đ”ĐťĐ†Đ’
       </div>
 
       {rows.map(r => (
@@ -1154,7 +1154,7 @@ export function Digest({ initData }: { initData: string }) {
       ))}
 
       <div className="flex items-center justify-between px-4 py-5" style={{ borderBottom: '1px solid var(--subtle)' }}>
-        <span className="font-condensed font-semibold text-sm">XP за тиждень</span>
+        <span className="font-condensed font-semibold text-sm">XP Đ·Đ° Ń‚Đ¸Đ¶Đ´ĐµĐ˝ŃŚ</span>
         <span className="font-mono font-semibold text-sm" style={{ color: 'var(--accent)' }}>+{data.xp_earned}</span>
       </div>
     </div>
@@ -1162,11 +1162,11 @@ export function Digest({ initData }: { initData: string }) {
 }
 ```
 
-- [ ] **Step 2: Wire into `App.tsx`** — import `Digest`, View union `'digest'`, `case 'digest': return <Digest initData={initData} />`.
+- [x] **Step 2: Wire into `App.tsx`** â€” import `Digest`, View union `'digest'`, `case 'digest': return <Digest initData={initData} />`.
 
-- [ ] **Step 3: NavGrid — unlock `digest`, hide empty «СКОРО» row**
+- [x] **Step 3: NavGrid â€” unlock `digest`, hide empty Â«ĐˇĐšĐžĐ ĐžÂ» row**
 
-Set `digest` → `locked: false`. Then wrap the «СКОРО» div so it renders only when something is locked:
+Set `digest` â†’ `locked: false`. Then wrap the Â«ĐˇĐšĐžĐ ĐžÂ» div so it renders only when something is locked:
 
 ```tsx
       {LOCKED_LABELS.length > 0 && (
@@ -1174,18 +1174,18 @@ Set `digest` → `locked: false`. Then wrap the «СКОРО» div so it renders
           className="font-mono px-4 py-2"
           style={{ fontSize: '10px', letterSpacing: '0.05em', color: 'var(--locked-text)', borderBottom: '1px solid var(--subtle)' }}
         >
-          СКОРО: {LOCKED_LABELS.map(l => l.toUpperCase()).join(' · ')}
+          ĐˇĐšĐžĐ Đž: {LOCKED_LABELS.map(l => l.toUpperCase()).join(' Â· ')}
         </div>
       )}
 ```
 
-- [ ] **Step 4: Verify build** — `cd miniapp && npm run build`, no errors.
+- [x] **Step 4: Verify build** â€” `cd miniapp && npm run build`, no errors.
 
-- [ ] **Step 5: Commit + push**
+- [x] **Step 5: Commit + push**
 
 ```bash
 git add miniapp/src/pages/Digest.tsx miniapp/src/App.tsx miniapp/src/components/NavGrid.tsx
-git commit -m "feat: Digest page in Mini App — 7-day read-only summary; all NavGrid modules unlocked"
+git commit -m "feat: Digest page in Mini App â€” 7-day read-only summary; all NavGrid modules unlocked"
 git push
 ```
 
@@ -1195,23 +1195,23 @@ git push
 
 **Files:**
 - Modify: `docs/claude/current-state.md`
-- Modify: `docs/claude/modules.md` (statuses of Цілі/Ідеї/Зустрічі/Дайджест — add Mini App coverage)
+- Modify: `docs/claude/modules.md` (statuses of Đ¦Ń–Đ»Ń–/Đ†Đ´ĐµŃ—/Đ—ŃŃŃ‚Ń€Ń–Ń‡Ń–/Đ”Đ°ĐąĐ´Đ¶ĐµŃŃ‚ â€” add Mini App coverage)
 
-- [ ] **Step 1: Run code review** (superpowers:requesting-code-review / `/code-review`), fix findings, commit fixes.
+- [x] **Step 1: Run code review** (superpowers:requesting-code-review / `/code-review`), fix findings, commit fixes.
 
-- [ ] **Step 2: Update `docs/claude/current-state.md`**
+- [x] **Step 2: Update `docs/claude/current-state.md`**
 
-- Mini App row: 10 → 14 screens; remove «Цілі/Ідеї/Зустрічі/Дайджест — только через бота»; note «СКОРО» line is gone.
+- Mini App row: 10 â†’ 14 screens; remove Â«Đ¦Ń–Đ»Ń–/Đ†Đ´ĐµŃ—/Đ—ŃŃŃ‚Ń€Ń–Ń‡Ń–/Đ”Đ°ĐąĐ´Đ¶ĐµŃŃ‚ â€” Ń‚ĐľĐ»ŃŚĐşĐľ Ń‡ĐµŃ€ĐµĐ· Đ±ĐľŃ‚Đ°Â»; note Â«ĐˇĐšĐžĐ ĐžÂ» line is gone.
 - Add pages to the component list: `pages/Goals.tsx`, `pages/Ideas.tsx`, `pages/Meetings.tsx`, `pages/Digest.tsx` with one-line descriptions.
-- «Что следующее по плану»: mark modules done (02.07.2026), reference this plan/spec.
+- Â«Đ§Ń‚Đľ ŃĐ»ĐµĐ´ŃŃŽŃ‰ĐµĐµ ĐżĐľ ĐżĐ»Đ°Đ˝ŃÂ»: mark modules done (02.07.2026), reference this plan/spec.
 
-- [ ] **Step 3: Update `docs/claude/modules.md`** — Mini App coverage for the 4 modules.
+- [x] **Step 3: Update `docs/claude/modules.md`** â€” Mini App coverage for the 4 modules.
 
-- [ ] **Step 4: Commit + push**
+- [x] **Step 4: Commit + push**
 
 ```bash
 git add docs/claude/current-state.md docs/claude/modules.md
-git commit -m "docs: current-state — Mini App covers all bot modules (Goals, Ideas, Meetings, Digest)"
+git commit -m "docs: current-state â€” Mini App covers all bot modules (Goals, Ideas, Meetings, Digest)"
 git push
 ```
 
@@ -1219,5 +1219,5 @@ git push
 
 ## Post-Sprint Checklist
 
-- [ ] No migrations needed — verify `/api/goals`, `/api/ideas`, `/api/meetings` respond after Render deploy.
-- [ ] Smoke test in Telegram: NavGrid has no «СКОРО» line; Цілі add/complete (toast `+10 XP → ДИСЦИПЛІНА`)/edit/delete + archive; Ідеї add/edit/delete; Зустрічі add («СЬОГОДНІ» highlight)/edit/delete; Дайджест shows 7-day numbers.
+- [x] No migrations needed â€” verify `/api/goals`, `/api/ideas`, `/api/meetings` respond after Render deploy.
+- [x] Smoke test in Telegram: NavGrid has no Â«ĐˇĐšĐžĐ ĐžÂ» line; Đ¦Ń–Đ»Ń– add/complete (toast `+10 XP â†’ Đ”ĐĐˇĐ¦ĐĐźĐ›Đ†ĐťĐ`)/edit/delete + archive; Đ†Đ´ĐµŃ— add/edit/delete; Đ—ŃŃŃ‚Ń€Ń–Ń‡Ń– add (Â«ĐˇĐ¬ĐžĐ“ĐžĐ”ĐťĐ†Â» highlight)/edit/delete; Đ”Đ°ĐąĐ´Đ¶ĐµŃŃ‚ shows 7-day numbers.
