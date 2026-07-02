@@ -66,25 +66,26 @@ ACTIVITY_MULTIPLIERS = {
 
 
 def calculate_kcal_goal(user_id: str) -> int | None:
-    """TDEE за формулою Міффліна. Повертає None якщо профіль тіла неповний."""
-    res = supabase.table("users").select("weight_kg,height_cm,age,activity_level").eq("id", user_id).execute()
+    """TDEE за формулою Міффліна (чоловіча/жіноча). Повертає None якщо профіль тіла неповний."""
+    res = supabase.table("users").select("weight_kg,height_cm,age,activity_level,sex").eq("id", user_id).execute()
     if not res.data:
         return None
     u = res.data[0]
     w, h, a = u.get("weight_kg"), u.get("height_cm"), u.get("age")
     if any(v is None for v in (w, h, a)):
         return None
-    bmr = 10 * float(w) + 6.25 * int(h) - 5 * int(a) + 5
+    sex_const = -161 if u.get("sex") == "female" else 5
+    bmr = 10 * float(w) + 6.25 * int(h) - 5 * int(a) + sex_const
     multiplier = ACTIVITY_MULTIPLIERS.get(u.get("activity_level") or "moderate", 1.375)
     return round(bmr * multiplier)
 
 
 def get_body_profile(user_id: str) -> dict:
-    res = supabase.table("users").select("weight_kg,height_cm,age,activity_level").eq("id", user_id).execute()
+    res = supabase.table("users").select("weight_kg,height_cm,age,activity_level,sex").eq("id", user_id).execute()
     return res.data[0] if res.data else {}
 
 
-def update_body_profile(user_id: str, weight_kg: float | None, height_cm: int | None, age: int | None, activity_level: str | None) -> None:
+def update_body_profile(user_id: str, weight_kg: float | None, height_cm: int | None, age: int | None, activity_level: str | None, sex: str | None = None) -> None:
     update: dict = {}
     if weight_kg is not None:
         update["weight_kg"] = weight_kg
@@ -94,6 +95,8 @@ def update_body_profile(user_id: str, weight_kg: float | None, height_cm: int | 
         update["age"] = age
     if activity_level is not None:
         update["activity_level"] = activity_level
+    if sex is not None:
+        update["sex"] = sex
     if update:
         supabase.table("users").update(update).eq("id", user_id).execute()
 
@@ -329,10 +332,38 @@ def add_water(user_id: str, amount_ml: int, goal: int | None = None) -> tuple[in
         {"user_id": user_id, "date": today, "amount_ml": new_total},
         on_conflict="user_id,date",
     ).execute()
-    xp_granted = bool(goal) and before < goal <= new_total
+    # Третя умова — захист від фарму: з появою remove_water можна опуститись
+    # нижче цілі та перетнути її повторно; XP за воду — один раз на день.
+    xp_granted = bool(goal) and before < goal <= new_total and not _water_xp_granted_today(user_id)
     if xp_granted:
         add_xp(user_id, "health", 2, "water")
     return new_total, xp_granted
+
+
+def _water_xp_granted_today(user_id: str) -> bool:
+    start = datetime.combine(date.today(), datetime.min.time(), tzinfo=timezone.utc).isoformat()
+    res = (
+        supabase.table("xp_events")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("source_module", "water")
+        .gte("created_at", start)
+        .limit(1)
+        .execute()
+    )
+    return bool(res.data)
+
+
+def remove_water(user_id: str, amount_ml: int) -> int:
+    """Віднімає воду від сьогоднішньої суми (відміна помилкового тапу). Не нижче 0."""
+    today = date.today().isoformat()
+    before = get_water_today(user_id)
+    new_total = max(0, before - amount_ml)
+    supabase.table("water_logs").upsert(
+        {"user_id": user_id, "date": today, "amount_ml": new_total},
+        on_conflict="user_id,date",
+    ).execute()
+    return new_total
 
 
 # --- Ритуалы ------------------------------------------------------------------

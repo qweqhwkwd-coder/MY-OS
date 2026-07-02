@@ -63,6 +63,7 @@ from db import (
     inbox_to_meeting,
     inbox_to_task,
     parallel,
+    remove_water,
     rename_ritual,
     rename_task,
     toggle_ritual,
@@ -172,6 +173,14 @@ def api_add_water(body: WaterIn, user: dict = Depends(get_current_user)):
     goal = user.get("water_goal") or DEFAULT_WATER_GOAL
     total, xp_granted = add_water(uid, body.amount, goal)
     return {"total": total, "xp_granted": {"stat": "health", "amount": 2} if xp_granted else None}
+
+
+@router.post("/water/undo")
+def api_undo_water(body: WaterIn, user: dict = Depends(get_current_user)):
+    if body.amount not in (250, 500, 1000):
+        raise HTTPException(status_code=400, detail="amount must be 250, 500 or 1000")
+    total = remove_water(user["id"], body.amount)
+    return {"total": total}
 
 
 class RitualIn(BaseModel):
@@ -572,6 +581,7 @@ class BodyIn(BaseModel):
     height_cm: int | None = None
     age: int | None = None
     activity_level: str | None = None
+    sex: str | None = None
 
     @field_validator('activity_level')
     @classmethod
@@ -579,6 +589,13 @@ class BodyIn(BaseModel):
         VALID = {'low', 'moderate', 'active', 'very_active'}
         if v is not None and v not in VALID:
             raise ValueError(f'activity_level must be one of {VALID}')
+        return v
+
+    @field_validator('sex')
+    @classmethod
+    def validate_sex(cls, v: str | None) -> str | None:
+        if v is not None and v not in {'male', 'female'}:
+            raise ValueError('sex must be male or female')
         return v
 
 
@@ -589,7 +606,7 @@ def api_get_body(user: dict = Depends(get_current_user)):
 
 @router.patch("/users/body")
 def api_update_body(body: BodyIn, user: dict = Depends(get_current_user)):
-    update_body_profile(user["id"], body.weight_kg, body.height_cm, body.age, body.activity_level)
+    update_body_profile(user["id"], body.weight_kg, body.height_cm, body.age, body.activity_level, body.sex)
     kcal_goal, profile = parallel(
         lambda: calculate_kcal_goal(user["id"]),
         lambda: get_body_profile(user["id"]),
