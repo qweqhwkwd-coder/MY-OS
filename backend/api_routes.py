@@ -20,8 +20,11 @@ from db import (
     add_inbox,
     add_ritual,
     add_task,
+    add_transaction,
     add_water,
+    add_workout,
     add_xp,
+    detect_workout_type,
     calculate_hp,
     calculate_kcal_goal,
     clear_inbox_item,
@@ -41,15 +44,20 @@ from db import (
     get_rituals,
     get_rituals_done_today,
     get_ritual_streaks,
+    get_sleep_history,
+    get_sleep_today,
     get_streak,
     get_tasks,
     get_tasks_done_today,
+    get_transactions_week,
     get_user_stats,
     get_water_today,
     get_week_digest,
+    get_workouts_recent,
     get_xp_history,
     get_xp_today,
     ensure_user,
+    log_sleep,
     inbox_to_diary,
     inbox_to_idea,
     inbox_to_meeting,
@@ -427,6 +435,136 @@ def api_delete_diary(entry_id: str, user: dict = Depends(get_current_user)):
     if not ok:
         raise HTTPException(status_code=404, detail="Diary entry not found")
     return {"ok": True}
+
+
+# --- Сон ------------------------------------------------------------------
+
+
+TIME_RE = re.compile(r"^\d{1,2}:\d{2}$")
+
+
+def _parse_time_min(s: str) -> int:
+    """HH:MM → хвилини від півночі. Той самий контракт, що parse_time у боті."""
+    if not TIME_RE.match(s):
+        raise ValueError(s)
+    h, m = map(int, s.split(":"))
+    if not (0 <= h <= 23 and 0 <= m <= 59):
+        raise ValueError(s)
+    return h * 60 + m
+
+
+class SleepIn(BaseModel):
+    sleep_time: str
+    wake_time: str
+
+
+@router.get("/sleep")
+def api_sleep(user: dict = Depends(get_current_user)):
+    uid = user["id"]
+    today, history = parallel(
+        lambda: get_sleep_today(uid),
+        lambda: get_sleep_history(uid, 7),
+    )
+    return {"today": today, "history": history}
+
+
+@router.post("/sleep")
+def api_log_sleep(body: SleepIn, user: dict = Depends(get_current_user)):
+    try:
+        sleep_min = _parse_time_min(body.sleep_time.strip())
+        wake_min = _parse_time_min(body.wake_time.strip())
+    except ValueError:
+        raise HTTPException(status_code=400, detail="time must be HH:MM")
+
+    duration = wake_min - sleep_min
+    if duration <= 0:
+        duration += 24 * 60
+
+    entry = log_sleep(user["id"], body.sleep_time.strip(), body.wake_time.strip(), duration)
+    xp_granted = None
+    if 7 * 60 <= duration <= 9 * 60:
+        add_xp(user["id"], "health", 3, "sleep")
+        xp_granted = {"stat": "health", "amount": 3}
+    return {**entry, "xp_granted": xp_granted}
+
+
+# --- Фінанси ----------------------------------------------------------------
+
+
+class SpendIn(BaseModel):
+    amount: float
+    category: str = "інше"
+
+    @field_validator('amount')
+    @classmethod
+    def validate_amount(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError('amount must be positive')
+        return v
+
+    @field_validator('category')
+    @classmethod
+    def validate_category(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            return "інше"
+        if len(v) > 50:
+            raise ValueError('category too long')
+        return v
+
+
+@router.get("/finance")
+def api_finance(user: dict = Depends(get_current_user)):
+    return get_transactions_week(user["id"])
+
+
+@router.post("/finance")
+def api_add_spend(body: SpendIn, user: dict = Depends(get_current_user)):
+    tx = add_transaction(user["id"], body.amount, body.category)
+    add_xp(user["id"], "finance", 1, "finance")
+    return {**tx, "xp_granted": {"stat": "finance", "amount": 1}}
+
+
+# --- Тренування ---------------------------------------------------------------
+
+
+WORKOUT_XP_STAT = {"cardio": "endurance", "strength": "strength", "flexibility": "health"}
+
+
+class WorkoutIn(BaseModel):
+    activity: str
+    duration_min: int | None = None
+
+    @field_validator('activity')
+    @classmethod
+    def validate_activity(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError('activity must not be empty')
+        if len(v) > 100:
+            raise ValueError('activity too long')
+        return v
+
+    @field_validator('duration_min')
+    @classmethod
+    def validate_duration(cls, v: int | None) -> int | None:
+        if v is not None and not (1 <= v <= 24 * 60):
+            raise ValueError('duration_min must be 1..1440')
+        return v
+
+
+@router.get("/workouts")
+def api_workouts(user: dict = Depends(get_current_user)):
+    return get_workouts_recent(user["id"], 10)
+
+
+@router.post("/workouts")
+def api_add_workout(body: WorkoutIn, user: dict = Depends(get_current_user)):
+    workout_type = detect_workout_type(body.activity)
+    entry = add_workout(user["id"], body.activity, body.duration_min, workout_type)
+    xp_stat = WORKOUT_XP_STAT.get(workout_type, "discipline")
+    add_xp(user["id"], xp_stat, 5, "workout")
+    return {**entry, "xp_granted": {"stat": xp_stat, "amount": 5}}
 
 
 class BodyIn(BaseModel):
