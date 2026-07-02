@@ -155,6 +155,48 @@ export const api = {
     }),
   deleteInboxItem: (initData: string, id: string) =>
     req<{ ok: boolean }>(`/api/inbox/${id}`, initData, { method: 'DELETE' }),
+  goals: (initData: string) => req<Goal[]>('/api/goals', initData),
+  archivedGoals: (initData: string) => req<Goal[]>('/api/goals?archive=true', initData),
+  addGoal: (initData: string, title: string, deadline?: string) =>
+    req<Goal>('/api/goals', initData, {
+      method: 'POST',
+      body: JSON.stringify({ title, deadline: deadline || null }),
+    }),
+  completeGoal: (initData: string, id: string) =>
+    req<{ done: boolean; xp_granted: XpGranted }>(`/api/goals/${id}/complete`, initData, { method: 'POST' }),
+  updateGoal: (initData: string, id: string, title: string, deadline?: string) =>
+    req<{ ok: boolean }>(`/api/goals/${id}`, initData, {
+      method: 'PATCH',
+      body: JSON.stringify({ title, deadline: deadline || null }),
+    }, true),
+  deleteGoal: (initData: string, id: string) =>
+    req<{ ok: boolean }>(`/api/goals/${id}`, initData, { method: 'DELETE' }),
+  ideas: (initData: string) => req<Idea[]>('/api/ideas', initData),
+  addIdea: (initData: string, text: string) =>
+    req<Idea>('/api/ideas', initData, {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    }),
+  updateIdea: (initData: string, id: string, text: string) =>
+    req<{ ok: boolean }>(`/api/ideas/${id}`, initData, {
+      method: 'PATCH',
+      body: JSON.stringify({ text }),
+    }, true),
+  deleteIdea: (initData: string, id: string) =>
+    req<{ ok: boolean }>(`/api/ideas/${id}`, initData, { method: 'DELETE' }),
+  meetings: (initData: string) => req<Meeting[]>('/api/meetings', initData),
+  addMeeting: (initData: string, title: string, date: string, time?: string) =>
+    req<Meeting>('/api/meetings', initData, {
+      method: 'POST',
+      body: JSON.stringify({ title, date, time: time || null }),
+    }),
+  updateMeeting: (initData: string, id: string, title: string, date: string, time?: string) =>
+    req<{ ok: boolean }>(`/api/meetings/${id}`, initData, {
+      method: 'PATCH',
+      body: JSON.stringify({ title, date, time: time || null }),
+    }, true),
+  deleteMeeting: (initData: string, id: string) =>
+    req<{ ok: boolean }>(`/api/meetings/${id}`, initData, { method: 'DELETE' }),
 }
 
 export type XpGranted = { stat: string; amount: number } | null
@@ -237,6 +279,27 @@ export interface InboxItem {
   id: string
   text: string
   created_at: string
+}
+
+export interface Goal {
+  id: string
+  title: string
+  deadline: string | null
+  is_done: boolean
+  done_at?: string | null
+}
+
+export interface Idea {
+  id: string
+  text: string
+  created_at: string
+}
+
+export interface Meeting {
+  id: string
+  title: string
+  date: string
+  time: string | null
 }
 
 export interface DiaryEntry {
