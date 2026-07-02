@@ -17,7 +17,7 @@ export const MODULES: Module[] = [
   { id: 'food',    num: '05', label: 'Їжа',       locked: false, color: 'var(--mod-food)' },
   { id: 'sleep',   num: '06', label: 'Сон',       locked: false, color: 'var(--mod-sleep)' },
   { id: 'finance', num: '07', label: 'Фінанси',   locked: false, color: 'var(--mod-finance)' },
-  { id: 'goals',   num: '08', label: 'Цілі',      locked: true,  color: 'var(--ink)' },
+  { id: 'goals',   num: '08', label: 'Цілі',      locked: false, color: 'var(--ink)' },
   { id: 'diary',   num: '09', label: 'Щоденник',  locked: false, color: 'var(--ink)' },
   { id: 'ideas',   num: '10', label: 'Ідеї',      locked: true,  color: 'var(--ink)' },
   { id: 'meet',    num: '11', label: 'Зустрічі',  locked: true,  color: 'var(--ink)' },

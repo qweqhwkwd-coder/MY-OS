@@ -18,8 +18,9 @@ import { Diary } from './pages/Diary'
 import { Sleep } from './pages/Sleep'
 import { Finance } from './pages/Finance'
 import { Workouts } from './pages/Workouts'
+import { Goals } from './pages/Goals'
 
-type View = 'today' | 'water' | 'rituals' | 'tasks' | 'food' | 'notes' | 'diary' | 'sleep' | 'finance' | 'workouts'
+type View = 'today' | 'water' | 'rituals' | 'tasks' | 'food' | 'notes' | 'diary' | 'sleep' | 'finance' | 'workouts' | 'goals'
 
 export default function App() {
   const { push } = useToast()
@@ -131,6 +132,7 @@ export default function App() {
       case 'sleep':   return <Sleep initData={initData} onDataChange={refreshProfile} />
       case 'finance': return <Finance initData={initData} onDataChange={refreshProfile} />
       case 'workouts': return <Workouts initData={initData} onDataChange={refreshProfile} />
+      case 'goals':   return <Goals initData={initData} onDataChange={refreshProfile} />
     }
   })()
 
