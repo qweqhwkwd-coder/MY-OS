@@ -21,8 +21,9 @@ import { Workouts } from './pages/Workouts'
 import { Goals } from './pages/Goals'
 import { Ideas } from './pages/Ideas'
 import { Meetings } from './pages/Meetings'
+import { Digest } from './pages/Digest'
 
-type View = 'today' | 'water' | 'rituals' | 'tasks' | 'food' | 'notes' | 'diary' | 'sleep' | 'finance' | 'workouts' | 'goals' | 'ideas' | 'meet'
+type View = 'today' | 'water' | 'rituals' | 'tasks' | 'food' | 'notes' | 'diary' | 'sleep' | 'finance' | 'workouts' | 'goals' | 'ideas' | 'meet' | 'digest'
 
 export default function App() {
   const { push } = useToast()
@@ -137,6 +138,7 @@ export default function App() {
       case 'goals':   return <Goals initData={initData} onDataChange={refreshProfile} />
       case 'ideas':   return <Ideas initData={initData} />
       case 'meet':    return <Meetings initData={initData} />
+      case 'digest':  return <Digest initData={initData} />
     }
   })()
 

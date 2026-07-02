@@ -21,7 +21,7 @@ export const MODULES: Module[] = [
   { id: 'diary',   num: '09', label: 'Щоденник',  locked: false, color: 'var(--ink)' },
   { id: 'ideas',   num: '10', label: 'Ідеї',      locked: false, color: 'var(--ink)' },
   { id: 'meet',    num: '11', label: 'Зустрічі',  locked: false, color: 'var(--ink)' },
-  { id: 'digest',  num: '12', label: 'Дайджест',  locked: true,  color: 'var(--ink)' },
+  { id: 'digest',  num: '12', label: 'Дайджест',  locked: false, color: 'var(--ink)' },
   { id: 'notes',   num: '13', label: 'Нотатки',   locked: false, color: 'var(--ink)' },
   { id: 'workouts', num: '14', label: 'Тренування', locked: false, color: 'var(--mod-workouts)' },
 ]
@@ -85,12 +85,14 @@ export function NavGrid({ activeView, onNavigate }: Props) {
           />
         ))}
       </div>
-      <div
-        className="font-mono px-4 py-2"
-        style={{ fontSize: '10px', letterSpacing: '0.05em', color: 'var(--locked-text)', borderBottom: '1px solid var(--subtle)' }}
-      >
-        СКОРО: {LOCKED_LABELS.map(l => l.toUpperCase()).join(' · ')}
-      </div>
+      {LOCKED_LABELS.length > 0 && (
+        <div
+          className="font-mono px-4 py-2"
+          style={{ fontSize: '10px', letterSpacing: '0.05em', color: 'var(--locked-text)', borderBottom: '1px solid var(--subtle)' }}
+        >
+          СКОРО: {LOCKED_LABELS.map(l => l.toUpperCase()).join(' · ')}
+        </div>
+      )}
     </div>
   )
 }
