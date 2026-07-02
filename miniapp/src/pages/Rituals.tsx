@@ -110,7 +110,7 @@ export function Rituals({ initData, onDataChange }: { initData: string; onDataCh
           <button
             onClick={() => setAddOpen(true)}
             className="press-invert font-condensed text-xs px-3"
-            style={{ minHeight: '36px', border: '1px solid var(--ink)', background: 'transparent', color: 'var(--ink)', cursor: 'pointer' }}
+            style={{ minHeight: '44px', border: '1px solid var(--ink)', background: 'transparent', color: 'var(--ink)', cursor: 'pointer' }}
           >
             + Ритуал
           </button>
@@ -146,14 +146,21 @@ export function Rituals({ initData, onDataChange }: { initData: string; onDataCh
             <button
               onClick={() => toggle(r.id)}
               disabled={toggling === r.id}
-              className="w-5 h-5 flex items-center justify-center flex-shrink-0"
-              style={{
-                border: `2px solid ${r.done ? 'var(--ink)' : 'var(--muted)'}`,
-                background: r.done ? 'var(--ink)' : 'transparent',
-                cursor: 'pointer',
-              }}
+              className="flex items-center justify-center flex-shrink-0"
+              // 44px зона натискання навколо 20px квадрата; від'ємний margin
+              // не дає роздути рядок і зберігає вирівнювання по px-4
+              style={{ width: '44px', height: '44px', margin: '-12px', background: 'transparent', border: 'none', cursor: 'pointer' }}
+              aria-label={r.done ? 'Зняти відмітку' : 'Відмітити виконаним'}
             >
-              {r.done && <span style={{ fontSize: '10px', color: 'var(--bg)' }}>✓</span>}
+              <span
+                className="w-5 h-5 flex items-center justify-center"
+                style={{
+                  border: `2px solid ${r.done ? 'var(--ink)' : 'var(--muted)'}`,
+                  background: r.done ? 'var(--ink)' : 'transparent',
+                }}
+              >
+                {r.done && <span style={{ fontSize: '10px', color: 'var(--bg)' }}>✓</span>}
+              </span>
             </button>
             <span
               className="font-condensed text-sm flex-1 line-clamp-2"

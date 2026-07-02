@@ -11,8 +11,9 @@ interface Props {
 // ⌂ повертає на головну, ‹ › листають сусідні модулі (без «Сьогодні», по колу)
 export function HubStrip({ activeView, onNavigate }: Props) {
   const ring = OPEN_MODULES.filter(m => m.id !== 'today')
-  const idx = ring.findIndex(m => m.id === activeView)
-  const current = ring[idx] ?? ring[0]
+  const found = ring.findIndex(m => m.id === activeView)
+  const idx = found === -1 ? 0 : found
+  const current = ring[idx]
   const prev = ring[(idx - 1 + ring.length) % ring.length]
   const next = ring[(idx + 1) % ring.length]
 
@@ -35,7 +36,7 @@ export function HubStrip({ activeView, onNavigate }: Props) {
     >
       <button
         onClick={() => go('today')}
-        style={{ ...cellStyle, borderRight: '1px solid color-mix(in srgb, var(--bg) 15%, transparent)' }}
+        style={{ ...cellStyle, borderRight: '1px solid var(--strip-divider)' }}
         aria-label="На головну"
       >
         ⌂
@@ -48,14 +49,14 @@ export function HubStrip({ activeView, onNavigate }: Props) {
       </div>
       <button
         onClick={() => go(prev.id)}
-        style={{ ...cellStyle, borderLeft: '1px solid color-mix(in srgb, var(--bg) 15%, transparent)', opacity: 0.7 }}
+        style={{ ...cellStyle, borderLeft: '1px solid var(--strip-divider)', opacity: 0.7 }}
         aria-label={`Попередній: ${prev.label}`}
       >
         ‹
       </button>
       <button
         onClick={() => go(next.id)}
-        style={{ ...cellStyle, borderLeft: '1px solid color-mix(in srgb, var(--bg) 15%, transparent)', opacity: 0.7 }}
+        style={{ ...cellStyle, borderLeft: '1px solid var(--strip-divider)', opacity: 0.7 }}
         aria-label={`Наступний: ${next.label}`}
       >
         ›

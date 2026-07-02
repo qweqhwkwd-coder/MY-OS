@@ -6,7 +6,7 @@ import { BottomSheet } from '../components/BottomSheet'
 import { TextField } from '../components/TextField'
 
 import { useToast } from '../components/Toast'
-import { xpToastText } from '../utils'
+import { xpToastText, haptic } from '../utils'
 
 const MOOD_EMOJI: Record<number, string> = { 1: '😞', 2: '😕', 3: '😐', 4: '🙂', 5: '😄' }
 
@@ -50,6 +50,7 @@ export function Diary({ initData, onDataChange }: { initData: string; onDataChan
     setSaveErr('')
     try {
       const entry = await api.addDiaryEntry(initData, addText.trim(), addMood ?? undefined)
+      haptic('success')
       setEntries(prev => [entry, ...prev])
       if (entry.xp_granted) push(xpToastText(entry.xp_granted))
       onDataChange?.()

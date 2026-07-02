@@ -3,7 +3,7 @@ import { api } from '../api'
 import type { SleepEntry } from '../api'
 import { TextField } from '../components/TextField'
 import { useToast } from '../components/Toast'
-import { xpToastText } from '../utils'
+import { xpToastText, haptic } from '../utils'
 
 function fmtDuration(min: number): string {
   return `${Math.floor(min / 60)}г ${min % 60}хв`
@@ -51,6 +51,7 @@ export function Sleep({ initData, onDataChange }: { initData: string; onDataChan
       const entry = await api.logSleep(initData, sleepTime.trim(), wakeTime.trim())
       setToday(entry)
       setHistory(prev => [entry, ...prev.filter(h => h.date !== entry.date)].slice(0, 7))
+      haptic('success')
       if (entry.xp_granted) push(xpToastText(entry.xp_granted))
       setSleepTime('')
       setWakeTime('')

@@ -41,6 +41,7 @@ export function Water({ initData, onDataChange }: { initData: string; onDataChan
     setSaving(true)
     try {
       const d = await api.undoWater(initData, lastAdd)
+      haptic('light')
       setTotal(d.total)
       setLastAdd(null)
       onDataChange?.()

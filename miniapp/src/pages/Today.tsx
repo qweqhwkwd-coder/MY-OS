@@ -17,8 +17,14 @@ const QUICK_BUTTONS: { id: Modal; label: string }[] = [
   { id: 'food',  label: '+ ЇЖА' },
 ]
 
+// Рахуємо в UTC від календарних компонентів — локальна арифметика дає
+// зсув на день у годину після переходу на літній час (EEST)
 function dayOfYear(d: Date): number {
-  return Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 86400000)
+  return (Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(d.getFullYear(), 0, 0)) / 86400000
+}
+
+function daysInYear(y: number): number {
+  return (Date.UTC(y + 1, 0, 1) - Date.UTC(y, 0, 1)) / 86400000
 }
 
 export function Today({ initData, onDataChange, profile }: { initData: string; onDataChange?: () => void; profile?: ProfileData | null }) {
@@ -73,6 +79,7 @@ export function Today({ initData, onDataChange, profile }: { initData: string; o
     setSaveErr('')
     try {
       await api.undoWater(initData, lastWaterAdd)
+      haptic('light')
       setLastWaterAdd(null)
       reload(); onDataChange?.()
     }
@@ -128,7 +135,7 @@ export function Today({ initData, onDataChange, profile }: { initData: string; o
         {weekday} · {dayMonth}
       </div>
       <div className="px-4 pb-3 pt-1 font-mono text-xs" style={{ color: 'var(--muted)', letterSpacing: '0.04em', borderBottom: '1px solid var(--subtle)' }}>
-        ДЕНЬ {dayOfYear(now)} / 365
+        ДЕНЬ {dayOfYear(now)} / {daysInYear(now.getFullYear())}
         {profile ? ` · ${profile.streak}🔥 · +${profile.xp_today} XP СЬОГОДНІ` : ''}
       </div>
 

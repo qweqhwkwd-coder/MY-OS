@@ -170,7 +170,7 @@ export function Tasks({ initData, onDataChange }: { initData: string; onDataChan
                   disabled={completing === t.id}
                   className="press-invert font-mono text-xs px-4 flex-shrink-0"
                   style={{
-                    minHeight: '36px',
+                    minHeight: '44px',
                     border: '1px solid var(--ink)',
                     background: 'transparent',
                     color: 'var(--ink)',

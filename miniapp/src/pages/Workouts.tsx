@@ -3,7 +3,7 @@ import { api } from '../api'
 import type { Workout } from '../api'
 import { TextField } from '../components/TextField'
 import { useToast } from '../components/Toast'
-import { xpToastText } from '../utils'
+import { xpToastText, haptic } from '../utils'
 
 const TYPE_EMOJI: Record<string, string> = {
   cardio: '🏃',
@@ -45,6 +45,7 @@ export function Workouts({ initData, onDataChange }: { initData: string; onDataC
     setSaveErr('')
     try {
       const w = await api.addWorkout(initData, activity.trim(), minutes ? parseInt(minutes, 10) : undefined)
+      haptic('success')
       setWorkouts(prev => [w, ...prev].slice(0, 10))
       if (w.xp_granted) push(xpToastText(w.xp_granted))
       setActivity('')

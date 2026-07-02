@@ -20,6 +20,8 @@
   --mod-finance: #15803d;
   --mod-sleep: #4338ca;
   --mod-workouts: #b91c1c;
+  /* роздільник у HubStrip: смужка чорнильна, тож роздільник — колір паперу */
+  --strip-divider: rgba(248, 247, 244, 0.15);
 }
 
 [data-theme="dark"] {
@@ -38,6 +40,8 @@
   --mod-finance: #4ade80;
   --mod-sleep: #818cf8;
   --mod-workouts: #f87171;
+  /* у темній темі чорнила світлі → роздільник темний */
+  --strip-divider: rgba(26, 26, 26, 0.15);
 }
 
 * {
