@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { api } from '../api'
-import type { ProfileData } from '../api'
+import type { ProfileData, XpPoint } from '../api'
 import { ProgressBar } from './ProgressBar'
 import { hpColor } from '../utils'
+
+const XpChart = lazy(() => import('./XpChart'))
 
 export type Theme = 'light' | 'dark' | 'auto'
 
@@ -40,6 +42,14 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
   const [bodySaving, setBodySaving] = useState(false)
   const [bodyErr, setBodyErr] = useState('')
   const [bodyKcal, setBodyKcal] = useState<number | null>(profile.kcal_goal ?? null)
+  const [xpHistory, setXpHistory] = useState<XpPoint[] | null>(null)
+  const [xpHistoryErr, setXpHistoryErr] = useState(false)
+
+  useEffect(() => {
+    api.xpHistory(initData)
+      .then(setXpHistory)
+      .catch(() => setXpHistoryErr(true))
+  }, [initData])
 
   useEffect(() => {
     if (view !== 'body') return
@@ -307,6 +317,24 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
             </span>
           </div>
           <ProgressBar value={xpInLevel} max={100} color="bg-indigo-600" height="h-2" />
+        </div>
+
+        {/* XP growth — 30 days */}
+        <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--subtle)' }}>
+          <div className="font-mono text-xs mb-3" style={{ color: 'var(--muted)' }}>РІСТ — XP ЗА 30 ДНІВ</div>
+          {xpHistoryErr && (
+            <div className="font-condensed text-sm py-4" style={{ color: 'var(--muted)' }}>
+              Не вдалося завантажити графік. Спробуй перевідкрити профіль.
+            </div>
+          )}
+          {!xpHistoryErr && !xpHistory && (
+            <div className="font-mono text-xs py-4" style={{ color: 'var(--muted)' }}>…</div>
+          )}
+          {xpHistory && (
+            <Suspense fallback={<div className="font-mono text-xs py-4" style={{ color: 'var(--muted)' }}>…</div>}>
+              <XpChart data={xpHistory} />
+            </Suspense>
+          )}
         </div>
 
         {/* 8 stats */}

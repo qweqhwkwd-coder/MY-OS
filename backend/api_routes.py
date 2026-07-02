@@ -47,6 +47,7 @@ from db import (
     get_user_stats,
     get_water_today,
     get_week_digest,
+    get_xp_history,
     get_xp_today,
     ensure_user,
     inbox_to_diary,
@@ -288,6 +289,13 @@ def api_profile(user: dict = Depends(get_current_user)):
         **rank_data,
         "stats": {s: stats[s] for s in STATS},
     }
+
+
+@router.get("/xp-history")
+def api_xp_history(days: int = 30, user: dict = Depends(get_current_user)):
+    if not 1 <= days <= 90:
+        raise HTTPException(status_code=400, detail="days must be 1..90")
+    return get_xp_history(user["id"], days)
 
 
 class TaskIn(BaseModel):

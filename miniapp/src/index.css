@@ -12,6 +12,7 @@
   --hp-lo: #dc2626;
   --locked-bg: #f2f0ec;
   --locked-text: #bbbbbb;
+  --chart-line: #4338ca; /* валідовано dataviz-валідатором на світлій поверхні */
 }
 
 [data-theme="dark"] {
@@ -23,6 +24,7 @@
   --accent-light: #c7d2fe;
   --locked-bg: #1e1e1e;
   --locked-text: #444444;
+  --chart-line: #6366f1; /* валідовано на темній поверхні (#818cf8 не пройшов lightness band) */
 }
 
 * {

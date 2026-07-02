@@ -115,6 +115,8 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(data),
     }, true),
+  xpHistory: (initData: string, days = 30) =>
+    req<XpPoint[]>(`/api/xp-history?days=${days}`, initData),
   inbox: (initData: string) => req<InboxItem[]>('/api/inbox', initData),
   inboxToTask: (initData: string, id: string) =>
     req<Task>(`/api/inbox/${id}/to-task`, initData, { method: 'POST' }),
@@ -132,6 +134,11 @@ export const api = {
 }
 
 export type XpGranted = { stat: string; amount: number } | null
+
+export interface XpPoint {
+  date: string
+  xp: number
+}
 
 export interface TodayData {
   level: number

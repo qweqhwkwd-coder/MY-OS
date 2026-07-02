@@ -154,6 +154,26 @@ def get_xp_today(user_id: str) -> int:
     return sum(e["xp_amount"] for e in res.data)
 
 
+def get_xp_history(user_id: str, days: int = 30) -> list[dict]:
+    """Сумарний XP по днях за останні `days` днів (нулі для порожніх днів)."""
+    start = (date.today() - timedelta(days=days - 1)).isoformat()
+    rows = (
+        supabase.table("xp_events").select("xp_amount,created_at")
+        .eq("user_id", user_id).gte("created_at", start).execute().data
+    )
+    by_day: dict[str, int] = {}
+    for r in rows:
+        day = r["created_at"][:10]
+        by_day[day] = by_day.get(day, 0) + r["xp_amount"]
+    return [
+        {"date": d, "xp": by_day.get(d, 0)}
+        for d in (
+            (date.today() - timedelta(days=i)).isoformat()
+            for i in range(days - 1, -1, -1)
+        )
+    ]
+
+
 def get_completion_totals(user_id: str) -> dict:
     """Пожизненные счётчики выполненного — для майлстоун-тостов в Mini App."""
     tasks_done = (
