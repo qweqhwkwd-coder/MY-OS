@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { api } from './api'
 import type { ProfileData } from './api'
+import { useToast } from './components/Toast'
+import { profileMilestones } from './utils'
 import { WelcomeScreen, shouldShowWelcome } from './components/WelcomeScreen'
 import { SysBar } from './components/SysBar'
 import { NavGrid } from './components/NavGrid'
@@ -17,6 +19,7 @@ import { Diary } from './pages/Diary'
 type View = 'today' | 'water' | 'rituals' | 'tasks' | 'food' | 'notes' | 'diary'
 
 export default function App() {
+  const { push } = useToast()
   const [initData, setInitData] = useState('')
   const [ready, setReady] = useState(false)
   const [view, setView] = useState<View>('today')
@@ -74,8 +77,18 @@ export default function App() {
     }
   }, [theme])
 
+  const prevProfileRef = useRef<ProfileData | null>(null)
+
   function refreshProfile() {
-    if (initData) api.profile(initData).then(setProfile).catch(() => {})
+    if (!initData) return
+    api.profile(initData).then(next => {
+      const prev = prevProfileRef.current
+      if (prev) {
+        for (const m of profileMilestones(prev, next)) push(m.text, m.size)
+      }
+      prevProfileRef.current = next
+      setProfile(next)
+    }).catch(() => {})
   }
 
   if (!ready) return (

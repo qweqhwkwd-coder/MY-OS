@@ -32,6 +32,7 @@ from db import (
     delete_task_by_id,
     get_archived_tasks,
     get_body_profile,
+    get_completion_totals,
     get_diary_entries,
     get_diary_entries_by_date,
     get_food_today,
@@ -265,12 +266,13 @@ def api_digest(user: dict = Depends(get_current_user)):
 @router.get("/profile")
 def api_profile(user: dict = Depends(get_current_user)):
     uid = user["id"]
-    stats, hp, xp_today, streak, kcal_goal = parallel(
+    stats, hp, xp_today, streak, kcal_goal, totals = parallel(
         lambda: get_user_stats(uid),
         lambda: calculate_hp(uid, user.get("water_goal")),
         lambda: get_xp_today(uid),
         lambda: get_streak(uid),
         lambda: calculate_kcal_goal(uid),
+        lambda: get_completion_totals(uid),
     )
     avg_xp = sum(stats[s] for s in STATS) / 8
     rank_data = get_rank(avg_xp)
@@ -282,6 +284,7 @@ def api_profile(user: dict = Depends(get_current_user)):
         "streak": streak,
         "hp": hp,
         "kcal_goal": kcal_goal,
+        "totals": totals,
         **rank_data,
         "stats": {s: stats[s] for s in STATS},
     }

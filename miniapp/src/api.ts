@@ -217,6 +217,7 @@ export interface ProfileData {
   next_rank: string | null
   next_rank_xp_min: number | null
   kcal_goal: number | null
+  totals: { tasks_done: number; rituals_done: number }
   stats: Record<string, number>
 }
 

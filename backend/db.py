@@ -154,6 +154,19 @@ def get_xp_today(user_id: str) -> int:
     return sum(e["xp_amount"] for e in res.data)
 
 
+def get_completion_totals(user_id: str) -> dict:
+    """Пожизненные счётчики выполненного — для майлстоун-тостов в Mini App."""
+    tasks_done = (
+        supabase.table("tasks").select("id", count="exact")
+        .eq("user_id", user_id).eq("is_completed", True).execute().count
+    )
+    rituals_done = (
+        supabase.table("ritual_logs").select("id", count="exact")
+        .eq("user_id", user_id).eq("is_done", True).execute().count
+    )
+    return {"tasks_done": tasks_done or 0, "rituals_done": rituals_done or 0}
+
+
 def calculate_hp(user_id: str, water_goal: int | None = None) -> int:
     """Recalculate HP from last 3 days. Saves result to user_stats. Returns 0–100.
 
