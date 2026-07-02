@@ -113,7 +113,7 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
             </>
           )}
           <button
-            onClick={onClose}
+            onClick={() => { haptic('light'); onClose() }}
             className="font-mono text-sm"
             style={{ color: 'rgba(248,247,244,0.6)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 10px', minHeight: '44px', minWidth: '44px' }}
             aria-label="Закрити"
@@ -142,7 +142,7 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
                   ].map(opt => (
                     <button
                       key={opt.value}
-                      onClick={() => setBodyData(prev => ({ ...prev, sex: opt.value }))}
+                      onClick={() => { haptic('light'); setBodyData(prev => ({ ...prev, sex: opt.value })) }}
                       aria-pressed={bodyData.sex === opt.value}
                       className="py-3 font-condensed text-sm"
                       style={{
@@ -186,7 +186,7 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
                 ].map(opt => (
                   <button
                     key={opt.value}
-                    onClick={() => setBodyData(prev => ({ ...prev, activity_level: opt.value }))}
+                    onClick={() => { haptic('light'); setBodyData(prev => ({ ...prev, activity_level: opt.value })) }}
                     className="w-full flex items-center justify-between px-3 py-3 text-left"
                     style={{
                       background: bodyData.activity_level === opt.value ? 'var(--ink)' : 'var(--subtle)',
@@ -256,12 +256,13 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
           {THEME_OPTIONS.map(opt => (
             <button
               key={opt.value}
-              onClick={() => { haptic('light'); onThemeChange(opt.value) }}
+              onClick={() => { if (theme !== opt.value) { haptic('light'); onThemeChange(opt.value) } }}
               className="w-full flex items-center justify-between px-4 py-4 text-left"
               style={{
                 background: theme === opt.value ? 'var(--subtle)' : 'transparent',
                 border: 'none',
-                borderBottom: '1px solid var(--subtle)',
+                // на підсвіченому рядку var(--subtle) зливається з таким самим фоном
+                borderBottom: theme === opt.value ? '1px solid var(--muted)' : '1px solid var(--subtle)',
                 cursor: 'pointer',
                 color: 'var(--ink)',
                 minHeight: '48px',
