@@ -42,7 +42,7 @@ export const api = {
   stats: (initData: string) => req<StatsData>('/api/stats', initData),
   water: (initData: string) => req<{ total: number; goal: number }>('/api/water', initData),
   addWater: (initData: string, amount: number) =>
-    req<{ total: number }>('/api/water', initData, {
+    req<{ total: number; xp_granted: XpGranted }>('/api/water', initData, {
       method: 'POST',
       body: JSON.stringify({ amount }),
     }),
@@ -54,10 +54,10 @@ export const api = {
       body: JSON.stringify({ title }),
     }),
   toggleRitual: (initData: string, id: string) =>
-    req<{ done: boolean }>(`/api/rituals/${id}/toggle`, initData, { method: 'POST' }),
+    req<{ done: boolean; xp_granted: XpGranted }>(`/api/rituals/${id}/toggle`, initData, { method: 'POST' }),
   tasks: (initData: string) => req<Task[]>('/api/tasks', initData),
   completeTask: (initData: string, id: string) =>
-    req<{ done: boolean }>(`/api/tasks/${id}/complete`, initData, { method: 'POST' }),
+    req<{ done: boolean; xp_granted: XpGranted }>(`/api/tasks/${id}/complete`, initData, { method: 'POST' }),
   digest: (initData: string) => req<DigestData>('/api/digest', initData),
   profile: (initData: string) => req<ProfileData>('/api/profile', initData),
   addTask: (initData: string, title: string) =>
@@ -71,13 +71,13 @@ export const api = {
       body: JSON.stringify({ text }),
     }),
   addFoodEntry: (initData: string, food_name: string, kcal: number, grams?: number) =>
-    req<FoodEntry>('/api/food', initData, {
+    req<FoodEntry & { xp_granted: XpGranted }>('/api/food', initData, {
       method: 'POST',
       body: JSON.stringify({ food_name, kcal, grams }),
     }),
   diary: (initData: string) => req<DiaryEntry[]>('/api/diary', initData),
   addDiaryEntry: (initData: string, text: string, mood?: number) =>
-    req<DiaryEntry>('/api/diary', initData, {
+    req<DiaryEntry & { xp_granted: XpGranted }>('/api/diary', initData, {
       method: 'POST',
       body: JSON.stringify({ text, mood }),
     }),
@@ -130,6 +130,8 @@ export const api = {
   deleteInboxItem: (initData: string, id: string) =>
     req<{ ok: boolean }>(`/api/inbox/${id}`, initData, { method: 'DELETE' }),
 }
+
+export type XpGranted = { stat: string; amount: number } | null
 
 export interface TodayData {
   level: number

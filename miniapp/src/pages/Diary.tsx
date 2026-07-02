@@ -5,9 +5,13 @@ import { SwipeRow } from '../components/SwipeRow'
 import { BottomSheet } from '../components/BottomSheet'
 import { TextField } from '../components/TextField'
 
+import { useToast } from '../components/Toast'
+import { xpToastText } from '../utils'
+
 const MOOD_EMOJI: Record<number, string> = { 1: '😞', 2: '😕', 3: '😐', 4: '🙂', 5: '😄' }
 
 export function Diary({ initData, onDataChange }: { initData: string; onDataChange?: () => void }) {
+  const { push } = useToast()
   const [entries, setEntries] = useState<DiaryEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
@@ -47,6 +51,7 @@ export function Diary({ initData, onDataChange }: { initData: string; onDataChan
     try {
       const entry = await api.addDiaryEntry(initData, addText.trim(), addMood ?? undefined)
       setEntries(prev => [entry, ...prev])
+      if (entry.xp_granted) push(xpToastText(entry.xp_granted))
       onDataChange?.()
       closeAdd()
     } catch (e: unknown) {

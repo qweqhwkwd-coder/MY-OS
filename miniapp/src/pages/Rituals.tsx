@@ -4,8 +4,11 @@ import type { Ritual } from '../api'
 import { SwipeRow } from '../components/SwipeRow'
 import { BottomSheet } from '../components/BottomSheet'
 import { TextField } from '../components/TextField'
+import { useToast } from '../components/Toast'
+import { xpToastText } from '../utils'
 
 export function Rituals({ initData, onDataChange }: { initData: string; onDataChange?: () => void }) {
+  const { push } = useToast()
   const [rituals, setRituals] = useState<Ritual[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
@@ -32,6 +35,7 @@ export function Rituals({ initData, onDataChange }: { initData: string; onDataCh
     try {
       const res = await api.toggleRitual(initData, id)
       setRituals(prev => prev.map(r => r.id === id ? { ...r, done: res.done } : r))
+      if (res.xp_granted) push(xpToastText(res.xp_granted))
       onDataChange?.()
     } catch (e: unknown) {
       setActionErr(e instanceof Error ? e.message : 'Помилка')

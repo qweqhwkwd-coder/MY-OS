@@ -4,10 +4,13 @@ import type { Task } from '../api'
 import { SwipeRow } from '../components/SwipeRow'
 import { BottomSheet } from '../components/BottomSheet'
 import { TextField } from '../components/TextField'
+import { useToast } from '../components/Toast'
+import { xpToastText } from '../utils'
 
 type Tab = 'active' | 'archive'
 
 export function Tasks({ initData, onDataChange }: { initData: string; onDataChange?: () => void }) {
+  const { push } = useToast()
   const [tab, setTab] = useState<Tab>('active')
   const [tasks, setTasks] = useState<Task[]>([])
   const [archived, setArchived] = useState<Task[] | null>(null)
@@ -15,7 +18,6 @@ export function Tasks({ initData, onDataChange }: { initData: string; onDataChan
   const [archiveLoading, setArchiveLoading] = useState(false)
   const [err, setErr] = useState('')
   const [completing, setCompleting] = useState<string | null>(null)
-  const [successMsg, setSuccessMsg] = useState('')
   const [actionErr, setActionErr] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
   const [editItem, setEditItem] = useState<Task | null>(null)
@@ -45,19 +47,17 @@ export function Tasks({ initData, onDataChange }: { initData: string; onDataChan
     setTab(t)
     setOpenId(null)
     setActionErr('')
-    setSuccessMsg('')
     if (t === 'archive') loadArchive()
   }
 
   async function complete(id: string) {
     setCompleting(id)
     setActionErr('')
-    setSuccessMsg('')
     try {
-      const { done } = await api.completeTask(initData, id)
+      const res = await api.completeTask(initData, id)
       setTasks(prev => prev.filter(t => t.id !== id))
-      if (done) {
-        setSuccessMsg('+3 XP до Дисципліни')
+      if (res.done) {
+        if (res.xp_granted) push(xpToastText(res.xp_granted))
         onDataChange?.()
       }
     } catch (e: unknown) {
@@ -135,7 +135,6 @@ export function Tasks({ initData, onDataChange }: { initData: string; onDataChan
       </div>
 
       {actionErr && <div className="px-4 py-2 text-xs" style={{ color: '#dc2626' }}>{actionErr}</div>}
-      {successMsg && <div className="px-4 py-2 text-xs font-mono" style={{ color: 'var(--accent)' }}>{successMsg}</div>}
 
       {/* Active tab */}
       {tab === 'active' && (

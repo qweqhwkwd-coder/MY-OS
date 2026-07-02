@@ -4,6 +4,8 @@ import type { TodayData } from '../api'
 import { BottomSheet } from '../components/BottomSheet'
 import { TextField } from '../components/TextField'
 import { ProgressBar } from '../components/ProgressBar'
+import { useToast } from '../components/Toast'
+import { xpToastText } from '../utils'
 
 type Modal = 'water' | 'task' | 'note' | 'food' | null
 
@@ -15,6 +17,7 @@ const QUICK_BUTTONS: { id: Modal; icon: string; label: string }[] = [
 ]
 
 export function Today({ initData, onDataChange }: { initData: string; onDataChange?: () => void }) {
+  const { push } = useToast()
   const [data, setData] = useState<TodayData | null>(null)
   const [err, setErr] = useState('')
   const [modal, setModal] = useState<Modal>(null)
@@ -47,7 +50,11 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
     setSaveErr('')
     // Не закриваємо модалку — воду додають кількома натисканнями підряд, на відміну
     // від задачі/нотатки/їжі, де один запис = одна дія.
-    try { await api.addWater(initData, amount); reload(); onDataChange?.() }
+    try {
+      const res = await api.addWater(initData, amount)
+      if (res.xp_granted) push(xpToastText(res.xp_granted))
+      reload(); onDataChange?.()
+    }
     catch (e: unknown) { setSaveErr(e instanceof Error ? e.message : 'Помилка') }
     finally { setSaving(false) }
   }
@@ -75,7 +82,8 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
     setSaving(true)
     setSaveErr('')
     try {
-      await api.addFoodEntry(initData, foodName.trim(), parseInt(foodKcal), foodGrams ? parseInt(foodGrams) : undefined)
+      const entry = await api.addFoodEntry(initData, foodName.trim(), parseInt(foodKcal), foodGrams ? parseInt(foodGrams) : undefined)
+      if (entry.xp_granted) push(xpToastText(entry.xp_granted))
       reload(); onDataChange?.(); closeModal()
     }
     catch (e: unknown) { setSaveErr(e instanceof Error ? e.message : 'Помилка') }

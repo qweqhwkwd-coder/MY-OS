@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
+import { useToast } from '../components/Toast'
+import { xpToastText } from '../utils'
 
 export function Water({ initData, onDataChange }: { initData: string; onDataChange?: () => void }) {
+  const { push } = useToast()
   const [total, setTotal] = useState(0)
   const [goal, setGoal] = useState(2000)
   const [loading, setLoading] = useState(true)
@@ -19,6 +22,7 @@ export function Water({ initData, onDataChange }: { initData: string; onDataChan
     try {
       const d = await api.addWater(initData, amount)
       setTotal(d.total)
+      if (d.xp_granted) push(xpToastText(d.xp_granted))
       onDataChange?.()
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : 'Помилка')
