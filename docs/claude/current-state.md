@@ -55,7 +55,7 @@
 - `components/ErrorBoundary.tsx` — видимый экран краша вместо белого экрана.
 - `components/Toast.tsx` — ToastProvider/useToast (первый React Context в проекте), верх экрана, `aria-live`, sm 2.5с / lg 4с.
 - `components/XpChart.tsx` — LineChart XP за 30 дней (recharts), lazy-чанк чтобы не раздувать основной бандл (252KB против 599KB).
-- `pages/Today.tsx` — дашборд с прогресс-баром калорий vs цель КБЖУ.
+- `pages/Today.tsx` — дашборд с прогресс-баром калорий vs цель КБЖУ + строка «НОРМА КБЖУ» (Б/Ж/В из TDEE, формула `kbjuFromKcal` в utils.ts; при пустом профиле — подсказка заполнить «Тіло»).
 - `pages/Tasks.tsx` — SwipeRow + вкладки Активні/Архів (ленивая загрузка) + BottomSheet-редактирование + line-clamp-2.
 - `pages/Rituals.tsx` — SwipeRow вместо LongPress, редактирование через BottomSheet.
 - `pages/Notes.tsx` — SwipeRow (Опції/Видалити), конвертация через BottomSheet.
