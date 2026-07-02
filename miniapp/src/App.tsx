@@ -78,10 +78,16 @@ export default function App() {
   }, [theme])
 
   const prevProfileRef = useRef<ProfileData | null>(null)
+  // Вода додається кількома швидкими тапами → кілька refreshProfile у польоті.
+  // Застарілий респонс, що прийшов пізніше, не має перезаписати свіжий знімок,
+  // інакше майлстоун-тост здублюється на наступному фетчі.
+  const profileSeqRef = useRef(0)
 
   function refreshProfile() {
     if (!initData) return
+    const seq = ++profileSeqRef.current
     api.profile(initData).then(next => {
+      if (seq !== profileSeqRef.current) return
       const prev = prevProfileRef.current
       if (prev) {
         for (const m of profileMilestones(prev, next)) push(m.text, m.size)

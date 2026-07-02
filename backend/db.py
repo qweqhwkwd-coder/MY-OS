@@ -155,7 +155,12 @@ def get_xp_today(user_id: str) -> int:
 
 
 def get_xp_history(user_id: str, days: int = 30) -> list[dict]:
-    """Сумарний XP по днях за останні `days` днів (нулі для порожніх днів)."""
+    """Сумарний XP по днях за останні `days` днів (нулі для порожніх днів).
+
+    День береться по UTC (created_at[:10]) — та сама конвенція, що в
+    get_xp_today. Якщо колись міняти на локальний час юзера — міняти обидві
+    функції разом, інакше «XP сьогодні» і графік розійдуться.
+    """
     start = (date.today() - timedelta(days=days - 1)).isoformat()
     rows = (
         supabase.table("xp_events").select("xp_amount,created_at")
@@ -176,13 +181,11 @@ def get_xp_history(user_id: str, days: int = 30) -> list[dict]:
 
 def get_completion_totals(user_id: str) -> dict:
     """Пожизненные счётчики выполненного — для майлстоун-тостов в Mini App."""
-    tasks_done = (
-        supabase.table("tasks").select("id", count="exact")
-        .eq("user_id", user_id).eq("is_completed", True).execute().count
-    )
-    rituals_done = (
-        supabase.table("ritual_logs").select("id", count="exact")
-        .eq("user_id", user_id).eq("is_done", True).execute().count
+    tasks_done, rituals_done = parallel(
+        lambda: supabase.table("tasks").select("id", count="exact")
+        .eq("user_id", user_id).eq("is_completed", True).execute().count,
+        lambda: supabase.table("ritual_logs").select("id", count="exact")
+        .eq("user_id", user_id).eq("is_done", True).execute().count,
     )
     return {"tasks_done": tasks_done or 0, "rituals_done": rituals_done or 0}
 

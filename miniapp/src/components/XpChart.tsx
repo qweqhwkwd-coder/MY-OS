@@ -11,7 +11,7 @@ export default function XpChart({ data }: { data: XpPoint[] }) {
           <XAxis
             dataKey="date"
             tickFormatter={(d: string) => d.slice(8, 10) + '.' + d.slice(5, 7)}
-            ticks={[data[0]?.date, data[9]?.date, data[19]?.date, data[29]?.date].filter(Boolean)}
+            ticks={[0, 1, 2, 3].map(i => data[Math.round(i * (data.length - 1) / 3)]?.date).filter(Boolean)}
             tick={{ fontSize: 10, fontFamily: 'IBM Plex Mono, monospace', fill: 'var(--muted)' }}
             axisLine={false}
             tickLine={false}

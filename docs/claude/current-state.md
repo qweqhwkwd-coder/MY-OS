@@ -31,6 +31,7 @@
 | `/stats` | ✅ | все 8 статов с уровнями |
 | Reply Keyboard | ✅ | 6 кнопок-шорткатов |
 | **Mini App (React)** | ✅ | SwipeRow во всех блоках, архив задач, КБЖУ-калькулятор, дата-фильтр дневника, прогресс-бар ккал |
+| **XP/HP feedback layer** | ✅ | тосты `xp_granted` за действия, майлстоуны через диффинг профиля (level/rank/стрик 7-30-100/стат-lvl кратно 5/totals 10-50-100), график XP за 30 дней (recharts, lazy-чанк), `GET /api/xp-history` |
 | Уведомления / планировщик | ❌ | отложено (free-хостинг, см. roadmap.md) |
 | AI-слой | ❌ | не подключён |
 | Мультипользователь | ❌ | моста initData→JWT нет, бэкенд под `service_role` |
@@ -52,6 +53,8 @@
 - `components/SysBar.tsx`, `components/NavGrid.tsx` — верхняя системная панель + сетка навигации по модулям.
 - `components/ProfileModal.tsx` — профиль (ранг, percentile, HP, стрик, XP за сегодня, 8 статов) + вкладка настроек + вкладка «Тіло» с КБЖУ-калькулятором (формула Миффлина-Сент-Жора).
 - `components/ErrorBoundary.tsx` — видимый экран краша вместо белого экрана.
+- `components/Toast.tsx` — ToastProvider/useToast (первый React Context в проекте), верх экрана, `aria-live`, sm 2.5с / lg 4с.
+- `components/XpChart.tsx` — LineChart XP за 30 дней (recharts), lazy-чанк чтобы не раздувать основной бандл (252KB против 599KB).
 - `pages/Today.tsx` — дашборд с прогресс-баром калорий vs цель КБЖУ.
 - `pages/Tasks.tsx` — SwipeRow + вкладки Активні/Архів (ленивая загрузка) + BottomSheet-редактирование + line-clamp-2.
 - `pages/Rituals.tsx` — SwipeRow вместо LongPress, редактирование через BottomSheet.
@@ -59,10 +62,12 @@
 - `pages/Diary.tsx` — SwipeRow + фильтр по дате + редактирование/удаление через BottomSheet.
 - `pages/Food.tsx` — SwipeRow удаление + прогресс-бар ккал/цель.
 - `pages/Water.tsx` — без изменений.
-- `api.ts` — тонкий fetch-клиент к `/api/*`, шлёт `X-Telegram-Init-Data` заголовком. Новые методы: `archivedTasks`, `diaryForDate`, `updateDiaryEntry`, `deleteDiaryEntry`, `deleteFoodEntry`, `getBodyProfile`, `updateBodyProfile`.
+- `api.ts` — тонкий fetch-клиент к `/api/*`, шлёт `X-Telegram-Init-Data` заголовком. Новые методы: `archivedTasks`, `diaryForDate`, `updateDiaryEntry`, `deleteDiaryEntry`, `deleteFoodEntry`, `getBodyProfile`, `updateBodyProfile`, `xpHistory`. Мутации, начисляющие XP, возвращают `xp_granted`.
+- `utils.ts` — `STAT_LABEL`/`STAT_NAME`, `xpToastText`, чистая `profileMilestones(prev, next)` (диффинг снимков профиля; в `App.tsx` защита от гонки конкурентных фетчей через seq-guard).
 
 Стек по факту (не путать с целевым из `conventions.md`): обычный `useState`/`useEffect`,
-без Zustand/TanStack Query/shadcn/ui/Recharts — это всё ещё в планах, не внедрено.
+recharts внедрён (только для XP-графика, lazy). Без Zustand/TanStack Query/shadcn/ui — это всё ещё в планах.
+Пакеты `@telegram-apps/telegram-ui` и `@telegram-apps/sdk-react` удалены (не использовались, peer-конфликт с React 19).
 
 ## Язык интерфейса — украинский (подтверждено автором)
 
@@ -112,7 +117,7 @@ Mini App покрывает 7 экранов (Сьогодні/Вода/Риту
 **Ближайший обязательный шаг:** Применить миграцию `db/migrations/015_body_profile.sql` в Supabase SQL Editor.
 
 Следующие возможные направления:
-- XP/HP feedback layer (тосты + майлстоуны + график) — спек готов (`docs/superpowers/specs/2026-06-22-gamification-feedback-design.md`)
+- ~~XP/HP feedback layer~~ — **сделано 02.07.2026** (спек `docs/superpowers/specs/2026-06-22-gamification-feedback-design.md`, коммиты 23c6627..ecc7d64 + фиксы ревью)
 - Расширить Mini App на оставшиеся модули (Сон, Фінанси, Тренування)
 - AI-слой (Фаза 4, см. `roadmap.md`)
 - Добавить стать в КБЖУ-профіль
