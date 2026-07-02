@@ -68,7 +68,7 @@ export function Sleep({ initData, onDataChange }: { initData: string; onDataChan
   return (
     <div style={{ color: 'var(--ink)' }}>
       <div className="px-4 py-2 font-mono text-xs" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
-        СОН — СЬОГОДНІ
+        СЬОГОДНІ
       </div>
 
       {/* Today */}

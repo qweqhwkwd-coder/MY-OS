@@ -5,7 +5,7 @@ import { SwipeRow } from '../components/SwipeRow'
 import { BottomSheet } from '../components/BottomSheet'
 import { TextField } from '../components/TextField'
 import { useToast } from '../components/Toast'
-import { xpToastText } from '../utils'
+import { xpToastText, haptic } from '../utils'
 
 type Tab = 'active' | 'archive'
 
@@ -57,6 +57,7 @@ export function Tasks({ initData, onDataChange }: { initData: string; onDataChan
       const res = await api.completeTask(initData, id)
       setTasks(prev => prev.filter(t => t.id !== id))
       if (res.done) {
+        haptic('success')
         if (res.xp_granted) push(xpToastText(res.xp_granted))
         onDataChange?.()
       }
@@ -167,8 +168,9 @@ export function Tasks({ initData, onDataChange }: { initData: string; onDataChan
                 <button
                   onClick={() => complete(t.id)}
                   disabled={completing === t.id}
-                  className="font-mono text-xs px-3 py-1 flex-shrink-0"
+                  className="press-invert font-mono text-xs px-4 flex-shrink-0"
                   style={{
+                    minHeight: '36px',
                     border: '1px solid var(--ink)',
                     background: 'transparent',
                     color: 'var(--ink)',
@@ -223,7 +225,7 @@ export function Tasks({ initData, onDataChange }: { initData: string; onDataChan
       {/* Edit BottomSheet */}
       <BottomSheet open={editItem !== null} onClose={closeEdit}>
         <div className="p-6 space-y-4">
-          <div className="font-condensed font-semibold text-base">✏️ Редагувати завдання</div>
+          <div className="font-condensed font-semibold text-base">Редагувати завдання</div>
           <TextField
             autoFocus
             value={editValue}

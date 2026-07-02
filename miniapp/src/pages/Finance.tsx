@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import type { Transaction } from '../api'
 import { TextField } from '../components/TextField'
+import { MonoBar } from '../components/MonoBar'
 import { useToast } from '../components/Toast'
-import { xpToastText } from '../utils'
+import { xpToastText, haptic } from '../utils'
 
 function fmtDate(iso: string): string {
   return new Date(iso + 'T00:00:00').toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' })
@@ -46,6 +47,7 @@ export function Finance({ initData, onDataChange }: { initData: string; onDataCh
     setSaveErr('')
     try {
       const tx = await api.addSpend(initData, num, category.trim() || 'інше')
+      haptic('success')
       setTxs(prev => [tx, ...prev])
       if (tx.xp_granted) push(xpToastText(tx.xp_granted))
       setAmount('')
@@ -65,14 +67,14 @@ export function Finance({ initData, onDataChange }: { initData: string; onDataCh
 
   return (
     <div style={{ color: 'var(--ink)' }}>
-      <div className="px-4 py-2 font-mono text-xs flex justify-between" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
-        <span>ФІНАНСИ — 7 ДНІВ</span>
+      <div className="px-4 py-2 font-mono text-xs flex justify-between" style={{ color: 'var(--muted)', letterSpacing: '0.05em', borderBottom: '1px solid var(--subtle)' }}>
+        <span>7 ДНІВ</span>
         <span>{fmtAmount(total)} грн</span>
       </div>
 
       {/* Add form */}
       <div className="px-4 py-4 space-y-3" style={{ borderBottom: '1px solid var(--subtle)' }}>
-        <div className="font-condensed font-semibold text-sm">💸 Додати витрату</div>
+        <div className="font-condensed font-semibold text-sm">Додати витрату</div>
         {saveErr && <div className="font-mono text-xs" style={{ color: '#dc2626' }}>{saveErr}</div>}
         <div className="grid grid-cols-2 gap-3">
           <TextField
@@ -107,16 +109,11 @@ export function Finance({ initData, onDataChange }: { initData: string; onDataCh
           <div className="px-4 py-2 font-mono text-xs" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
             ЗА КАТЕГОРІЯМИ
           </div>
-          <div className="px-4 py-3 space-y-3" style={{ borderBottom: '1px solid var(--subtle)' }}>
+          <div style={{ borderBottom: '1px solid var(--subtle)' }}>
             {categories.map(([cat, sum]) => (
-              <div key={cat} className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-condensed text-sm">{cat}</span>
-                  <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{fmtAmount(sum)} грн</span>
-                </div>
-                <div className="w-full h-1 rounded-full" style={{ background: 'var(--subtle)' }}>
-                  <div className="h-1 rounded-full" style={{ width: `${maxCat > 0 ? Math.round(sum / maxCat * 100) : 0}%`, background: 'var(--ink)' }} />
-                </div>
+              <div key={cat} className="px-4 py-3 flex items-center justify-between">
+                <span className="font-condensed" style={{ fontSize: '15px' }}>{cat}</span>
+                <MonoBar value={sum} max={maxCat} label={`${fmtAmount(sum)} грн`} color="var(--mod-finance)" />
               </div>
             ))}
           </div>

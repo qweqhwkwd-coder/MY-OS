@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import type { FoodEntry } from '../api'
 import { SwipeRow } from '../components/SwipeRow'
+import { MonoBar } from '../components/MonoBar'
 
 interface Props {
   initData: string
@@ -40,20 +41,19 @@ export function Food({ initData, kcalGoal }: Props) {
 
   return (
     <div style={{ color: 'var(--ink)' }}>
-      <div className="px-4 py-2 font-mono text-xs flex justify-between" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
-        <span>ЇЖА — СЬОГОДНІ</span>
+      <div className="px-4 py-2 font-mono text-xs flex justify-between" style={{ color: 'var(--muted)', letterSpacing: '0.05em', borderBottom: '1px solid var(--subtle)' }}>
+        <span>СЬОГОДНІ</span>
         <span>{total}{kcalGoal ? ` / ${kcalGoal}` : ''} ккал</span>
       </div>
 
       {pct !== null && (
-        <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--subtle)' }}>
-          <div className="w-full h-1.5 rounded-full" style={{ background: 'var(--subtle)' }}>
-            <div
-              className="h-1.5 rounded-full transition-all duration-300"
-              style={{ width: `${pct}%`, background: pct >= 100 ? '#dc2626' : '#f97316' }}
-            />
-          </div>
-          <div className="font-mono text-xs mt-1" style={{ color: 'var(--muted)' }}>{pct}% від денної норми</div>
+        <div className="px-4 py-3 space-y-1" style={{ borderBottom: '1px solid var(--subtle)' }}>
+          <MonoBar
+            value={total}
+            max={kcalGoal ?? 0}
+            color={pct >= 100 ? 'var(--hp-lo)' : 'var(--mod-food)'}
+          />
+          <div className="font-mono text-xs" style={{ color: 'var(--muted)', letterSpacing: '0.05em' }}>{pct}% ВІД ДЕННОЇ НОРМИ</div>
         </div>
       )}
 

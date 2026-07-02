@@ -62,13 +62,9 @@ export function Workouts({ initData, onDataChange }: { initData: string; onDataC
 
   return (
     <div style={{ color: 'var(--ink)' }}>
-      <div className="px-4 py-2 font-mono text-xs" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
-        ТРЕНУВАННЯ
-      </div>
-
       {/* Add form */}
       <div className="px-4 py-4 space-y-3" style={{ borderBottom: '1px solid var(--subtle)' }}>
-        <div className="font-condensed font-semibold text-sm">🏋️ Записати тренування</div>
+        <div className="font-condensed font-semibold text-sm">Записати тренування</div>
         {saveErr && <div className="font-mono text-xs" style={{ color: '#dc2626' }}>{saveErr}</div>}
         <TextField
           border="subtle"

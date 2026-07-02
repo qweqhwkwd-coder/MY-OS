@@ -13,6 +13,13 @@
   --locked-bg: #f2f0ec;
   --locked-text: #bbbbbb;
   --chart-line: #4338ca; /* валідовано dataviz-валідатором на світлій поверхні */
+  /* модульні акценти — єдиний колір на сторінці модуля (2px лінійка зліва) */
+  --mod-water: #1d4ed8;
+  --mod-rituals: #c2410c;
+  --mod-food: #a16207;
+  --mod-finance: #15803d;
+  --mod-sleep: #4338ca;
+  --mod-workouts: #b91c1c;
 }
 
 [data-theme="dark"] {
@@ -25,6 +32,12 @@
   --locked-bg: #1e1e1e;
   --locked-text: #444444;
   --chart-line: #6366f1; /* валідовано на темній поверхні (#818cf8 не пройшов lightness band) */
+  --mod-water: #60a5fa;
+  --mod-rituals: #fb923c;
+  --mod-food: #fbbf24;
+  --mod-finance: #4ade80;
+  --mod-sleep: #818cf8;
+  --mod-workouts: #f87171;
 }
 
 * {
@@ -50,6 +63,24 @@ body {
 
 .font-mono {
   font-family: 'IBM Plex Mono', monospace;
+}
+
+/* SysBar завжди #1a1a1a — на темному фоні #141414 без волосяної межі зливається */
+.sysbar {
+  padding-top: env(safe-area-inset-top);
+}
+[data-theme="dark"] .sysbar {
+  border-bottom: 1px solid rgba(240, 239, 236, 0.15);
+}
+
+/* Pressed-стан: інверсія у колір чернил. !important — бо кольори елементів
+   задані inline-стилями, а фідбек натискання має перекривати їх завжди. */
+.press-invert:active:not(:disabled) {
+  background: var(--ink) !important;
+  color: var(--bg) !important;
+}
+.press-invert:active:not(:disabled) * {
+  color: var(--bg) !important;
 }
 
 @keyframes toast-in {

@@ -3,9 +3,9 @@ import { api } from './api'
 import type { ProfileData } from './api'
 import { useToast } from './components/Toast'
 import { profileMilestones } from './utils'
-import { WelcomeScreen, shouldShowWelcome } from './components/WelcomeScreen'
 import { SysBar } from './components/SysBar'
-import { NavGrid } from './components/NavGrid'
+import { NavGrid, MODULES } from './components/NavGrid'
+import { HubStrip } from './components/HubStrip'
 import { ProfileModal } from './components/ProfileModal'
 import type { Theme } from './components/ProfileModal'
 import { Today } from './pages/Today'
@@ -28,7 +28,6 @@ export default function App() {
   const [view, setView] = useState<View>('today')
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [profileOpen, setProfileOpen] = useState(false)
-  const [showWelcome, setShowWelcome] = useState(() => { try { return shouldShowWelcome() } catch { return false } })
   const [theme, setTheme] = useState<Theme>(() => {
     try { return (localStorage.getItem('theme') as Theme) || 'auto' } catch { return 'auto' }
   })
@@ -120,13 +119,9 @@ export default function App() {
     </div>
   )
 
-  if (showWelcome) return (
-    <WelcomeScreen onEnter={() => setShowWelcome(false)} streak={profile?.streak} />
-  )
-
   const page = (() => {
     switch (view) {
-      case 'today':   return <Today initData={initData} onDataChange={refreshProfile} />
+      case 'today':   return <Today initData={initData} onDataChange={refreshProfile} profile={profile} />
       case 'water':   return <Water initData={initData} onDataChange={refreshProfile} />
       case 'rituals': return <Rituals initData={initData} onDataChange={refreshProfile} />
       case 'tasks':   return <Tasks initData={initData} onDataChange={refreshProfile} />
@@ -139,11 +134,21 @@ export default function App() {
     }
   })()
 
+  // 2px лінійка модуля — єдиний колір на сторінці («Паперова ОС»)
+  const modColor = MODULES.find(m => m.id === view)?.color ?? 'var(--ink)'
+
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--bg)' }}>
       <SysBar profile={profile} onProfileClick={() => setProfileOpen(true)} />
-      <NavGrid activeView={view} onNavigate={(v) => setView(v as View)} />
-      <div className="flex-1 overflow-y-auto">{page}</div>
+      {view === 'today'
+        ? <NavGrid activeView={view} onNavigate={(v) => setView(v as View)} />
+        : <HubStrip activeView={view} onNavigate={(v) => setView(v as View)} />}
+      <div
+        className="flex-1 overflow-y-auto"
+        style={view !== 'today' ? { borderLeft: `2px solid ${modColor}` } : undefined}
+      >
+        {page}
+      </div>
       {profileOpen && profile && (
         <ProfileModal
           profile={profile}
@@ -173,6 +178,10 @@ declare global {
         initData: string
         ready: () => void
         expand: () => void
+        HapticFeedback?: {
+          impactOccurred: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void
+          notificationOccurred: (type: 'error' | 'success' | 'warning') => void
+        }
       }
     }
   }

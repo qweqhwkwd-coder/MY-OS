@@ -38,7 +38,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={t.id}
             className={`toast-item font-mono text-center px-4 py-2 ${t.size === 'lg' ? 'text-base font-semibold' : 'text-xs'}`}
-            style={{ background: 'var(--bg)', border: '1px solid var(--accent)', color: 'var(--accent)' }}
+            style={{ background: 'var(--ink)', color: 'var(--bg)', letterSpacing: '0.05em' }}
           >
             {t.text}
           </div>

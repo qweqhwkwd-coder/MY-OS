@@ -10,8 +10,9 @@ export const STAT_LABEL: Record<string, string> = {
   intellect: 'Інтелекту',
 }
 
+// Запис у журналі «Паперової ОС»: +5 XP → ДИСЦИПЛІНА
 export function xpToastText(xp: { stat: string; amount: number }): string {
-  return `+${xp.amount} XP до ${STAT_LABEL[xp.stat] ?? xp.stat}`
+  return `+${xp.amount} XP → ${(STAT_NAME[xp.stat] ?? xp.stat).toUpperCase()}`
 }
 
 // Називний відмінок — для майлстоун-тостів («Сила lvl 5!»)
@@ -88,6 +89,16 @@ export function kbjuFromKcal(kcal: number): { protein: number; fat: number; carb
     fat: Math.round(kcal * 0.30 / 9),
     carbs: Math.round(kcal * 0.40 / 4),
   }
+}
+
+// Тактильний відгук Telegram WebApp — безпечно ігнорується поза Telegram
+export function haptic(type: 'light' | 'medium' | 'success' = 'light') {
+  try {
+    const h = window.Telegram?.WebApp?.HapticFeedback
+    if (!h) return
+    if (type === 'success') h.notificationOccurred('success')
+    else h.impactOccurred(type)
+  } catch { /* старі клієнти без HapticFeedback */ }
 }
 
 export function hpColor(hp: number): string {

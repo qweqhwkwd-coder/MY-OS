@@ -1,22 +1,27 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import type { TodayData } from '../api'
+import type { TodayData, ProfileData } from '../api'
 import { BottomSheet } from '../components/BottomSheet'
 import { TextField } from '../components/TextField'
-import { ProgressBar } from '../components/ProgressBar'
+import { MonoBar } from '../components/MonoBar'
 import { useToast } from '../components/Toast'
-import { xpToastText, kbjuFromKcal } from '../utils'
+import { xpToastText, kbjuFromKcal, haptic } from '../utils'
+import { quoteOfToday } from '../quotes'
 
 type Modal = 'water' | 'task' | 'note' | 'food' | null
 
-const QUICK_BUTTONS: { id: Modal; icon: string; label: string }[] = [
-  { id: 'water', icon: '💧', label: 'ВОДУ' },
-  { id: 'task',  icon: '✅', label: 'ЗАДАЧУ' },
-  { id: 'note',  icon: '📋', label: 'НОТАТКУ' },
-  { id: 'food',  icon: '🍽', label: 'ЇЖУ' },
+const QUICK_BUTTONS: { id: Modal; label: string }[] = [
+  { id: 'water', label: '+ ВОДА' },
+  { id: 'task',  label: '+ ЗАДАЧА' },
+  { id: 'note',  label: '+ НОТАТКА' },
+  { id: 'food',  label: '+ ЇЖА' },
 ]
 
-export function Today({ initData, onDataChange }: { initData: string; onDataChange?: () => void }) {
+function dayOfYear(d: Date): number {
+  return Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 86400000)
+}
+
+export function Today({ initData, onDataChange, profile }: { initData: string; onDataChange?: () => void; profile?: ProfileData | null }) {
   const { push } = useToast()
   const [data, setData] = useState<TodayData | null>(null)
   const [err, setErr] = useState('')
@@ -53,6 +58,7 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
     // від задачі/нотатки/їжі, де один запис = одна дія.
     try {
       const res = await api.addWater(initData, amount)
+      haptic('success')
       if (res.xp_granted) push(xpToastText(res.xp_granted))
       setLastWaterAdd(amount)
       reload(); onDataChange?.()
@@ -78,7 +84,7 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
     if (!taskTitle.trim()) return
     setSaving(true)
     setSaveErr('')
-    try { await api.addTask(initData, taskTitle.trim()); reload(); onDataChange?.(); closeModal() }
+    try { await api.addTask(initData, taskTitle.trim()); haptic('success'); reload(); onDataChange?.(); closeModal() }
     catch (e: unknown) { setSaveErr(e instanceof Error ? e.message : 'Помилка') }
     finally { setSaving(false) }
   }
@@ -87,7 +93,7 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
     if (!noteText.trim()) return
     setSaving(true)
     setSaveErr('')
-    try { await api.addNote(initData, noteText.trim()); onDataChange?.(); closeModal() }
+    try { await api.addNote(initData, noteText.trim()); haptic('success'); onDataChange?.(); closeModal() }
     catch (e: unknown) { setSaveErr(e instanceof Error ? e.message : 'Помилка') }
     finally { setSaving(false) }
   }
@@ -98,6 +104,7 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
     setSaveErr('')
     try {
       const entry = await api.addFoodEntry(initData, foodName.trim(), parseInt(foodKcal), foodGrams ? parseInt(foodGrams) : undefined)
+      haptic('success')
       if (entry.xp_granted) push(xpToastText(entry.xp_granted))
       reload(); onDataChange?.(); closeModal()
     }
@@ -108,79 +115,86 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
   if (err) return <div className="p-4 text-sm break-all" style={{ color: '#dc2626' }}>{err}</div>
   if (!data) return <div className="p-4 font-mono text-xs" style={{ color: 'var(--muted)' }}>…</div>
 
-  const ritualPct = data.rituals_total > 0 ? Math.round((data.rituals_done / data.rituals_total) * 100) : 0
+  const now = new Date()
+  const weekday = now.toLocaleDateString('uk-UA', { weekday: 'short' }).toUpperCase()
+  const dayMonth = now.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' }).toUpperCase()
+  const quote = quoteOfToday()
+  const waterPct = data.water_goal > 0 ? Math.round((data.water / data.water_goal) * 100) : 0
 
   return (
     <div style={{ color: 'var(--ink)' }}>
+      {/* Шапка дня */}
+      <div className="px-4 pt-4 font-condensed font-bold" style={{ fontSize: '30px', lineHeight: 1.1, letterSpacing: '0.01em' }}>
+        {weekday} · {dayMonth}
+      </div>
+      <div className="px-4 pb-3 pt-1 font-mono text-xs" style={{ color: 'var(--muted)', letterSpacing: '0.04em', borderBottom: '1px solid var(--subtle)' }}>
+        ДЕНЬ {dayOfYear(now)} / 365
+        {profile ? ` · ${profile.streak}🔥 · +${profile.xp_today} XP СЬОГОДНІ` : ''}
+      </div>
+
+      {/* Цитата дня */}
+      <div className="px-4 py-2.5 font-condensed text-sm italic" style={{ color: 'var(--muted)', lineHeight: 1.4, borderBottom: '1px solid var(--subtle)' }}>
+        «{quote.text}» — {quote.author}
+      </div>
+
       {/* Quick-add */}
-      <div className="px-4 py-2 font-mono text-xs" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
+      <div className="px-4 py-2 font-mono text-xs" style={{ color: 'var(--muted)', letterSpacing: '0.05em', borderBottom: '1px solid var(--subtle)' }}>
         ШВИДКО ДОДАТИ
       </div>
-      <div className="grid grid-cols-4" style={{ borderBottom: '1px solid var(--subtle)' }}>
+      <div className="grid grid-cols-2" style={{ borderBottom: '1px solid var(--subtle)' }}>
         {QUICK_BUTTONS.map((btn, idx) => (
           <button
             key={btn.id}
-            onClick={() => setModal(btn.id)}
-            className="flex flex-col items-center gap-1 py-4"
-            style={{ background: 'transparent', border: 'none', borderRight: idx < QUICK_BUTTONS.length - 1 ? '1px solid var(--subtle)' : 'none', cursor: 'pointer' }}
+            onClick={() => { haptic('light'); setModal(btn.id) }}
+            className="press-invert font-mono text-xs py-4"
+            style={{
+              minHeight: '48px',
+              letterSpacing: '0.06em',
+              background: 'transparent',
+              border: 'none',
+              borderRight: idx % 2 === 0 ? '1px solid var(--subtle)' : 'none',
+              borderBottom: idx < 2 ? '1px solid var(--subtle)' : 'none',
+              color: 'var(--ink)',
+              cursor: 'pointer',
+            }}
           >
-            <span style={{ fontSize: '20px', lineHeight: 1 }}>{btn.icon}</span>
-            <span className="font-condensed text-xs" style={{ color: 'var(--muted)' }}>{btn.label}</span>
+            {btn.label}
           </button>
         ))}
       </div>
 
       {/* Digest rows */}
       <div>
-        <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--subtle)' }}>
-          <div className="flex items-baseline justify-between mb-2">
-            <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>ВОДА</span>
-            <div className="text-right">
-              <span className="font-condensed font-bold text-xl">{data.water}</span>
-              <span className="font-mono text-xs ml-1" style={{ color: 'var(--muted)' }}>з {data.water_goal} мл</span>
-            </div>
-          </div>
-          <ProgressBar value={data.water} max={data.water_goal} color="bg-[#3b82f6]" height="h-1" />
+        <div className="px-4 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--subtle)' }}>
+          <span className="font-condensed" style={{ fontSize: '15px' }}>Вода</span>
+          <MonoBar value={data.water} max={data.water_goal} label={`${waterPct}% · ${data.water} мл`} />
         </div>
 
-        <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--subtle)' }}>
-          <div className="flex items-baseline justify-between mb-2">
-            <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>РИТУАЛИ</span>
-            <div className="text-right">
-              <span className="font-condensed font-bold text-xl">{data.rituals_done}/{data.rituals_total}</span>
-              <span className="font-mono text-xs ml-1" style={{ color: 'var(--muted)' }}>{ritualPct}%</span>
-            </div>
-          </div>
-          <ProgressBar value={data.rituals_done} max={data.rituals_total} color="bg-[#f97316]" height="h-1" />
+        <div className="px-4 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--subtle)' }}>
+          <span className="font-condensed" style={{ fontSize: '15px' }}>Ритуали</span>
+          <MonoBar value={data.rituals_done} max={data.rituals_total} label={`${data.rituals_done}/${data.rituals_total}`} />
         </div>
 
-        <div className="px-4 py-4 flex items-baseline justify-between" style={{ borderBottom: '1px solid var(--subtle)' }}>
-          <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>ЗАВДАННЯ</span>
-          <div className="text-right">
-            <span className="font-condensed font-bold text-xl">{data.tasks_done}</span>
-            <span className="font-mono text-xs ml-1" style={{ color: 'var(--muted)' }}>виконано</span>
-          </div>
+        <div className="px-4 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--subtle)' }}>
+          <span className="font-condensed" style={{ fontSize: '15px' }}>Завдання</span>
+          <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{data.tasks_done} виконано</span>
         </div>
 
         {/* Calories + КБЖУ norm */}
-        <div className="px-4 py-4 space-y-2" style={{ borderBottom: '1px solid var(--subtle)' }}>
+        <div className="px-4 py-3.5 space-y-2" style={{ borderBottom: '1px solid var(--subtle)' }}>
           <div className="flex items-center justify-between">
-            <span className="font-condensed text-sm">🍽 Калорії</span>
-            <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>
-              {data.kcal}{data.kcal_goal ? ` / ${data.kcal_goal}` : ''} ккал
-            </span>
-          </div>
-          {data.kcal_goal && (
-            <div className="w-full h-1.5 rounded-full" style={{ background: 'var(--subtle)' }}>
-              <div
-                className="h-1.5 rounded-full"
-                style={{
-                  width: `${Math.min(100, Math.round((data.kcal / data.kcal_goal) * 100))}%`,
-                  background: data.kcal >= data.kcal_goal ? '#dc2626' : '#f97316',
-                }}
+            <span className="font-condensed" style={{ fontSize: '15px' }}>Калорії</span>
+            {data.kcal_goal ? (
+              <MonoBar
+                value={data.kcal}
+                max={data.kcal_goal}
+                label={`${data.kcal}/${data.kcal_goal}`}
+                color={data.kcal >= data.kcal_goal ? 'var(--hp-lo)' : 'var(--ink)'}
               />
-            </div>
-          )}
+            ) : (
+              <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{data.kcal} ккал</span>
+            )}
+          </div>
           {data.kcal_goal ? (() => {
             const m = kbjuFromKcal(data.kcal_goal)
             return (
@@ -206,7 +220,7 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
 
           {modal === 'water' && (
             <>
-              <div className="font-condensed font-semibold text-base">💧 Додати воду</div>
+              <div className="font-condensed font-semibold text-base">Додати воду</div>
               <div className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{data.water} / {data.water_goal} мл</div>
               <div className="grid grid-cols-3 gap-3">
                 {[250, 500, 1000].map(ml => (
@@ -236,7 +250,7 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
 
           {modal === 'task' && (
             <>
-              <div className="font-condensed font-semibold text-base">✅ Нова задача</div>
+              <div className="font-condensed font-semibold text-base">Нова задача</div>
               <TextField
                 autoFocus
                 value={taskTitle}
@@ -257,7 +271,7 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
 
           {modal === 'note' && (
             <>
-              <div className="font-condensed font-semibold text-base">📝 Нова нотатка</div>
+              <div className="font-condensed font-semibold text-base">Нова нотатка</div>
               <TextField
                 autoFocus
                 multiline
@@ -278,7 +292,7 @@ export function Today({ initData, onDataChange }: { initData: string; onDataChan
 
           {modal === 'food' && (
             <>
-              <div className="font-condensed font-semibold text-base">🍽 Їжа</div>
+              <div className="font-condensed font-semibold text-base">Їжа</div>
               <TextField
                 autoFocus
                 border="subtle"

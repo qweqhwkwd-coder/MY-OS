@@ -101,7 +101,7 @@ export function Diary({ initData, onDataChange }: { initData: string; onDataChan
   return (
     <div style={{ color: 'var(--ink)' }}>
       <div className="px-4 py-2 font-mono text-xs flex justify-between items-center gap-2" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
-        <span>ЩОДЕННИК</span>
+        <span>ЗАПИСИ</span>
         <div className="flex items-center gap-2">
           <input
             type="date"

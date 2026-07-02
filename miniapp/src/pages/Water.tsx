@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
+import { MonoBar } from '../components/MonoBar'
 import { useToast } from '../components/Toast'
-import { xpToastText } from '../utils'
+import { xpToastText, haptic } from '../utils'
 
 export function Water({ initData, onDataChange }: { initData: string; onDataChange?: () => void }) {
   const { push } = useToast()
@@ -23,6 +24,7 @@ export function Water({ initData, onDataChange }: { initData: string; onDataChan
     setSaving(true)
     try {
       const d = await api.addWater(initData, amount)
+      haptic('success')
       setTotal(d.total)
       setLastAdd(amount)
       if (d.xp_granted) push(xpToastText(d.xp_granted))
@@ -56,20 +58,14 @@ export function Water({ initData, onDataChange }: { initData: string; onDataChan
 
   return (
     <div style={{ color: 'var(--ink)' }}>
-      <div className="px-4 py-2 font-mono text-xs" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
-        ВОДА — СЬОГОДНІ
-      </div>
-
       <div className="px-4 py-6 space-y-3" style={{ borderBottom: '1px solid var(--subtle)' }}>
         <div className="flex items-baseline justify-between">
-          <span className="font-condensed font-bold text-4xl">{total}</span>
+          <span className="font-condensed font-bold" style={{ fontSize: '56px', lineHeight: 1 }}>{total}</span>
           <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>/ {goal} мл</span>
         </div>
-        <div className="w-full h-2 rounded-full" style={{ background: 'var(--subtle)' }}>
-          <div className="h-2 rounded-full transition-all duration-300" style={{ width: `${pct}%`, background: '#3b82f6' }} />
-        </div>
-        <div className="font-mono text-xs" style={{ color: 'var(--muted)' }}>
-          {pct}% від мети{total >= goal ? ' · 🎉 виконано!' : ''}
+        <MonoBar value={total} max={goal} color="var(--mod-water)" />
+        <div className="font-mono text-xs" style={{ color: 'var(--muted)', letterSpacing: '0.05em' }}>
+          {pct}% ВІД МЕТИ{total >= goal ? ' · ВИКОНАНО' : ''}
         </div>
       </div>
 
@@ -79,11 +75,11 @@ export function Water({ initData, onDataChange }: { initData: string; onDataChan
             key={ml}
             onClick={() => addWater(ml)}
             disabled={saving}
-            className="flex flex-col items-center py-5"
-            style={{ background: 'transparent', border: 'none', borderRight: idx < arr.length - 1 ? '1px solid var(--subtle)' : 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
+            className="press-invert flex flex-col items-center py-4"
+            style={{ minHeight: '64px', background: 'transparent', border: 'none', borderRight: idx < arr.length - 1 ? '1px solid var(--subtle)' : 'none', color: 'var(--ink)', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
           >
-            <span style={{ fontSize: '24px', lineHeight: 1 }}>💧</span>
-            <span className="font-mono text-xs mt-1" style={{ color: 'var(--muted)' }}>+{ml} мл</span>
+            <span className="font-mono font-medium" style={{ fontSize: '17px', lineHeight: 1 }}>+{ml}</span>
+            <span className="font-mono mt-1" style={{ fontSize: '10px', color: 'var(--muted)' }}>мл</span>
           </button>
         ))}
       </div>
@@ -92,10 +88,10 @@ export function Water({ initData, onDataChange }: { initData: string; onDataChan
         <button
           onClick={undoLast}
           disabled={saving}
-          className="w-full py-3 font-mono text-xs"
-          style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--subtle)', color: 'var(--muted)', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
+          className="press-invert w-full font-mono text-xs"
+          style={{ minHeight: '44px', letterSpacing: '0.05em', background: 'transparent', border: 'none', borderBottom: '1px solid var(--subtle)', color: 'var(--muted)', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
         >
-          ↩ Відмінити останнє (+{lastAdd} мл)
+          ↩ ВІДМІНИТИ ОСТАННЄ (+{lastAdd} МЛ)
         </button>
       )}
     </div>

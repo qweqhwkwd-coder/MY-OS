@@ -81,7 +81,7 @@ export function Notes({ initData, onDataChange }: { initData: string; onDataChan
   return (
     <div style={{ color: 'var(--ink)' }}>
       <div className="px-4 py-2 font-mono text-xs flex justify-between" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
-        <span>НОТАТКИ</span>
+        <span>УСЬОГО</span>
         <span>{items.length}</span>
       </div>
 

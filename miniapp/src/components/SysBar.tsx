@@ -1,5 +1,5 @@
 import type { ProfileData } from '../api'
-import { hpColor } from '../utils'
+import { hpColor, haptic } from '../utils'
 
 interface Props {
   profile: ProfileData | null
@@ -16,7 +16,7 @@ const STATS = (profile: NonNullable<Props['profile']>) => [
 export function SysBar({ profile, onProfileClick }: Props) {
   return (
     <div
-      className="flex items-stretch"
+      className="sysbar flex items-stretch"
       style={{ background: '#1a1a1a', color: '#f8f7f4', minHeight: '48px' }}
     >
       {profile ? (
@@ -43,11 +43,11 @@ export function SysBar({ profile, onProfileClick }: Props) {
         </div>
       )}
       <button
-        onClick={onProfileClick}
-        style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px', lineHeight: 1, padding: '0 14px' }}
+        onClick={() => { haptic('light'); onProfileClick() }}
+        style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', lineHeight: 1, padding: '0 14px', minWidth: '44px', color: 'rgba(248,247,244,0.85)' }}
         aria-label="Профіль"
       >
-        ⚔️
+        ◎
       </button>
     </div>
   )

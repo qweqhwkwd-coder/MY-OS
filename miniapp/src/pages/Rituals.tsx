@@ -5,7 +5,7 @@ import { SwipeRow } from '../components/SwipeRow'
 import { BottomSheet } from '../components/BottomSheet'
 import { TextField } from '../components/TextField'
 import { useToast } from '../components/Toast'
-import { xpToastText } from '../utils'
+import { xpToastText, haptic } from '../utils'
 
 export function Rituals({ initData, onDataChange }: { initData: string; onDataChange?: () => void }) {
   const { push } = useToast()
@@ -34,6 +34,7 @@ export function Rituals({ initData, onDataChange }: { initData: string; onDataCh
     setActionErr('')
     try {
       const res = await api.toggleRitual(initData, id)
+      if (res.done) haptic('success')
       setRituals(prev => prev.map(r => r.id === id ? { ...r, done: res.done } : r))
       if (res.xp_granted) push(xpToastText(res.xp_granted))
       onDataChange?.()
@@ -102,14 +103,14 @@ export function Rituals({ initData, onDataChange }: { initData: string; onDataCh
 
   return (
     <div style={{ color: 'var(--ink)' }}>
-      <div className="px-4 py-2 font-mono text-xs flex justify-between items-center" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--subtle)' }}>
-        <span>РИТУАЛИ</span>
+      <div className="px-4 py-2 font-mono text-xs flex justify-between items-center" style={{ color: 'var(--muted)', letterSpacing: '0.05em', borderBottom: '1px solid var(--subtle)' }}>
+        <span>СЬОГОДНІ</span>
         <div className="flex items-center gap-3">
           <span>{done}/{rituals.length}</span>
           <button
             onClick={() => setAddOpen(true)}
-            className="font-condensed text-xs px-2 py-1"
-            style={{ border: '1px solid var(--ink)', background: 'transparent', color: 'var(--ink)', cursor: 'pointer' }}
+            className="press-invert font-condensed text-xs px-3"
+            style={{ minHeight: '36px', border: '1px solid var(--ink)', background: 'transparent', color: 'var(--ink)', cursor: 'pointer' }}
           >
             + Ритуал
           </button>
@@ -145,7 +146,7 @@ export function Rituals({ initData, onDataChange }: { initData: string; onDataCh
             <button
               onClick={() => toggle(r.id)}
               disabled={toggling === r.id}
-              className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+              className="w-5 h-5 flex items-center justify-center flex-shrink-0"
               style={{
                 border: `2px solid ${r.done ? 'var(--ink)' : 'var(--muted)'}`,
                 background: r.done ? 'var(--ink)' : 'transparent',
@@ -174,7 +175,7 @@ export function Rituals({ initData, onDataChange }: { initData: string; onDataCh
       {/* Edit BottomSheet */}
       <BottomSheet open={editItem !== null} onClose={closeEdit}>
         <div className="p-6 space-y-4">
-          <div className="font-condensed font-semibold text-base">✏️ Редагувати ритуал</div>
+          <div className="font-condensed font-semibold text-base">Редагувати ритуал</div>
           <TextField
             autoFocus
             value={editValue}
@@ -197,7 +198,7 @@ export function Rituals({ initData, onDataChange }: { initData: string; onDataCh
       <BottomSheet open={addOpen} onClose={closeAdd}>
         <div className="p-6 space-y-4">
           {addErr && <div className="font-mono text-xs" style={{ color: '#dc2626' }}>{addErr}</div>}
-          <div className="font-condensed font-semibold text-base">🔥 Новий ритуал</div>
+          <div className="font-condensed font-semibold text-base">Новий ритуал</div>
           <TextField
             autoFocus
             value={newTitle}
