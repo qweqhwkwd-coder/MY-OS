@@ -160,8 +160,8 @@ def api_add_water(body: WaterIn, user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=400, detail="amount must be 250, 500 or 1000")
     uid = user["id"]
     goal = user.get("water_goal") or DEFAULT_WATER_GOAL
-    total, _xp_granted = add_water(uid, body.amount, goal)
-    return {"total": total}
+    total, xp_granted = add_water(uid, body.amount, goal)
+    return {"total": total, "xp_granted": {"stat": "health", "amount": 2} if xp_granted else None}
 
 
 class RitualIn(BaseModel):
@@ -194,8 +194,8 @@ def api_rituals(user: dict = Depends(get_current_user)):
 @router.post("/rituals/{ritual_id}/toggle")
 def api_toggle_ritual(ritual_id: str, user: dict = Depends(get_current_user)):
     uid = user["id"]
-    now_done, _xp_eligible = toggle_ritual(ritual_id, uid)
-    return {"done": now_done}
+    now_done, xp_eligible = toggle_ritual(ritual_id, uid)
+    return {"done": now_done, "xp_granted": {"stat": "discipline", "amount": 2} if xp_eligible else None}
 
 
 class RitualRenameIn(BaseModel):
@@ -229,7 +229,7 @@ def api_tasks(archive: bool = False, user: dict = Depends(get_current_user)):
 def api_complete_task(task_id: str, user: dict = Depends(get_current_user)):
     uid = user["id"]
     done = complete_task(task_id, uid)
-    return {"done": done}
+    return {"done": done, "xp_granted": {"stat": "discipline", "amount": 3} if done else None}
 
 
 class TaskRenameIn(BaseModel):
@@ -365,7 +365,7 @@ class FoodIn(BaseModel):
 def api_add_food_entry(body: FoodIn, user: dict = Depends(get_current_user)):
     entry = add_food(user["id"], body.food_name, body.kcal, body.grams)
     add_xp(user["id"], "nutrition", 2, "food")
-    return entry
+    return {**entry, "xp_granted": {"stat": "nutrition", "amount": 2}}
 
 
 @router.delete("/food/{entry_id}")
@@ -394,7 +394,7 @@ class DiaryIn(BaseModel):
 def api_add_diary_entry(body: DiaryIn, user: dict = Depends(get_current_user)):
     entry = add_diary_entry(user["id"], body.text, body.mood)
     add_xp(user["id"], "reflection", 2, "journal")
-    return entry
+    return {**entry, "xp_granted": {"stat": "reflection", "amount": 2}}
 
 
 class DiaryUpdateIn(BaseModel):
