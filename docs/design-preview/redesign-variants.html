@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MY-OS — превью редизайна (3 варианта)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ---------- токены (точно как в miniapp/src/index.css) ---------- */
+  .phone {
+    --bg: #f8f7f4; --ink: #1a1a1a; --muted: #999999;
+    --subtle: rgba(26, 26, 26, 0.08);
+    --accent: #4338ca; --accent-light: #818cf8;
+    --hp-hi: #16a34a; --hp-mid: #d97706; --hp-lo: #dc2626;
+    --locked-bg: #f2f0ec; --locked-text: #bbbbbb;
+    /* новые модульные акценты (предложение, вариант 1+) */
+    --mod-water: #1d4ed8; --mod-rituals: #c2410c; --mod-food: #a16207; --mod-finance: #15803d;
+    --sysbar: #1a1a1a; --sysbar-text: #f8f7f4;
+  }
+  .phone[data-theme="dark"] {
+    --bg: #141414; --ink: #f0efec; --muted: #666666;
+    --subtle: rgba(240, 239, 236, 0.08);
+    --accent: #818cf8; --accent-light: #c7d2fe;
+    --locked-bg: #1e1e1e; --locked-text: #444444;
+    --mod-water: #60a5fa; --mod-rituals: #fb923c; --mod-food: #fbbf24; --mod-finance: #4ade80;
+    --sysbar: #1a1a1a; --sysbar-text: #f0efec;
+  }
+  .phone[data-theme="dark"] .sysbar { border-bottom: 1px solid rgba(240,239,236,0.15); }
+
+  /* ---------- страница-обёртка ---------- */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #e9e7e2;
+    font-family: 'IBM Plex Sans Condensed', -apple-system, sans-serif;
+    color: #1a1a1a;
+    padding: 32px 24px 80px;
+  }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  .page-header { max-width: 1320px; margin: 0 auto 8px; display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 12px; }
+  .page-header h1 { font-size: 28px; font-weight: 700; letter-spacing: 0.02em; }
+  .theme-btn {
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+    padding: 10px 18px; background: #1a1a1a; color: #f8f7f4;
+    border: none; cursor: pointer; letter-spacing: 0.08em;
+  }
+  .page-sub { max-width: 1320px; margin: 0 auto 40px; font-size: 15px; color: #666; }
+
+  .variant { max-width: 1320px; margin: 0 auto 72px; }
+  .variant-title { font-size: 13px; font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.1em; color: #999; margin-bottom: 4px; }
+  .variant h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .variant-desc { font-size: 15px; color: #555; max-width: 720px; margin-bottom: 24px; line-height: 1.45; }
+  .frames { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+  .frame-wrap { display: flex; flex-direction: column; gap: 10px; }
+  .frame-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #999; text-transform: uppercase; }
+
+  /* ---------- телефонная рамка ---------- */
+  .phone {
+    width: 390px; height: 780px; overflow-y: auto;
+    background: var(--bg); color: var(--ink);
+    border: 1px solid #d5d2cb; border-radius: 20px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.10);
+    font-family: 'IBM Plex Sans Condensed', -apple-system, sans-serif;
+    position: relative;
+    scrollbar-width: none;
+  }
+  .phone::-webkit-scrollbar { display: none; }
+
+  /* ---------- SysBar ---------- */
+  .sysbar { background: var(--sysbar); color: var(--sysbar-text); min-height: 48px; display: flex; align-items: stretch; border-radius: 20px 20px 0 0; position: sticky; top: 0; z-index: 5; }
+  .sysbar .cell { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 0; border-right: 1px solid rgba(248,247,244,0.1); }
+  .sysbar .val { font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 500; }
+  .sysbar .lbl { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: rgba(248,247,244,0.35); margin-top: 2px; letter-spacing: 0.08em; }
+  .sysbar .profile { width: 48px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: rgba(248,247,244,0.85); }
+
+  /* ---------- NavGrid ---------- */
+  .navgrid { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--subtle); }
+  .navgrid .cell {
+    min-height: 72px; padding: 8px 10px; border-right: 1px solid var(--subtle); border-bottom: 1px solid var(--subtle);
+    display: flex; flex-direction: column; justify-content: space-between; cursor: pointer;
+    transition: background 0.08s;
+  }
+  .navgrid .cell:nth-child(3n) { border-right: none; }
+  .navgrid .num { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); }
+  .navgrid .name { font-size: 13px; font-weight: 500; }
+  .navgrid .cell.active { background: var(--ink); }
+  .navgrid .cell.active .num, .navgrid .cell.active .name { color: var(--bg); }
+  .navgrid .cell.locked { background: var(--locked-bg); cursor: default; }
+  .navgrid .cell.locked .num, .navgrid .cell.locked .name { color: var(--locked-text); }
+  .navgrid .cell.empty { cursor: default; }
+  .navgrid .cell:not(.locked):not(.empty):active { background: var(--ink); }
+  .navgrid .cell:not(.locked):not(.empty):active .num,
+  .navgrid .cell:not(.locked):not(.empty):active .name { color: var(--bg); }
+
+  .soon-row { padding: 8px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--locked-text); border-bottom: 1px solid var(--subtle); letter-spacing: 0.04em; }
+
+  /* ---------- полоска-хаб (вариант 2/3) ---------- */
+  .hubstrip { display: flex; align-items: stretch; height: 40px; background: var(--ink); color: var(--bg); border-bottom: 1px solid var(--subtle); cursor: pointer; }
+  .hubstrip .home { width: 48px; display: flex; align-items: center; justify-content: center; font-size: 16px; border-right: 1px solid rgba(248,247,244,0.15); }
+  .hubstrip .title { flex: 1; display: flex; align-items: center; gap: 10px; padding: 0 14px; }
+  .hubstrip .title .num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; opacity: 0.5; }
+  .hubstrip .title .name { font-size: 14px; font-weight: 600; letter-spacing: 0.05em; }
+  .hubstrip .arrow { width: 44px; display: flex; align-items: center; justify-content: center; font-size: 16px; border-left: 1px solid rgba(248,247,244,0.15); opacity: 0.7; }
+
+  /* ---------- типографика контента ---------- */
+  .sec-label { padding: 10px 16px 6px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: var(--muted); border-bottom: 1px solid var(--subtle); display: flex; justify-content: space-between; }
+  .page-title { padding: 18px 16px 4px; font-size: 26px; font-weight: 700; letter-spacing: 0.01em; line-height: 1.1; }
+  .row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--subtle); font-size: 15px; }
+  .row .sub { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted); }
+
+  /* прогресс-бары: строго прямоугольные (вариант 1+) */
+  .bar { height: 3px; background: var(--subtle); margin: 0 16px 12px; }
+  .bar > div { height: 3px; }
+
+  /* кнопки */
+  .btn-ink { display: block; width: calc(100% - 32px); margin: 12px 16px; padding: 13px 0; min-height: 44px; background: var(--ink); color: var(--bg); border: none; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer; letter-spacing: 0.03em; }
+  .btn-ink:active { opacity: 0.75; }
+  .quick-grid { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--subtle); }
+  .quick-grid button {
+    min-height: 48px; background: transparent; border: none; border-right: 1px solid var(--subtle); border-bottom: 1px solid var(--subtle);
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.06em; color: var(--ink); cursor: pointer;
+  }
+  .quick-grid button:nth-child(2n) { border-right: none; }
+  .quick-grid button:nth-child(3), .quick-grid button:nth-child(4) { border-bottom: none; }
+  .quick-grid button:active { background: var(--ink); color: var(--bg); }
+
+  .water-btns { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--subtle); }
+  .water-btns button { min-height: 56px; background: transparent; border: none; border-right: 1px solid var(--subtle); font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--ink); cursor: pointer; }
+  .water-btns button:last-child { border-right: none; }
+  .water-btns button:active { background: var(--ink); color: var(--bg); }
+  .water-btns .plus { display: block; font-size: 17px; font-weight: 500; }
+  .water-btns .ml { display: block; font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .water-btns button:active .ml { color: var(--bg); }
+
+  .undo-row { display: block; width: 100%; min-height: 44px; background: transparent; border: none; border-bottom: 1px solid var(--subtle); font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted); cursor: pointer; }
+
+  /* большая цифра */
+  .bignum-row { display: flex; align-items: baseline; justify-content: space-between; padding: 20px 16px 8px; }
+  .bignum { font-size: 44px; font-weight: 700; line-height: 1; }
+  .bignum-goal { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted); }
+
+  /* ритуалы */
+  .ritual { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--subtle); font-size: 15px; }
+  .ritual .chk { width: 20px; height: 20px; border: 2px solid var(--muted); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .ritual.done .chk { border-color: var(--ink); background: var(--ink); color: var(--bg); font-size: 11px; }
+  .ritual.done .name { text-decoration: line-through; opacity: 0.5; }
+  .ritual .streak { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted); margin-left: auto; }
+
+  /* вариант 3: моно-бары и цветная линейка модуля */
+  .monobar { font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.05em; }
+  .mod-rule { border-left: 2px solid var(--mod-water); }
+  .day-head { padding: 18px 16px 2px; font-size: 30px; font-weight: 700; letter-spacing: 0.01em; }
+  .day-sub { padding: 0 16px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); border-bottom: 1px solid var(--subtle); letter-spacing: 0.04em; }
+  .quote-line { padding: 10px 16px; font-size: 13px; font-style: italic; color: var(--muted); border-bottom: 1px solid var(--subtle); line-height: 1.4; }
+  .xp-toast { position: sticky; bottom: 16px; margin: 20px 16px 16px; background: var(--ink); color: var(--bg); font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 10px 14px; letter-spacing: 0.05em; width: fit-content; }
+
+  .fin-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px 16px 0; }
+  .fin-form input { border: 1px solid var(--subtle); background: transparent; color: var(--ink); font-family: 'IBM Plex Mono', monospace; font-size: 14px; padding: 11px 12px; min-height: 44px; }
+  .fin-form input::placeholder { color: var(--muted); }
+
+  .note { max-width: 1320px; margin: 0 auto; font-size: 13px; color: #888; font-family: 'IBM Plex Mono', monospace; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>MY-OS — превью редизайна</h1>
+  <button class="theme-btn" onclick="toggleTheme()">ТЕМА: СВІТЛА ⇄ ТЕМНА</button>
+</div>
+<div class="page-sub">Три варианта на реальных токенах приложения. Кнопки в макетах нажимаются (видно pressed-состояние — инверсию в цвет чернил). Кнопкой выше можно переключить светлую/тёмную тему сразу во всех рамках.</div>
+
+<!-- ================= ВАРИАНТ 1 ================= -->
+<section class="variant">
+  <div class="variant-title">ВАРИАНТ 1</div>
+  <h2>«Тихая полировка»</h2>
+  <div class="variant-desc">Скелет прежний: сетка всегда сверху. Изменения: модульные акцентные цвета вместо случайных hex, строго прямоугольные прогресс-бары 3px, трёхуровневая типографика (крупный заголовок / mono-подписи / контент 15px), монохромные кнопки без эмодзи, цели нажатия ≥44px.</div>
+  <div class="frames">
+
+    <!-- В1: главная -->
+    <div class="frame-wrap">
+      <div class="frame-label">Главная (Сьогодні)</div>
+      <div class="phone" data-var="1">
+        <div class="sysbar">
+          <div class="cell"><span class="val" style="color:var(--hp-hi)">72</span><span class="lbl">HP</span></div>
+          <div class="cell"><span class="val">7</span><span class="lbl">РІВЕНЬ</span></div>
+          <div class="cell"><span class="val" style="color:var(--accent-light)">+35</span><span class="lbl">XP</span></div>
+          <div class="cell"><span class="val">12🔥</span><span class="lbl">СТРІК</span></div>
+          <div class="profile">◎</div>
+        </div>
+        <div class="navgrid" data-grid="full" data-active="01"></div>
+        <div class="page-title">Сьогодні</div>
+        <div class="sec-label"><span>ШВИДКО ДОДАТИ</span></div>
+        <div class="quick-grid">
+          <button>+ ВОДА</button><button>+ ЗАДАЧА</button>
+          <button>+ НОТАТКА</button><button>+ ЇЖА</button>
+        </div>
+        <div class="row"><span>Вода</span><span class="sub">1250 / 2000 мл</span></div>
+        <div class="bar"><div style="width:62%; background:var(--mod-water)"></div></div>
+        <div class="row"><span>Ритуали</span><span class="sub">3 / 5</span></div>
+        <div class="bar"><div style="width:60%; background:var(--mod-rituals)"></div></div>
+        <div class="row"><span>Завдання</span><span class="sub">2 активні</span></div>
+        <div class="row"><span>Калорії</span><span class="sub">1430 / 2200 ккал</span></div>
+        <div class="bar"><div style="width:65%; background:var(--mod-food)"></div></div>
+        <div class="row"><span class="sub">НОРМА</span><span class="sub">Б 120г · Ж 60г · В 240г</span></div>
+      </div>
+    </div>
+
+    <!-- В1: вода -->
+    <div class="frame-wrap">
+      <div class="frame-label">Внутри модуля (Вода) — сетка остаётся</div>
+      <div class="phone" data-var="1">
+        <div class="sysbar">
+          <div class="cell"><span class="val" style="color:var(--hp-hi)">72</span><span class="lbl">HP</span></div>
+          <div class="cell"><span class="val">7</span><span class="lbl">РІВЕНЬ</span></div>
+          <div class="cell"><span class="val" style="color:var(--accent-light)">+35</span><span class="lbl">XP</span></div>
+          <div class="cell"><span class="val">12🔥</span><span class="lbl">СТРІК</span></div>
+          <div class="profile">◎</div>
+        </div>
+        <div class="navgrid" data-grid="full" data-active="02"></div>
+        <div class="page-title">Вода</div>
+        <div class="sec-label"><span>СЬОГОДНІ</span></div>
+        <div class="bignum-row"><span class="bignum">1250</span><span class="bignum-goal">/ 2000 мл</span></div>
+        <div class="bar" style="height:4px"><div style="width:62%; height:4px; background:var(--mod-water)"></div></div>
+        <div class="sec-label" style="border-bottom:1px solid var(--subtle)"><span>62% ВІД МЕТИ</span></div>
+        <div class="water-btns">
+          <button><span class="plus">+250</span><span class="ml">мл</span></button>
+          <button><span class="plus">+500</span><span class="ml">мл</span></button>
+          <button><span class="plus">+1000</span><span class="ml">мл</span></button>
+        </div>
+        <button class="undo-row">↩ ВІДМІНИТИ ОСТАННЄ (+250 МЛ)</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================= ВАРИАНТ 2 ================= -->
+<section class="variant">
+  <div class="variant-title">ВАРИАНТ 2 · РЕКОМЕНДУЮ</div>
+  <h2>«Хаб и фокус»</h2>
+  <div class="variant-desc">Всё из варианта 1, плюс: сетка живёт только на главной. Внутри модуля она сворачивается в полоску 40px «⌂ 02 / ВОДА ‹ ›» — тап по ⌂ возвращает на главную, ‹ › листают соседние модули. Контент получает ~300px высоты. Закрытые модули убраны из сетки в одну строку «Скоро: …».</div>
+  <div class="frames">
+
+    <!-- В2: главная -->
+    <div class="frame-wrap">
+      <div class="frame-label">Главная — сетка без закрытых модулей</div>
+      <div class="phone" data-var="2">
+        <div class="sysbar">
+          <div class="cell"><span class="val" style="color:var(--hp-hi)">72</span><span class="lbl">HP</span></div>
+          <div class="cell"><span class="val">7</span><span class="lbl">РІВЕНЬ</span></div>
+          <div class="cell"><span class="val" style="color:var(--accent-light)">+35</span><span class="lbl">XP</span></div>
+          <div class="cell"><span class="val">12🔥</span><span class="lbl">СТРІК</span></div>
+          <div class="profile">◎</div>
+        </div>
+        <div class="navgrid" data-grid="open" data-active="01"></div>
+        <div class="soon-row">СКОРО: ЦІЛІ · ІДЕЇ · ЗУСТРІЧІ · ДАЙДЖЕСТ</div>
+        <div class="page-title">Сьогодні</div>
+        <div class="sec-label"><span>ШВИДКО ДОДАТИ</span></div>
+        <div class="quick-grid">
+          <button>+ ВОДА</button><button>+ ЗАДАЧА</button>
+          <button>+ НОТАТКА</button><button>+ ЇЖА</button>
+        </div>
+        <div class="row"><span>Вода</span><span class="sub">1250 / 2000 мл</span></div>
+        <div class="bar"><div style="width:62%; background:var(--mod-water)"></div></div>
+        <div class="row"><span>Ритуали</span><span class="sub">3 / 5</span></div>
+        <div class="bar"><div style="width:60%; background:var(--mod-rituals)"></div></div>
+        <div class="row"><span>Завдання</span><span class="sub">2 активні</span></div>
+        <div class="row"><span>Калорії</span><span class="sub">1430 / 2200 ккал</span></div>
+        <div class="bar"><div style="width:65%; background:var(--mod-food)"></div></div>
+      </div>
+    </div>
+
+    <!-- В2: внутри модуля -->
+    <div class="frame-wrap">
+      <div class="frame-label">Внутри модуля — сетка свернулась в полоску</div>
+      <div class="phone" data-var="2">
+        <div class="sysbar">
+          <div class="cell"><span class="val" style="color:var(--hp-hi)">72</span><span class="lbl">HP</span></div>
+          <div class="cell"><span class="val">7</span><span class="lbl">РІВЕНЬ</span></div>
+          <div class="cell"><span class="val" style="color:var(--accent-light)">+35</span><span class="lbl">XP</span></div>
+          <div class="cell"><span class="val">12🔥</span><span class="lbl">СТРІК</span></div>
+          <div class="profile">◎</div>
+        </div>
+        <div class="hubstrip">
+          <div class="home">⌂</div>
+          <div class="title"><span class="num">02</span><span class="name">ВОДА</span></div>
+          <div class="arrow">‹</div><div class="arrow">›</div>
+        </div>
+        <div class="bignum-row"><span class="bignum" style="font-size:56px">1250</span><span class="bignum-goal">/ 2000 мл</span></div>
+        <div class="bar" style="height:4px"><div style="width:62%; height:4px; background:var(--mod-water)"></div></div>
+        <div class="sec-label"><span>62% ВІД МЕТИ</span></div>
+        <div class="water-btns" style="min-height:72px">
+          <button><span class="plus">+250</span><span class="ml">мл</span></button>
+          <button><span class="plus">+500</span><span class="ml">мл</span></button>
+          <button><span class="plus">+1000</span><span class="ml">мл</span></button>
+        </div>
+        <button class="undo-row">↩ ВІДМІНИТИ ОСТАННЄ (+250 МЛ)</button>
+        <div class="sec-label"><span>ІСТОРІЯ — СЬОГОДНІ</span></div>
+        <div class="row"><span class="sub">14:20</span><span class="sub">+500 мл</span></div>
+        <div class="row"><span class="sub">11:05</span><span class="sub">+500 мл</span></div>
+        <div class="row"><span class="sub">08:30</span><span class="sub">+250 мл</span></div>
+        <div class="sec-label"><span>ТИЖДЕНЬ</span></div>
+        <div class="row"><span class="sub">ПН · ВТ · СР</span><span class="sub">1.8 · 2.1 · 1.25 л</span></div>
+      </div>
+    </div>
+
+    <!-- В2: ритуалы -->
+    <div class="frame-wrap">
+      <div class="frame-label">Ритуалы — весь экран под список</div>
+      <div class="phone" data-var="2">
+        <div class="sysbar">
+          <div class="cell"><span class="val" style="color:var(--hp-hi)">72</span><span class="lbl">HP</span></div>
+          <div class="cell"><span class="val">7</span><span class="lbl">РІВЕНЬ</span></div>
+          <div class="cell"><span class="val" style="color:var(--accent-light)">+35</span><span class="lbl">XP</span></div>
+          <div class="cell"><span class="val">12🔥</span><span class="lbl">СТРІК</span></div>
+          <div class="profile">◎</div>
+        </div>
+        <div class="hubstrip">
+          <div class="home">⌂</div>
+          <div class="title"><span class="num">03</span><span class="name">РИТУАЛИ</span></div>
+          <div class="arrow">‹</div><div class="arrow">›</div>
+        </div>
+        <div class="sec-label"><span>СЬОГОДНІ</span><span>3/5</span></div>
+        <div class="ritual done"><div class="chk">✓</div><span class="name">Ранкова зарядка</span><span class="streak">12🔥</span></div>
+        <div class="ritual done"><div class="chk">✓</div><span class="name">Читання 20 хв</span><span class="streak">8🔥</span></div>
+        <div class="ritual done"><div class="chk">✓</div><span class="name">Медитація</span><span class="streak">5🔥</span></div>
+        <div class="ritual"><div class="chk"></div><span class="name">Прогулянка</span><span class="streak">3🔥</span></div>
+        <div class="ritual"><div class="chk"></div><span class="name">Планування завтра</span></div>
+        <button class="btn-ink">+ Ритуал</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================= ВАРИАНТ 3 ================= -->
+<section class="variant">
+  <div class="variant-title">ВАРИАНТ 3</div>
+  <h2>«Бумажная ОС»</h2>
+  <div class="variant-desc">Всё из варианта 2, плюс фирменные детали: типографские mono-бары ▮▮▮▯ вместо графических, крупная дата-шапка дня, цитата дня одной строкой (вместо отдельного welcome-экрана), 2px цветная линейка модуля слева — единственный цвет на странице, XP-тосты как записи в журнале.</div>
+  <div class="frames">
+
+    <!-- В3: главная -->
+    <div class="frame-wrap">
+      <div class="frame-label">Главная — дата-шапка, цитата, mono-бары</div>
+      <div class="phone" data-var="3">
+        <div class="sysbar">
+          <div class="cell"><span class="val" style="color:var(--hp-hi)">72</span><span class="lbl">HP</span></div>
+          <div class="cell"><span class="val">7</span><span class="lbl">РІВЕНЬ</span></div>
+          <div class="cell"><span class="val" style="color:var(--accent-light)">+35</span><span class="lbl">XP</span></div>
+          <div class="cell"><span class="val">12🔥</span><span class="lbl">СТРІК</span></div>
+          <div class="profile">◎</div>
+        </div>
+        <div class="navgrid" data-grid="open" data-active="01"></div>
+        <div class="soon-row">СКОРО: ЦІЛІ · ІДЕЇ · ЗУСТРІЧІ · ДАЙДЖЕСТ</div>
+        <div class="day-head">СР · 2 ЛИПНЯ</div>
+        <div class="day-sub">ДЕНЬ 184 / 365 · 12🔥 · +35 XP СЬОГОДНІ</div>
+        <div class="quote-line">«Майбутнє не в наших руках. Але є в наших руках сьогодення» — Сенека</div>
+        <div class="sec-label"><span>ШВИДКО ДОДАТИ</span></div>
+        <div class="quick-grid">
+          <button>+ ВОДА</button><button>+ ЗАДАЧА</button>
+          <button>+ НОТАТКА</button><button>+ ЇЖА</button>
+        </div>
+        <div class="row"><span>Вода</span><span class="monobar">▮▮▮▮▮▮▯▯▯▯ 62%</span></div>
+        <div class="row"><span>Ритуали</span><span class="monobar">▮▮▮▮▮▮▯▯▯▯ 3/5</span></div>
+        <div class="row"><span>Завдання</span><span class="sub">2 активні</span></div>
+        <div class="row"><span>Калорії</span><span class="monobar">▮▮▮▮▮▮▮▯▯▯ 65%</span></div>
+        <div class="xp-toast">+5 XP → ДИСЦИПЛІНА</div>
+      </div>
+    </div>
+
+    <!-- В3: вода с цветной линейкой -->
+    <div class="frame-wrap">
+      <div class="frame-label">Вода — 2px линейка модуля слева</div>
+      <div class="phone" data-var="3">
+        <div class="sysbar">
+          <div class="cell"><span class="val" style="color:var(--hp-hi)">72</span><span class="lbl">HP</span></div>
+          <div class="cell"><span class="val">7</span><span class="lbl">РІВЕНЬ</span></div>
+          <div class="cell"><span class="val" style="color:var(--accent-light)">+35</span><span class="lbl">XP</span></div>
+          <div class="cell"><span class="val">12🔥</span><span class="lbl">СТРІК</span></div>
+          <div class="profile">◎</div>
+        </div>
+        <div class="hubstrip">
+          <div class="home">⌂</div>
+          <div class="title"><span class="num">02</span><span class="name">ВОДА</span></div>
+          <div class="arrow">‹</div><div class="arrow">›</div>
+        </div>
+        <div class="mod-rule">
+          <div class="bignum-row"><span class="bignum" style="font-size:56px">1250</span><span class="bignum-goal">/ 2000 мл</span></div>
+          <div class="sec-label" style="border-bottom:none; padding-top:0"><span class="monobar" style="color:var(--ink)">▮▮▮▮▮▮▯▯▯▯ 62%</span></div>
+          <div class="sec-label"><span>62% ВІД МЕТИ</span></div>
+          <div class="water-btns" style="min-height:72px">
+            <button><span class="plus">+250</span><span class="ml">мл</span></button>
+            <button><span class="plus">+500</span><span class="ml">мл</span></button>
+            <button><span class="plus">+1000</span><span class="ml">мл</span></button>
+          </div>
+          <button class="undo-row">↩ ВІДМІНИТИ ОСТАННЄ (+250 МЛ)</button>
+          <div class="sec-label"><span>ІСТОРІЯ — СЬОГОДНІ</span></div>
+          <div class="row"><span class="sub">14:20</span><span class="sub">+500 мл</span></div>
+          <div class="row"><span class="sub">11:05</span><span class="sub">+500 мл</span></div>
+          <div class="row"><span class="sub">08:30</span><span class="sub">+250 мл</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- В3: финансы -->
+    <div class="frame-wrap">
+      <div class="frame-label">Финансы — mono-бары по категориям</div>
+      <div class="phone" data-var="3">
+        <div class="sysbar">
+          <div class="cell"><span class="val" style="color:var(--hp-hi)">72</span><span class="lbl">HP</span></div>
+          <div class="cell"><span class="val">7</span><span class="lbl">РІВЕНЬ</span></div>
+          <div class="cell"><span class="val" style="color:var(--accent-light)">+35</span><span class="lbl">XP</span></div>
+          <div class="cell"><span class="val">12🔥</span><span class="lbl">СТРІК</span></div>
+          <div class="profile">◎</div>
+        </div>
+        <div class="hubstrip">
+          <div class="home">⌂</div>
+          <div class="title"><span class="num">07</span><span class="name">ФІНАНСИ</span></div>
+          <div class="arrow">‹</div><div class="arrow">›</div>
+        </div>
+        <div style="border-left: 2px solid var(--mod-finance)">
+          <div class="sec-label"><span>7 ДНІВ</span><span>2 840 грн</span></div>
+          <div class="fin-form">
+            <input placeholder="Сума">
+            <input placeholder="Категорія (їжа...)">
+          </div>
+          <button class="btn-ink">Додати</button>
+          <div class="sec-label"><span>ЗА КАТЕГОРІЯМИ</span></div>
+          <div class="row"><span>їжа</span><span class="monobar">▮▮▮▮▮▮▮▮▮▮ 1250</span></div>
+          <div class="row"><span>транспорт</span><span class="monobar">▮▮▮▮▮▯▯▯▯▯ 640</span></div>
+          <div class="row"><span>кафе</span><span class="monobar">▮▮▮▮▯▯▯▯▯▯ 530</span></div>
+          <div class="row"><span>інше</span><span class="monobar">▮▮▮▯▯▯▯▯▯▯ 420</span></div>
+          <div class="sec-label"><span>ОПЕРАЦІЇ</span></div>
+          <div class="row"><span>кафе</span><span class="sub">180 · 2 лип.</span></div>
+          <div class="row"><span>їжа</span><span class="sub">470 · 1 лип.</span></div>
+          <div class="row"><span>транспорт</span><span class="sub">96 · 1 лип.</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<div class="note">Файл: docs/design-preview/redesign-variants.html · токены из miniapp/src/index.css · шрифты IBM Plex подгружаются из Google Fonts (нужен интернет)</div>
+
+<script>
+  const MODULES = [
+    { n: '01', name: 'Сьогодні' }, { n: '02', name: 'Вода' }, { n: '03', name: 'Ритуали' },
+    { n: '04', name: 'Завдання' }, { n: '05', name: 'Їжа' }, { n: '06', name: 'Сон' },
+    { n: '07', name: 'Фінанси' }, { n: '08', name: 'Цілі', locked: true }, { n: '09', name: 'Щоденник' },
+    { n: '10', name: 'Ідеї', locked: true }, { n: '11', name: 'Зустрічі', locked: true },
+    { n: '12', name: 'Дайджест', locked: true }, { n: '13', name: 'Нотатки' }, { n: '14', name: 'Тренування' },
+  ];
+
+  document.querySelectorAll('.navgrid').forEach(grid => {
+    const open = grid.dataset.grid === 'open';
+    const active = grid.dataset.active;
+    const items = open ? MODULES.filter(m => !m.locked) : MODULES;
+    let html = '';
+    items.forEach(m => {
+      const cls = m.locked ? 'cell locked' : (m.n === active ? 'cell active' : 'cell');
+      html += `<div class="${cls}"><span class="num">${m.n}</span><span class="name">${m.locked ? m.name + ' 🔒' : m.name}</span></div>`;
+    });
+    const rest = (3 - items.length % 3) % 3;
+    for (let i = 0; i < rest; i++) html += '<div class="cell empty"></div>';
+    grid.innerHTML = html;
+  });
+
+  function toggleTheme() {
+    document.querySelectorAll('.phone').forEach(p => {
+      p.dataset.theme = p.dataset.theme === 'dark' ? '' : 'dark';
+    });
+  }
+</script>
+
+</body>
+</html>
