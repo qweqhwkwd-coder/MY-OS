@@ -51,8 +51,8 @@
 - `components/SwipeRow.tsx` — универсальный свайп-компонент (свайп влево → кнопки действий), заменяет LongPressButton во всех экранах.
 - `components/SysBar.tsx`, `components/NavGrid.tsx` — верхняя системная панель + сетка навигации (только открытые модули; закрытые — строкой «СКОРО: …»; экспортирует `MODULES`/`OPEN_MODULES`).
 - `components/HubStrip.tsx` — свёрнутая сетка внутри модуля: `⌂ 02 / ВОДА ‹ ›` (⌂ — на главную, ‹ › — соседние модули по кольцу).
-- `components/MonoBar.tsx` — типографский прогресс-бар `▮▮▮▮▮▮▯▯▯▯` (фирменный элемент «Паперової ОС»), заменил графический ProgressBar везде кроме ProfileModal.
-- `components/ProfileModal.tsx` — профиль (ранг, percentile, HP, стрик, XP за сегодня, 8 статов) + вкладка настроек + вкладка «Тіло» с КБЖУ-калькулятором (формула Миффлина-Сент-Жора).
+- `components/MonoBar.tsx` — типографский прогресс-бар `▮▮▮▮▮▮▯▯▯▯` (фирменный элемент «Паперової ОС»), заменил графический ProgressBar везде (компонент ProgressBar.tsx удалён).
+- `components/ProfileModal.tsx` — профиль (ранг, percentile, HP, стрик, XP за сегодня, 8 статов — все бары MonoBar: ранг/XP акцентом, HP цветом hpColor, статы чернилами) + вкладка темы + вкладка «Тіло» с КБЖУ-калькулятором (формула Миффлина-Сент-Жора); кнопки шапки — текстовые mono «ТІЛО»/«ТЕМА», аватар квадратный.
 - `components/ErrorBoundary.tsx` — видимый экран краша вместо белого экрана.
 - `components/Toast.tsx` — ToastProvider/useToast (первый React Context в проекте), верх экрана, `aria-live`, sm 2.5с / lg 4с.
 - `components/XpChart.tsx` — LineChart XP за 30 дней (recharts), lazy-чанк чтобы не раздувать основной бандл (252KB против 599KB).

@@ -1,17 +1,17 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { api } from '../api'
 import type { ProfileData, XpPoint } from '../api'
-import { ProgressBar } from './ProgressBar'
-import { hpColor, kbjuFromKcal } from '../utils'
+import { MonoBar } from './MonoBar'
+import { hpColor, kbjuFromKcal, haptic } from '../utils'
 
 const XpChart = lazy(() => import('./XpChart'))
 
 export type Theme = 'light' | 'dark' | 'auto'
 
-const THEME_OPTIONS: { value: Theme; icon: string; label: string }[] = [
-  { value: 'light', icon: '☀️', label: 'Світла' },
-  { value: 'dark',  icon: '🌙', label: 'Темна' },
-  { value: 'auto',  icon: '◐',  label: 'Авто' },
+const THEME_OPTIONS: { value: Theme; label: string }[] = [
+  { value: 'light', label: 'Світла' },
+  { value: 'dark',  label: 'Темна' },
+  { value: 'auto',  label: 'Авто — за системою' },
 ]
 
 const STATS_META = [
@@ -84,11 +84,11 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
       >
         {(view === 'settings' || view === 'body') ? (
           <button
-            onClick={() => setView('profile')}
+            onClick={() => { haptic('light'); setView('profile') }}
             className="font-mono text-xs"
-            style={{ color: 'rgba(248,247,244,0.5)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0' }}
+            style={{ color: 'rgba(248,247,244,0.6)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', minHeight: '44px', letterSpacing: '0.06em' }}
           >
-            ← Профіль
+            ← ПРОФІЛЬ
           </button>
         ) : (
           <span className="font-condensed font-semibold text-base">Профіль</span>
@@ -97,27 +97,26 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
           {view === 'profile' && (
             <>
               <button
-                onClick={() => setView('body')}
-                className="font-mono text-sm"
-                style={{ color: 'rgba(248,247,244,0.5)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
-                aria-label="Тіло"
+                onClick={() => { haptic('light'); setView('body') }}
+                className="font-mono text-xs"
+                style={{ color: 'rgba(248,247,244,0.6)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', minHeight: '44px', letterSpacing: '0.06em' }}
               >
-                💪
+                ТІЛО
               </button>
               <button
-                onClick={() => setView('settings')}
-                className="font-mono text-sm"
-                style={{ color: 'rgba(248,247,244,0.5)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
-                aria-label="Налаштування"
+                onClick={() => { haptic('light'); setView('settings') }}
+                className="font-mono text-xs"
+                style={{ color: 'rgba(248,247,244,0.6)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', minHeight: '44px', letterSpacing: '0.06em' }}
               >
-                ⚙️
+                ТЕМА
               </button>
             </>
           )}
           <button
             onClick={onClose}
             className="font-mono text-sm"
-            style={{ color: 'rgba(248,247,244,0.5)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
+            style={{ color: 'rgba(248,247,244,0.6)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 10px', minHeight: '44px', minWidth: '44px' }}
+            aria-label="Закрити"
           >
             ✕
           </button>
@@ -230,6 +229,7 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
                       activity_level: bodyData.activity_level || undefined,
                       sex: bodyData.sex || undefined,
                     })
+                    haptic('success')
                     if (res.kcal_goal != null) setBodyKcal(res.kcal_goal)
                   } catch (e: unknown) {
                     setBodyErr(e instanceof Error ? e.message : 'Помилка збереження')
@@ -256,22 +256,20 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
           {THEME_OPTIONS.map(opt => (
             <button
               key={opt.value}
-              onClick={() => onThemeChange(opt.value)}
+              onClick={() => { haptic('light'); onThemeChange(opt.value) }}
               className="w-full flex items-center justify-between px-4 py-4 text-left"
               style={{
-                background: 'transparent',
+                background: theme === opt.value ? 'var(--subtle)' : 'transparent',
                 border: 'none',
                 borderBottom: '1px solid var(--subtle)',
                 cursor: 'pointer',
                 color: 'var(--ink)',
+                minHeight: '48px',
               }}
             >
-              <div className="flex items-center gap-3">
-                <span style={{ fontSize: '18px', lineHeight: 1, width: '24px', textAlign: 'center' }}>{opt.icon}</span>
-                <span className="font-condensed text-sm">{opt.label}</span>
-              </div>
+              <span className="font-condensed" style={{ fontSize: '15px' }}>{opt.label}</span>
               {theme === opt.value && (
-                <span className="font-mono text-xs" style={{ color: 'var(--accent)' }}>✓</span>
+                <span className="font-mono text-xs">✓</span>
               )}
             </button>
           ))}
@@ -283,7 +281,7 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
         <div className="px-4 py-5" style={{ borderBottom: '1px solid var(--subtle)' }}>
           <div className="flex items-center gap-3">
             <div
-              className="w-12 h-12 rounded-full flex items-center justify-center font-condensed font-bold text-xl"
+              className="w-12 h-12 flex items-center justify-center font-condensed font-bold text-xl"
               style={{ background: '#1a1a1a', color: '#f8f7f4' }}
             >
               {(profile.name || 'H').charAt(0).toUpperCase()}
@@ -305,7 +303,7 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
                   → {profile.next_rank} ({Math.max(0, Math.round((profile.next_rank_xp_min ?? 0) - avgXp))} XP)
                 </div>
               )}
-              <ProgressBar value={rankProgress} max={100} color="bg-indigo-600" />
+              <MonoBar value={rankProgress} max={100} color="var(--accent)" />
             </div>
             <div className="text-right flex-shrink-0">
               <div className="font-condensed font-bold text-4xl leading-none" style={{ color: 'var(--accent)' }}>
@@ -326,12 +324,7 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
               {profile.hp}/100
             </span>
           </div>
-          <div className="w-full h-3 rounded-full" style={{ background: 'var(--subtle)' }}>
-            <div
-              className="h-3 rounded-full transition-all duration-500"
-              style={{ width: `${profile.hp}%`, background: hpColor(profile.hp) }}
-            />
-          </div>
+          <MonoBar value={profile.hp} max={100} color={hpColor(profile.hp)} />
           <div className="font-mono text-xs mt-2" style={{ color: 'var(--muted)' }}>
             Вода 30% · Ритуали 40% · Сон 20% · Їжа 10% (3 дні)
           </div>
@@ -345,7 +338,7 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
               ще {xpToNext} XP → LV {profile.level + 1}
             </span>
           </div>
-          <ProgressBar value={xpInLevel} max={100} color="bg-indigo-600" height="h-2" />
+          <MonoBar value={xpInLevel} max={100} color="var(--accent)" />
         </div>
 
         {/* XP growth — 30 days */}
@@ -381,7 +374,7 @@ export function ProfileModal({ profile, onClose, theme, onThemeChange, initData 
                     lv{lvl} · {xp} xp
                   </span>
                 </div>
-                <ProgressBar value={progress} max={100} color="bg-indigo-600" />
+                <MonoBar value={progress} max={100} />
               </div>
             )
           })}
